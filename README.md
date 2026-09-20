@@ -3,7 +3,7 @@
 **Bangladesh-based legal self-help portal + Digital Legal Aid System (DLAS) prototype.**
 Built for the ADLASB Grand Finale case ("Five Doors, One Record") — but designed as a full public-facing platform, not a demo slide.
 
-🌐 **Live:** deploy to Vercel in 2 minutes (instructions below).
+🌐 **Live:** https://cou-justice-lab.vercel.app/
 
 ---
 
