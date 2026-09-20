@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60" fill="none">
+  <!-- Lotus mark: petals + torch of justice on an open book, CoU Justice Lab -->
+  <g stroke="#134970" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M18 30c4-9 11-14 22-15.5C51 16 58 21 62 30c-4 8-11 13-22 14.5C29 43 22 38 18 30Z" opacity=".55"/>
+    <path d="M40 8c4.5 4 7 9.5 7 16s-2.5 12-7 16c-4.5-4-7-9.5-7-16s2.5-12 7-16Z"/>
+    <path d="M24 16c5 1.5 9 5 11.5 9.5C38 30 38 35.5 36 40c-5-1.5-9-5-11.5-9.5C22 26 22 20.5 24 16Z" opacity=".8"/>
+    <path d="M56 16c-5 1.5-9 5-11.5 9.5C42 30 42 35.5 44 40c5-1.5 9-5 11.5-9.5C58 26 58 20.5 56 16Z" opacity=".8"/>
+  </g>
+  <g stroke="#134970" stroke-width="2" stroke-linecap="round" fill="none" opacity=".9">
+    <path d="M40 48v8"/>
+    <path d="M31 56h18" opacity=".8"/>
+    <path d="M27 52.5c1.8 1.2 4 1.2 5.8 0M47.2 52.5c1.8 1.2 4 1.2 5.8 0" opacity=".6"/>
+  </g>
+  <circle cx="40" cy="26" r="4.5" fill="#e8b23a" stroke="#134970" stroke-width="1.6"/>
+</svg>

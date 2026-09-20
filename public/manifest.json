@@ -1,0 +1,15 @@
+{
+  "name": "CoU Justice Lab — আইনি সহায়তা",
+  "short_name": "CoU Justice Lab",
+  "description": "বাংলাদেশভিত্তিক আইনি স্ব-সহায়তা প্ল্যাটফর্ম — আপনার অধিকার, দাবি ও আইনি প্রক্রিয়া সহজ ভাষায়",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f8fb",
+  "theme_color": "#134970",
+  "lang": "bn",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icons/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/logo-dark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
