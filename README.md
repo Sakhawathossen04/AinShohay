@@ -1,4 +1,4 @@
-# CoU Justice Lab — ন্যায়বন্ধু
+# CoU Justice Lab — ন্যায়বন্ধু..
 
 **Bangladesh-based legal self-help portal + Digital Legal Aid System (DLAS) prototype.**
 Built for the ADLASB Grand Finale case ("Five Doors, One Record") — but designed as a full public-facing platform, not a demo slide.
