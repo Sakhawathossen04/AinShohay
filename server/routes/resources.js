@@ -166,10 +166,10 @@ function handleResources(req, res, pathParts, query, body, ctx) {
     const stats = {
       totalApplications: db.get('SELECT count(*) as c FROM Application')?.c || 0,
       totalCases: db.get('SELECT count(*) as c FROM "Case"')?.c || 0,
-      openCases: db.get('SELECT count(*) as c FROM "Case" WHERE status = "OPEN"')?.c || 0,
-      inMediation: db.get('SELECT count(*) as c FROM "Case" WHERE status = "IN_MEDIATION"')?.c || 0,
-      lawyerAssigned: db.get('SELECT count(*) as c FROM "Case" WHERE status = "LAWYER_ASSIGNED"')?.c || 0,
-      closedCases: db.get('SELECT count(*) as c FROM "Case" WHERE status = "CLOSED"')?.c || 0,
+      openCases: db.get("SELECT count(*) as c FROM \"Case\" WHERE status = 'OPEN'")?.c || 0,
+      inMediation: db.get("SELECT count(*) as c FROM \"Case\" WHERE status = 'IN_MEDIATION'")?.c || 0,
+      lawyerAssigned: db.get("SELECT count(*) as c FROM \"Case\" WHERE status = 'LAWYER_ASSIGNED'")?.c || 0,
+      closedCases: db.get("SELECT count(*) as c FROM \"Case\" WHERE status = 'CLOSED'")?.c || 0,
       pilotDistricts: [
         { code: "JOY", name: "Joypurhat", nameBn: "জয়পুরহাট", applications: 18, cases: 12 },
         { code: "JHE", name: "Jhenaidah", nameBn: "ঝিনাইদহ", applications: 14, cases: 9 },

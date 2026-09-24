@@ -1027,6 +1027,55 @@
    "channel": "web",
    "createdAt": "2026-09-24T14:36:25.585Z",
    "caseId": "DLAS-CASE-2026-00904"
+  },
+  {
+   "appId": "DLAS-NET-2026-04434",
+   "userId": null,
+   "name": "ময়ূরী আক্তার",
+   "phone": "01711223344",
+   "nid": "",
+   "district": "Joypurhat",
+   "caseType": "family",
+   "purpose": "new",
+   "emergency": false,
+   "income": null,
+   "deps": null,
+   "problem": "পারিবারিক দেনমোহর ও ভরণপোষণ দাবি",
+   "office": "জেলা আইনি সহায়তা কার্যালয়, Joypurhat",
+   "sensitive": false,
+   "stage": 0,
+   "history": [
+    {
+     "at": "2026-09-24T16:31:47.543Z",
+     "label": "আবেদন জমা হয়েছে"
+    }
+   ],
+   "tasks": [],
+   "documents": [],
+   "representation": null,
+   "safeContact": null,
+   "failedContacts": [],
+   "audit": [
+    {
+     "at": "2026-09-24T16:31:47.543Z",
+     "actor": {
+      "role": "applicant"
+     },
+     "role": "applicant",
+     "action": "application-created",
+     "detail": "সরাসরি জমা",
+     "provenance": "applicant-confirmed"
+    }
+   ],
+   "provenance": {
+    "name": "applicant-confirmed",
+    "phone": "applicant-confirmed",
+    "nid": "applicant-confirmed",
+    "problem": "applicant-confirmed",
+    "income": "applicant-confirmed"
+   },
+   "channel": "assisted",
+   "createdAt": "2026-09-24T16:31:47.543Z"
   }
  ],
  "complaints": [],
@@ -1220,11 +1269,31 @@
    "q": "Hello",
    "at": "2026-09-24T14:08:50.012Z",
    "matched": "greeting"
+  },
+  {
+   "q": "hi",
+   "at": "2026-09-24T15:51:28.982Z",
+   "matched": "greeting"
+  },
+  {
+   "q": "hi",
+   "at": "2026-09-24T15:52:35.420Z",
+   "matched": "greeting"
+  },
+  {
+   "q": "hi",
+   "at": "2026-09-24T16:20:33.862Z",
+   "matched": "greeting"
+  },
+  {
+   "q": "hi",
+   "at": "2026-09-24T16:49:48.662Z",
+   "matched": "greeting"
   }
  ],
  "otps": {},
  "counters": {
-  "application": 4433,
+  "application": 4434,
   "complaint": 100,
   "user": 10,
   "case": 904

@@ -533,7 +533,7 @@ api.track = (b) => {
           : null;
 
         const hearing = kase
-          ? sqliteDb.get('SELECT * FROM Hearing WHERE caseId = ? AND status = "SCHEDULED" ORDER BY hearingDate ASC LIMIT 1', [kase.id])
+          ? sqliteDb.get("SELECT * FROM Hearing WHERE caseId = ? AND status = 'SCHEDULED' ORDER BY hearingDate ASC LIMIT 1", [kase.id])
           : null;
 
         const mediation = kase

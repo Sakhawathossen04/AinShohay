@@ -80,7 +80,7 @@ function handleLawyer(req, res, pathParts, query, body, ctx) {
     const now = new Date().toISOString();
 
     db.transaction(() => {
-      db.run('UPDATE LawyerAssignment SET status = "RELEASED", updatedAt = ? WHERE caseId = ? AND status = "ACCEPTED"', [now, caseId]);
+      db.run("UPDATE LawyerAssignment SET status = 'RELEASED', updatedAt = ? WHERE caseId = ? AND status = 'ACCEPTED'", [now, caseId]);
       db.run(`
         INSERT INTO LawyerAssignment (
           id, caseId, lawyerUserId, status, assignedAt, stage, paymentStatus, paymentNote, createdAt, updatedAt

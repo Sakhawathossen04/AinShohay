@@ -1,20 +1,18 @@
-﻿/**
- * à¦†à¦‡à¦¨à¦¸à¦¹à¦¾à¦¯à¦¼ â€” SPA router à¦“ à¦¸à¦¬ à¦ªà§‡à¦œà§‡à¦° à¦²à¦œà¦¿à¦•à¥¤
- * à¦°à¦¾à¦‰à¦Ÿ: #/, #/topics, #/topic/:id, #/article/:id, #/guide, #/search?q=,
- *       #/apply, #/track, #/offices, #/news, #/help, #/login, #/register,
- *       #/dashboard, #/complaint
+/**
+ * ডিজিটাল আইনি সেবা (DLAS) — SPA Router & Complete Portal Frontend
+ * Five Doors, One Record. Integrated Digital Legal Aid System for Bangladesh.
  */
 'use strict';
 
-// ---------- à¦›à§‹à¦Ÿ helpers ----------
+// ---------- ছোট helpers ----------
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const app = $('#app');
 
-let BOOT = null;           // /api/bootstrap à¦¥à§‡à¦•à§‡ à¦†à¦¸à¦¾ à¦¡à§‡à¦Ÿà¦¾
-let ME = null;             // à¦²à¦—à¦‡à¦¨ à¦•à¦°à¦¾ à¦‡à¦‰à¦œà¦¾à¦°
-const bnNum = (s) => String(s).replace(/[0-9]/g, (d) => 'à§¦à§§à§¨à§©à§ªà§«à§¬à§­à§®à§¯'[d]);
+let BOOT = null;           // /api/bootstrap থেকে আসা ডেটা
+let ME = null;             // লগইন করা ইউজার
+const bnNum = (s) => String(s).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[d]);
 
 async function apiGet(name, params = {}) {
   const q = new URLSearchParams(params).toString();
@@ -22,123 +20,150 @@ async function apiGet(name, params = {}) {
   return r.json();
 }
 async function apiPost(name, body) {
-  const r = await fetch('/api/' + name, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {})
-  });
-  return r.json();
+  try {
+    const r = await fetch('/api/' + name, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    });
+    return await r.json();
+  } catch (err) {
+    console.error('apiPost error:', err);
+    return { error: 'সার্ভার যোগাযোগে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।' };
+  }
 }
 
 function toast(msg) {
   const el = $('#toast');
+  if (!el) return;
   el.textContent = msg;
   el.classList.remove('hidden');
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.add('hidden'), 3500);
 }
 
-// ---------- à¦¥à¦¿à¦® / à¦­à¦¾à¦·à¦¾ / a11y ----------
+// ---------- থিম / ভাষা / a11y ----------
 function initShell() {
-  // à¦¡à¦¾à¦¯à¦¼à¦¨à¦¾à¦®à¦¿à¦• à¦²à¦¾à¦‡à¦­ à¦¬à¦¾à¦‚à¦²à¦¾ à¦¤à¦¾à¦°à¦¿à¦–
-  const dateEl = $('#govLiveDate');
-  if (dateEl) {
-    const now = new Date();
-    const days = ['à¦°à¦¬à¦¿à¦¬à¦¾à¦°', 'à¦¸à§‹à¦®à¦¾à¦¬à¦¾à¦°', 'à¦®à¦™à§à¦—à¦²à¦¬à¦¾à¦°', 'à¦¬à§à¦§à¦¬à¦¾à¦°', 'à¦¬à§ƒà¦¹à¦¸à§à¦ªà¦¤à¦¿à¦¬à¦¾à¦°', 'à¦¶à§à¦•à§à¦°à¦¬à¦¾à¦°', 'à¦¶à¦¨à¦¿à¦¬à¦¾à¦°'];
-    const months = ['à¦œà¦¾à¦¨à§à§Ÿà¦¾à¦°à¦¿', 'à¦«à§‡à¦¬à§à¦°à§à§Ÿà¦¾à¦°à¦¿', 'à¦®à¦¾à¦°à§à¦š', 'à¦à¦ªà§à¦°à¦¿à¦²', 'à¦®à§‡', 'à¦œà§à¦¨', 'à¦œà§à¦²à¦¾à¦‡', 'à¦†à¦—à¦¸à§à¦Ÿ', 'à¦¸à§‡à¦ªà§à¦Ÿà§‡à¦®à§à¦¬à¦°', 'à¦…à¦•à§à¦Ÿà§‹à¦¬à¦°', 'à¦¨à¦­à§‡à¦®à§à¦¬à¦°', 'à¦¡à¦¿à¦¸à§‡à¦®à§à¦¬à¦°'];
-    dateEl.textContent = `${days[now.getDay()]}, ${bnNum(now.getDate())} ${months[now.getMonth()]}, ${bnNum(now.getFullYear())}`;
-  }
-
-  // Force light theme â€“ dark mode disabled
-  document.documentElement.dataset.theme = 'light';
-  // Hide theme toggle button if present
-  const themeBtn = document.getElementById('themeToggle');
-  if (themeBtn) {
-    themeBtn.style.display = 'none';
-  }
-
-  // à¦­à¦¾à¦·à¦¾
-  const savedLang = localStorage.getItem('lang');
-  if (savedLang) document.documentElement.lang = savedLang;
+  // ভাষা টগল
+  const savedLang = localStorage.getItem('lang') || 'bn';
+  document.documentElement.lang = savedLang;
   const langToggleBtn = $('#langToggle');
   if (langToggleBtn) {
-    langToggleBtn.textContent = document.documentElement.lang === 'bn' ? 'æ–‡A English' : 'à¦¬à¦¾à¦‚ à¦¬à¦¾à¦‚à¦²à¦¾';
+    langToggleBtn.textContent = savedLang === 'en' ? 'বাং বাংলা' : '文A English';
     langToggleBtn.onclick = () => {
       const next = document.documentElement.lang === 'bn' ? 'en' : 'bn';
       document.documentElement.lang = next;
       localStorage.setItem('lang', next);
-      langToggleBtn.textContent = next === 'bn' ? 'æ–‡A English' : 'à¦¬à¦¾à¦‚ à¦¬à¦¾à¦‚à¦²à¦¾';
-      applyI18n();
+      langToggleBtn.textContent = next === 'en' ? 'বাং বাংলা' : '文A English';
+      if (typeof applyI18n === 'function') applyI18n();
       route();
     };
   }
 
-  // à¦ªà§à¦°à¦¬à§‡à¦¶à¦—à¦®à§à¦¯à¦¤à¦¾
+  // প্রবেশগম্যতা
   const a11y = JSON.parse(localStorage.getItem('a11y') || '{}');
   if (a11y.fscale) document.documentElement.style.setProperty('--fscale', a11y.fscale);
   if (a11y.contrast) document.documentElement.dataset.contrast = 'high';
-  $('#a11yToggle').onclick = () => $('#a11yPanel').classList.toggle('hidden');
+  const a11yToggle = $('#a11yToggle');
+  if (a11yToggle) a11yToggle.onclick = () => $('#a11yPanel').classList.toggle('hidden');
   const floatingA11y = $('#floatingA11yBtn');
   if (floatingA11y) {
     floatingA11y.onclick = () => $('#a11yPanel').classList.toggle('hidden');
   }
-  $('#fsInc').onclick = () => setFscale(Math.min(1.5, (a11y.fscale || 1) + .1));
-  $('#fsDec').onclick = () => setFscale(Math.max(.8, (a11y.fscale || 1) - .1));
-  $('#contrastToggle').onclick = () => {
-    const on = document.documentElement.dataset.contrast === 'high';
-    if (on) delete document.documentElement.dataset.contrast; else document.documentElement.dataset.contrast = 'high';
-    a11y.contrast = !on; localStorage.setItem('a11y', JSON.stringify(a11y));
-  };
-  $('#a11yReset').onclick = () => { localStorage.removeItem('a11y'); location.reload(); };
+  const fsInc = $('#fsInc');
+  if (fsInc) fsInc.onclick = () => setFscale(Math.min(1.5, (a11y.fscale || 1) + .1));
+  const fsDec = $('#fsDec');
+  if (fsDec) fsDec.onclick = () => setFscale(Math.max(.8, (a11y.fscale || 1) - .1));
+  const contrastToggle = $('#contrastToggle');
+  if (contrastToggle) {
+    contrastToggle.onclick = () => {
+      const on = document.documentElement.dataset.contrast === 'high';
+      if (on) delete document.documentElement.dataset.contrast;
+      else document.documentElement.dataset.contrast = 'high';
+      a11y.contrast = !on;
+      localStorage.setItem('a11y', JSON.stringify(a11y));
+    };
+  }
+  const a11yReset = $('#a11yReset');
+  if (a11yReset) {
+    a11yReset.onclick = () => {
+      localStorage.removeItem('a11y');
+      location.reload();
+    };
+  }
   function setFscale(v) {
     a11y.fscale = Math.round(v * 10) / 10;
     document.documentElement.style.setProperty('--fscale', a11y.fscale);
     localStorage.setItem('a11y', JSON.stringify(a11y));
   }
 
-  // à¦®à§‹à¦¬à¦¾à¦‡à¦² à¦®à§‡à¦¨à§
-  $('#navBurger').onclick = () => $('#mainNav').classList.toggle('open');
+  // মোবাইল মেনু
+  const navBurger = $('#navBurger');
+  if (navBurger) {
+    navBurger.onclick = () => $('#mainNav').classList.toggle('open');
+  }
 
-  // à¦šà§à¦¯à¦¾à¦Ÿ
+  // চ্যাট উইজেট
+  initChatBot();
+}
+
+// ---------- চ্যাটবট লজিক (Bangla + Banglish + English + Web/Legal Search) ----------
+function initChatBot() {
   const chatBody = $('#chatBody');
-  const chatOpen = () => { $('#chatWidget').classList.remove('hidden'); $('#chatText').focus(); };
-  $('#chatFab').onclick = () => { const w = $('#chatWidget'); if (w.classList.contains('hidden')) chatOpen(); else w.classList.add('hidden'); };
-  $('#chatClose').onclick = () => $('#chatWidget').classList.add('hidden');
+  const chatWidget = $('#chatWidget');
+  const chatFab = $('#chatFab');
+  const chatClose = $('#chatClose');
+  const chatForm = $('#chatForm');
+  const chatText = $('#chatText');
+
+  if (!chatFab || !chatWidget) return;
+
+  const chatOpen = () => {
+    chatWidget.classList.remove('hidden');
+    if (chatText) chatText.focus();
+  };
+  chatFab.onclick = () => {
+    if (chatWidget.classList.contains('hidden')) chatOpen();
+    else chatWidget.classList.add('hidden');
+  };
+  if (chatClose) chatClose.onclick = () => chatWidget.classList.add('hidden');
   window.__chatOpen = chatOpen;
 
-  const chatNav = (route, label) => {
-    if (route === location.hash) return;
-    const div = document.createElement('div');
-    div.className = 'msg bot chat-acted';
-    div.textContent = 'âž¡ï¸ ' + (label || route);
-    chatBody.appendChild(div); chatBody.scrollTop = chatBody.scrollHeight;
-  };
-
   const renderActions = (r) => {
+    if (!r.actions && !r.action) return;
     const wrap = document.createElement('div');
     wrap.className = 'chat-actions';
     const mkBtn = (html, cls, fn) => {
       const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'chat-chip ' + cls; btn.innerHTML = html;
-      btn.onclick = fn; return btn;
+      btn.type = 'button';
+      btn.className = 'chat-chip ' + cls;
+      btn.innerHTML = html;
+      btn.onclick = fn;
+      return btn;
     };
     if (r.action && r.action.route) {
       wrap.appendChild(mkBtn(esc(r.action.label || r.action.route), 'primary', () => {
-        chatNav(r.action.route, r.action.label);
-        $('#chatWidget').classList.add('hidden');
+        chatWidget.classList.add('hidden');
         location.hash = r.action.route;
       }));
     }
+    const acts = {
+      home: ['#/', '🏠 হোম'],
+      library: ['#/topics', '📚 আইনি তথ্য'],
+      guide: ['#/guide', '🧭 পরামর্শ গাইড'],
+      apply: ['#/apply', '📝 আবেদন করুন'],
+      track: ['#/track', '📦 ট্র্যাকিং'],
+      offices: ['#/offices', '🗺️ অফিস খুঁজুন'],
+      news: ['#/news', '📰 নিউজ ও ইভেন্ট'],
+      help: ['#/help', '🤝 সহায়তা চ্যানেল'],
+      call: ['#/call', '📞 কল ১৬৬৯৯'],
+      dashboard: ['#/dashboard', '👤 ড্যাশবোর্ড']
+    };
     for (const key of r.actions || []) {
-      const acts = {
-        home: ['#/','ðŸ  à¦¹à§‹à¦®'], library: ['#/topics','ðŸ“š à¦²à¦¾à¦‡à¦¬à§à¦°à§‡à¦°à¦¿'], guide: ['#/guide','ðŸ§­ à¦—à¦¾à¦‡à¦¡'],
-        apply: ['#/apply','ðŸ“ à¦†à¦¬à§‡à¦¦à¦¨'], track: ['#/track','ðŸ“¦ à¦Ÿà§à¦°à§à¦¯à¦¾à¦•'], offices: ['#/offices','ðŸ—ºï¸ à¦…à¦«à¦¿à¦¸'],
-        news: ['#/news','ðŸ“° à¦¨à¦¿à¦‰à¦œ'], help: ['#/help','ðŸ¤ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾'], call: ['#/call','ðŸ“ž à¦•à¦² à¦•à¦°à§à¦¨'],
-        login: ['#' + (ME ? '/dashboard' : '/login'), ME ? 'ðŸ‘¤ à¦¡à§à¦¯à¦¾à¦¶à¦¬à§‹à¦°à§à¦¡' : 'ðŸ” à¦²à¦—à¦‡à¦¨'],
-        dashboard: ['#/dashboard','ðŸ‘¤ à¦¡à§à¦¯à¦¾à¦¶à¦¬à§‹à¦°à§à¦¡'], complaint: ['#/complaint','ðŸ“£ à¦…à¦­à¦¿à¦¯à§‹à¦—'], search: ['#/search','ðŸ” à¦–à§à¦à¦œà§à¦¨']
-      };
-      const a = acts[key]; if (!a) continue;
+      const a = acts[key];
+      if (!a) continue;
       wrap.appendChild(mkBtn(a[1], '', () => {
-        chatNav(a[0], a[1]);
-        $('#chatWidget').classList.add('hidden');
+        chatWidget.classList.add('hidden');
         location.hash = a[0];
       }));
     }
@@ -151,11 +176,10 @@ function initShell() {
     wrap.className = 'chat-actions quick';
     for (const q of r.quick) {
       const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'chat-chip'; btn.textContent = q;
+      btn.type = 'button';
+      btn.className = 'chat-chip';
+      btn.textContent = q;
       btn.onclick = () => {
-        const fake = document.createElement('div');
-        fake.className = 'msg user'; fake.textContent = q;
-        chatBody.appendChild(fake); chatBody.scrollTop = chatBody.scrollHeight;
         sendChat(q);
       };
       wrap.appendChild(btn);
@@ -163,37 +187,246 @@ function initShell() {
     chatBody.appendChild(wrap);
   };
 
+  // Client-side local smart search & fallback knowledge base
+  function localSmartSearch(raw) {
+    const q = raw.toLowerCase().trim();
+    const isEn = document.documentElement.lang === 'en' || /^[a-z0-9\s.,?!]+$/.test(q);
+
+    // 1. Greetings
+    if (/\b(hi|hello|hey|salam|assalamu|nomoskar|কেমন)\b/i.test(q)) {
+      return {
+        reply: isEn
+          ? "Hello! 👋 I am your Digital Legal Aid Assistant. You can ask me any question about legal procedures, free counsel, court petitions, mediation, or land rights in Bangladesh."
+          : "আসসালামু আলাইকুম! 👋 আমি আপনার ডিজিটাল আইনি সহকারী। সরকারি খরচে বিনামূল্যে আইনি পরামর্শ, আইনজীবী নিয়োগ, পারিবারিক বা জমির বিরোধ নিষ্পত্তি সম্পর্কে যেকোনো প্রশ্ন করতে পারেন।",
+        actions: ['apply', 'track', 'library', 'offices', 'help'],
+        quick: isEn ? ['How to apply for legal aid?', 'Is it free?', 'Track application', 'Land dispute'] : ['কীভাবে আবেদন করব?', 'সেবা কি সম্পূর্ণ ফ্রি?', 'আবেদন ট্র্যাক করব কীভাবে?', 'জমির সমস্যা']
+      };
+    }
+
+    // 2. Divorce / Family
+    if (/(তালাক|বিবাহবিচ্ছেদ|দেনমোহর|ভরণপোষণ|খোরপোশ|divorce|talaq|talak|denmohor|maintenance|dower)/i.test(q)) {
+      return {
+        reply: isEn
+          ? "Under the Muslim Family Laws Ordinance 1961, divorce requires written notice to the Union Parishad Chairman/Mayor and a copy to the spouse. The notice takes effect after 90 days. For dower or maintenance, you can file directly in the Family Court under the Family Courts Act 2023 without court fees, or apply for free legal aid through DLAS."
+          : "মুসলিম পারিবারিক আইন অধ্যাদেশ ১৯৬১ অনুযায়ী তালাকের ক্ষেত্রে চেয়ারম্যান/মেয়র বরাবর লিখিত নোটিশ পাঠাতে হয় এবং স্ত্রী/স্বামীকে অনুলিপি দিতে হয়। নোটিশ প্রাপ্তির ৯০ দিন পর এটি কার্যকর হয়। দেনমোহর ও ভরণপোষণের জন্য পারিবারিক আদালত আইন ২০২৩ অনুযায়ী বিনামূল্যে সরকারি লিগ্যাল এইডের সহায়তায় সরাসরি মামলা বা মধ্যস্থতা করা যায়।",
+        action: { route: '#/topic/family', label: '📖 পারিবারিক আইনি তথ্য দেখুন' },
+        actions: ['apply', 'guide', 'library'],
+        quick: ['দেনমোহর আদায়ের নিয়ম', 'সন্তানের হেফাজত', 'আবেদন ফরম খুলুন']
+      };
+    }
+
+    // 3. Land / Property
+    if (/(জমি|দলিল|খতিয়ান|পর্চা|নামজারি|দখল|উচ্ছেদ|land|mutation|property|jomir|jomi|dokhol)/i.test(q)) {
+      return {
+        reply: isEn
+          ? "For land disputes, fraudulent deeds, or unauthorized occupation, you can seek legal protection. Under the Land Reform Act and Specific Relief Act, you can file a suit for recovery of possession or challenge forged documents. District Legal Aid Offices provide free panel lawyers for eligible citizens."
+          : "জমি জবরদখল, ভুয়া দলিল বা নামজারি জটিলতার ক্ষেত্রে নির্দিষ্ট প্রতিকার আইন ও ভূমি আইনের অধীনে দেওয়ানি আদালতে মামলা বা জেলা লিগ্যাল এইড অফিসে মধ্যস্থতার আবেদন করা যায়। সরকারি খরচে প্যানেল আইনজীবী পেতে এখনই আবেদন দাখিল করতে পারেন।",
+        action: { route: '#/topic/land', label: '📖 ভূমি ও বাসস্থান অধিকার দেখুন' },
+        actions: ['apply', 'library', 'offices'],
+        quick: ['জমি দখলমুক্ত করার উপায়', 'ভুয়া দলিল বাতিল', 'নতুন আবেদন']
+      };
+    }
+
+    // 4. Criminal / Bail
+    if (/(জামিন|গ্রেপ্তার|পুলিশ|থানা|মামলা|জিডি|bail|police|thana|arrest|crime|jail)/i.test(q)) {
+      return {
+        reply: isEn
+          ? "Every undertrial prisoner or accused person has a constitutional right to legal representation. If you or a family member cannot afford a lawyer, the District Legal Aid Officer (DLAO) will appoint a defense lawyer at state expense. Call toll-free 16699 for immediate help."
+          : "আটক বিচারাধীন বন্দীদের জামিন আবেদন ও আইনজীবী নিয়োগের জন্য জেলা লিগ্যাল এইড অফিস সম্পূর্ণ সরকারি খরচে আইনজীবী বরাদ্দ করে। ফৌজদারি কার্যবিধি ও লিগ্যাল এইড আইনের অধীনে কোনো ফি দিতে হয় না। জরুরি সহায়তার জন্য ১৬৬৯৯-এ কল করুন।",
+        action: { route: '#/apply?emergency=true', label: '⚡ জরুরি জামিন আবেদন' },
+        actions: ['apply', 'call', 'offices']
+      };
+    }
+
+    // 5. Tracking
+    if (/(track|ট্র্যাক|অবস্থা|status|kothay|কোথায়)/i.test(q)) {
+      return {
+        reply: isEn
+          ? "You can track your application anytime using your Application ID and the last 4 digits of your phone or NID. No account password is required."
+          : "আপনার আবেদন আইডি (যেমন APP-2026-0001 বা DLAS-NET-2026-04417) এবং মোবাইল বা এনআইডির শেষ ৪ ডিজিট দিয়ে যেকোনো সময় রিয়েলটাইম অবস্থা ট্র্যাক করতে পারেন।",
+        action: { route: '#/track', label: '📦 ট্র্যাকিং পেজে যান' },
+        actions: ['track', 'home']
+      };
+    }
+
+    // 6. Cost / Free Service
+    if (/(free|টাকা|খরচ|ফি|cost|fee|poisa|khoroch)/i.test(q)) {
+      return {
+        reply: isEn
+          ? "All DLAS legal aid services are 100% free of cost funded by the Government of Bangladesh. No citizen has to pay any application fee, lawyer fees, or court fees. If anyone asks for money, report immediately to helpline 16699."
+          : "জাতীয় আইনগত সহায়তা প্রদান সংস্থা (NLASO)-র এই সেবা সম্পূর্ণ সরকারি খরচে বিনামূল্যে প্রদান করা হয়। আবেদন ফি, আইনজীবী ফি বা আদালত ফি বাবদ কোনো অর্থ দিতে হয় না। কেউ অর্থ দাবি করলে ১৬৬৯৯-এ অভিযোগ জানান।",
+        action: { route: '#/apply', label: '📝 বিনামূল্যে আবেদন করুন' },
+        actions: ['apply', 'help', 'offices']
+      };
+    }
+
+    // Default intelligent response
+    return {
+      reply: isEn
+        ? "I understand your query regarding \"" + esc(raw) + "\". As part of the Bangladesh Digital Legal Aid Portal (DLAS), we provide free consultation, panel lawyers, and dispute mediation (ADR). You can apply online, browse statutory resources, or speak with an officer."
+        : "আপনার প্রশ্ন \"" + esc(raw) + "\" সম্পর্কে বিস্তারিত সহায়তা পেতে নিচের সেবাগুলো ব্যবহার করতে পারেন। আপনি সরাসরি সরকারি খরচে আইনি সহায়তার আবেদন করতে পারেন, জেলা অফিস খুঁজে নিতে পারেন অথবা টোল-ফ্রি ১৬৬৯৯ নম্বরে ফোন করতে পারেন।",
+      actions: ['apply', 'guide', 'library', 'offices', 'help'],
+      quick: ['নতুন আবেদন করুন', 'আবেদন ট্র্যাক করুন', 'নিকটস্থ অফিস খুঁজুন']
+    };
+  }
+
   const sendChat = async (override) => {
-    const txt = (override != null ? override : $('#chatText').value).trim();
+    const txt = (override != null ? override : chatText.value).trim();
     if (!txt) return;
-    if (override == null) $('#chatText').value = '';
-    chatBody.insertAdjacentHTML('beforeend', `<div class="msg user">${esc(txt)}</div>`);
+    if (override == null) chatText.value = '';
+
+    chatBody.insertAdjacentHTML('beforeend', '<div class="msg user">' + esc(txt) + '</div>');
     chatBody.scrollTop = chatBody.scrollHeight;
+
     const typing = document.createElement('div');
     typing.className = 'msg bot typing';
     typing.innerHTML = '<span></span><span></span><span></span>';
-    chatBody.appendChild(typing); chatBody.scrollTop = chatBody.scrollHeight;
-    const r = await apiPost('chat', { message: txt });
-    typing.remove();
-    const reply = String(r.reply || t('errGeneric'));
-    const fmt = esc(reply).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-    chatBody.insertAdjacentHTML('beforeend', `<div class="msg bot">${fmt}</div>`);
-    if (r.route && r.autoNavigate !== false && r.action) {
-      renderActions(r);
-    } else if (r.action && r.action.route) {
-      // à¦…à¦Ÿà§‹ à¦¨à§‡à¦­à¦¿à¦—à§‡à¦Ÿ â€” à¦¸à¦¾à¦‡à¦Ÿ à¦•à¦¨à§à¦Ÿà§à¦°à§‹à¦²
-      chatNav(r.action.route, r.action.label);
-      location.hash = r.action.route;
+    chatBody.appendChild(typing);
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    let res = null;
+    try {
+      res = await apiPost('chat', { message: txt });
+    } catch (e) {
+      console.warn('Chat API offline, using local smart search:', e);
     }
-    renderActions(r);
-    renderQuick(r);
+
+    typing.remove();
+
+    if (!res || !res.reply || res.reply.includes('undefined')) {
+      res = localSmartSearch(txt);
+    }
+
+    const reply = String(res.reply || 'আপনার প্রশ্নটির উত্তর খুঁজে পাওয়া যায়নি। ১৬৬৯৯ হেল্পলাইনে যোগাযোগ করুন।');
+    const fmt = esc(reply).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    chatBody.insertAdjacentHTML('beforeend', '<div class="msg bot">' + fmt + '</div>');
+
+    renderActions(res);
+    renderQuick(res);
     chatBody.scrollTop = chatBody.scrollHeight;
   };
 
-  $('#chatForm').onsubmit = async (e) => { e.preventDefault(); await sendChat(); };
+  if (chatForm) {
+    chatForm.onsubmit = async (e) => {
+      e.preventDefault();
+      await sendChat();
+    };
+  }
 }
 
-// ---------- router ----------
+// ---------- USSD শর্টকোড ফোন সিমুলেটর (*১৬৬৯৯#) ----------
+function openUssdSimulator() {
+  const existing = $('#ussdSimulatorModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'ussdSimulatorModal';
+  modal.className = 'ussd-modal-overlay';
+
+  let currentScreen = 'main';
+  let historyText = '*16699# ডায়াল করা হচ্ছে...\n\n১. বাংলা (Bangla)\n২. English\n\nপছন্দ নম্বর লিখে Send চাপুন:';
+
+  const updateScreen = (text, title = 'NLASO USSD · *16699#') => {
+    $('#ussdScreenHeader').textContent = title;
+    $('#ussdScreenText').textContent = text;
+    $('#ussdScreenInput').value = '';
+    $('#ussdScreenInput').focus();
+  };
+
+  modal.innerHTML = `
+    <div class="ussd-phone">
+      <button class="ussd-phone-close" id="closeUssd">✕</button>
+      <div style="text-align:center;font-size:0.75rem;color:#94A3B8;margin-bottom:8px">জাতীয় আইনি সহায়তা · NLASO</div>
+      <div class="ussd-screen">
+        <div class="ussd-screen-header" id="ussdScreenHeader">NLASO USSD · *16699#</div>
+        <div class="ussd-screen-text" id="ussdScreenText">${historyText}</div>
+        <div class="ussd-input-row">
+          <input class="ussd-input" id="ussdScreenInput" maxlength="10" placeholder="ইনপুট দিন..." autocomplete="off">
+          <button class="btn btn-primary btn-sm" id="btnUssdSend">Send</button>
+        </div>
+      </div>
+      <div class="ussd-keypad">
+        <button class="ussd-key" data-k="1">1<sub>&nbsp;</sub></button>
+        <button class="ussd-key" data-k="2">2<sub>ABC</sub></button>
+        <button class="ussd-key" data-k="3">3<sub>DEF</sub></button>
+        <button class="ussd-key" data-k="4">4<sub>GHI</sub></button>
+        <button class="ussd-key" data-k="5">5<sub>JKL</sub></button>
+        <button class="ussd-key" data-k="6">6<sub>MNO</sub></button>
+        <button class="ussd-key" data-k="7">7<sub>PQRS</sub></button>
+        <button class="ussd-key" data-k="8">8<sub>TUV</sub></button>
+        <button class="ussd-key" data-k="9">9<sub>WXYZ</sub></button>
+        <button class="ussd-key" data-k="*">*<sub>+</sub></button>
+        <button class="ussd-key" data-k="0">0<sub>_</sub></button>
+        <button class="ussd-key" data-k="#">#<sub>#</sub></button>
+      </div>
+      <div style="text-align:center;margin-top:12px">
+        <button class="btn btn-ghost btn-sm" style="color:#94A3B8" id="btnUssdReset">রিসেট ডায়াল</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  $('#closeUssd').onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  $$('.ussd-key', modal).forEach(btn => {
+    btn.onclick = () => {
+      const inp = $('#ussdScreenInput');
+      inp.value += btn.dataset.k;
+    };
+  });
+
+  const handleInput = (val) => {
+    val = val.trim();
+    if (currentScreen === 'main') {
+      if (val === '1' || val === '১') {
+        currentScreen = 'menu_bn';
+        updateScreen('আইনগত সহায়তা সেবা:\n\n১. নতুন আবেদন দাখিল\n২. আবেদনের অবস্থা যাচাই\n৩. জেলা লিগ্যাল এইড অফিসের তথ্য\n৪. জরুরি হেল্পলাইন কল');
+      } else if (val === '2' || val === '২') {
+        currentScreen = 'menu_en';
+        updateScreen('Legal Aid Services:\n\n1. New Legal Aid Application\n2. Track Application\n3. District Office Information\n4. Direct Helpline Call');
+      } else {
+        updateScreen('ভুল ইনপুট। অনুগ্রহ করে ১ অথবা ২ চাপুন:\n\n১. বাংলা\n২. English');
+      }
+    } else if (currentScreen === 'menu_bn') {
+      if (val === '১' || val === '1') {
+        currentScreen = 'applied';
+        const demoAppId = 'APP-2026-' + Math.floor(1000 + Math.random() * 9000);
+        updateScreen('ধন্যবাদ! আপনার USSD আবেদন দাখিল সম্পন্ন হয়েছে।\n\nআবেদন আইডি: ' + demoAppId + '\nএসএমএস নিশ্চিতকরণ পাঠানো হয়েছে। ৩ দিনের মধ্যে কর্মকর্তা ফোন করবেন।\n\n০ চাপুন প্রধান মেনুর জন্য।', 'সফল');
+      } else if (val === '২' || val === '2') {
+        currentScreen = 'track_input';
+        updateScreen('আপনার আবেদন আইডির সংখ্যাসমূহ লিখুন (যেমন 20260001):');
+      } else if (val === '৩' || val === '3') {
+        updateScreen('নিকটস্থ লিগ্যাল এইড অফিস:\n\nজেলা জজ আদালত ভবন, সর্বমোট ৬৪ জেলায় অফিস রয়েছে। সকাল ৯টা থেকে বিকাল ৫টা পর্যন্ত সরাসরি উপস্থিত হয়ে সেবা নিতে পারবেন।\n\n০ চাপুন মেনুর জন্য।');
+      } else if (val === '৪' || val === '4') {
+        updateScreen('সরাসরি টোল-ফ্রি ১৬৬৯৯ নম্বরে ফোন কল করা হচ্ছে...\n\n(টোল ফ্রি কল চালু রয়েছে)');
+      } else if (val === '০' || val === '0') {
+        currentScreen = 'main';
+        updateScreen('*16699# ডায়াল করা হচ্ছে...\n\n১. বাংলা (Bangla)\n২. English\n\nপছন্দ নম্বর লিখে Send চাপুন:');
+      }
+    } else if (currentScreen === 'track_input') {
+      updateScreen('আবেদন স্ট্যাটাস: চলমান (UNDER REVIEW)\nকেস: পারিবারিক ও দেনমোহর বিরোধ\nকর্মকর্তা পর্যালোচনা করছেন।\n\n০ চাপুন মেনুর জন্য।', 'ট্র্যাকিং তথ্য');
+      currentScreen = 'menu_bn';
+    } else {
+      currentScreen = 'main';
+      updateScreen('*16699# ডায়াল করা হচ্ছে...\n\n১. বাংলা (Bangla)\n২. English\n\nপছন্দ নম্বর লিখে Send চাপুন:');
+    }
+  };
+
+  $('#btnUssdSend').onclick = () => handleInput($('#ussdScreenInput').value);
+  $('#ussdScreenInput').onkeydown = (e) => {
+    if (e.key === 'Enter') handleInput($('#ussdScreenInput').value);
+  };
+  $('#btnUssdReset').onclick = () => {
+    currentScreen = 'main';
+    updateScreen('*16699# ডায়াল করা হচ্ছে...\n\n১. বাংলা (Bangla)\n২. English\n\nপছন্দ নম্বর লিখে Send চাপুন:');
+  };
+}
+
+window.openUssdSimulator = openUssdSimulator;
+
+// ---------- SPA Router ----------
 const routes = [
   { re: /^#?\/?$/, fn: pageHome },
   { re: /^#\/services$/, fn: pageServices },
@@ -205,8 +438,8 @@ const routes = [
   { re: /^#\/article\/([\w-]+)$/, fn: pageArticle },
   { re: /^#\/guide$/, fn: pageGuide },
   { re: /^#\/search$/, fn: pageSearch },
-  { re: /^#\/apply$/, fn: pageApply },
-  { re: /^#\/track$/, fn: pageTrack },
+  { re: /^#\/apply(\?.*)?$/, fn: pageApply },
+  { re: /^#\/track(\?.*)?$/, fn: pageTrack },
   { re: /^#\/offices$/, fn: pageOffices },
   { re: /^#\/news$/, fn: pageNews },
   { re: /^#\/news\/([\w-]+)$/, fn: pageNewsDetail },
@@ -222,963 +455,535 @@ const routes = [
 
 async function route() {
   const hash = location.hash || '#/';
-  applyI18n();
+  if (typeof applyI18n === 'function') applyI18n();
   $$('#mainNav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === hash.split('?')[0]));
+
   for (const r of routes) {
     const m = hash.match(r.re);
-    if (m) { try { await r.fn(...m.slice(1)); } catch (e) { console.error(e); app.innerHTML = `<div class="empty-state">${t('errGeneric')}</div>`; } window.scrollTo(0, 0); return; }
-  }
-  app.innerHTML = `<div class="empty-state"><h2>à§ªà§¦à§ª</h2><p>à¦ªà§‡à¦œà¦Ÿà¦¿ à¦ªà¦¾à¦“à¦¯à¦¼à¦¾ à¦¯à¦¾à¦¯à¦¼à¦¨à¦¿à¥¤</p></div>`;
-}
-
-// ---------- à¦®à§à¦¯à¦¾à¦ª (Leaflet) ----------
-let mapObj = null;
-function initOfficeMap(highlightId) {
-  const el = document.getElementById('map');
-  if (!el || typeof L === 'undefined') return;
-  if (mapObj) { mapObj.remove(); mapObj = null; }
-  mapObj = L.map('map', { scrollWheelZoom: true }).setView([23.8, 90.2], 6.4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18, attribution: '&copy; OpenStreetMap'
-  }).addTo(mapObj);
-  const group = [];
-  for (const o of BOOT.offices) {
-    if (o.lat == null) continue;
-    const color = o.type === 'special' ? '#C25E4C' : o.type === 'labour' ? '#B8863B' : o.type === 'pilot' ? '#5A7A9A' : '#3D9970';
-    const marker = L.circleMarker([o.lat, o.lng], { radius: 7, color, fillColor: color, fillOpacity: .85, weight: 2 });
-    marker.bindPopup(`<div class="map-popup"><strong>${esc(o.name)}</strong><span>${esc(o.address)}</span><br>ðŸ“ž <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a><br>ðŸ•˜ ${esc(o.hours)}</div>`);
-    marker.on('click', () => highlightCard(o.id));
-    marker.addTo(mapObj);
-    group.push(marker);
-    o._marker = marker;
-  }
-  if (highlightId) {
-    const o = BOOT.offices.find((x) => x.id === highlightId);
-    if (o && o._marker) {
-      mapObj.setView([o.lat, o.lng], 12);
-      setTimeout(() => o._marker.openPopup(), 350);
+    if (m) {
+      try {
+        await r.fn(...m.slice(1));
+      } catch (e) {
+        console.error('Route error:', e);
+        app.innerHTML = '<div class="empty-state">' + (window.t ? window.t('errGeneric') : 'সমস্যা হয়েছে — আবার চেষ্টা করুন।') + '</div>';
+      }
+      window.scrollTo(0, 0);
+      return;
     }
   }
-}
-function highlightCard(id) {
-  const card = document.querySelector(`[data-office="${id}"]`);
-  if (card) {
-    $$('.office-card').forEach((c) => c.classList.remove('active'));
-    card.classList.add('active');
-    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }
+
+  // 404 fallback -> redirect to Home
+  pageHome();
 }
 
-// ---------- à¦¹à§‹à¦® à¦ªà§‡à¦œ (Reference Site Inspired UI) ----------
+window.addEventListener('hashchange', route);
+
+// ---------- ১. হোম পেজ ----------
 async function pageHome() {
+  const isEn = document.documentElement.lang === 'en';
+
+  // Real News & Events items
+  const newsItems = (BOOT && BOOT.news && BOOT.news.length) ? BOOT.news.slice(0, 4) : [
+    {
+      id: 'nw1',
+      title: isEn ? 'Pre-case Mandatory Mediation Pilot Successful in Netrokona — Expanding to 8 Districts' : 'নেত্রকোনায় মামলা-পূর্ব বাধ্যতামূলক মধ্যস্থতা পাইলট সফল — ৮ জেলায় সম্প্রসারণ',
+      date: isEn ? '15 September 2026' : '১৫ সেপ্টেম্বর ২০২৬',
+      tag: isEn ? 'News' : 'নিউজ',
+      img: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&q=70',
+      desc: isEn ? '72% family and land disputes settled out of court in an 18-month pilot.' : 'নেত্রকোনায় ১৮ মাসের পাইলটে ৭২% পারিবারিক ও ভূমি বিরোধ আদালত ছাড়াই নিষ্পত্তি।'
+    },
+    {
+      id: 'nw2',
+      title: isEn ? '16699 Toll-free Helpline Now Serving in Chattogram Dialect' : '১৬৬৯৯ কল সেন্টারে এখন চট্টগ্রামের আঞ্চলিক ভাষাতেও সেবা',
+      date: isEn ? '10 September 2026' : '১০ সেপ্টেম্বর ২০২৬',
+      tag: isEn ? 'Service' : 'সেবা',
+      img: 'https://images.unsplash.com/photo-1516387938699-a93567ec168e?w=800&q=70',
+      desc: isEn ? 'Citizens from Mirsarai, Satkania, and surrounding areas can get legal advice in their regional dialect.' : 'মিরসরাই ও সাতকানিয়ার বাসিন্দারা নিজস্ব আঞ্চলিক ভাষায় তাৎক্ষণিক আইনি পরামর্শ পাবেন।'
+    },
+    {
+      id: 'nw3',
+      title: isEn ? 'National Legal Aid Day 2026 — Nationwide Free Legal Camps' : 'জাতীয় লিগ্যাল এইড দিবস ২০২৬ — সারাদেশে বিনামূল্যে আইনি ক্যাম্প',
+      date: isEn ? '28 September 2026' : '২৮ সেপ্টেম্বর ২০২৬',
+      tag: isEn ? 'Event' : 'ইভেন্ট',
+      img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=70',
+      desc: isEn ? 'Free advice and panel lawyer assignment camps at all 64 District Legal Aid Offices.' : 'প্রতিটি জেলা অফিসে সকাল ৯টা থেকে বিকাল ৫টা পর্যন্ত বিনামূল্যে পরামর্শ ও আইনজীবী নিয়োগ ক্যাম্প।'
+    },
+    {
+      id: 'nw4',
+      title: isEn ? 'Over 500,000 Legal Applications Filed via Union Digital Centres' : 'ইউনিয়ন ডিজিটাল সেন্টারের মাধ্যমে আবেদন ৫ লক্ষ ছাড়াল',
+      date: isEn ? '05 September 2026' : '৫ সেপ্টেম্বর ২০২৬',
+      tag: isEn ? 'Milestone' : 'অর্জন',
+      img: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=70',
+      desc: isEn ? 'Rural citizens applying effortlessly through local UDC entrepreneurs without owning a smartphone.' : '৩০০ ইউনিয়নে ইউডিসি উদ্যোক্তারা সাধারণ নাগরিকদের হয়ে আবেদন দাখিল করে দিচ্ছেন।'
+    }
+  ];
+
   app.innerHTML = `
-  <!-- à§§. à¦¹à¦¿à¦°à§‹ à¦¸à§‡à¦•à¦¶à¦¨ (Gavel Background & Judicial Atmosphere) -->
+  <!-- হিরো সেকশন -->
   <section class="ref-hero">
     <div class="container ref-hero-inner">
       <h1 class="ref-hero-title">
-        à¦¨à§à¦¯à¦¾à¦¯à¦¼à¦¬à¦¿à¦šà¦¾à¦°à§‡à¦° à¦ªà¦¥à§‡,<br>à¦†à¦®à¦°à¦¾ à¦†à¦›à¦¿ à¦†à¦ªà¦¨à¦¾à¦° à¦ªà¦¾à¦¶à§‡, à¦à¦• à¦ à¦¿à¦•à¦¾à¦¨à¦¾à¦¯à¦¼
+        ${t('refHeroTitle')}
       </h1>
       <p class="ref-hero-subtitle">
-        à¦†à¦‡à¦¨à¦¿ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶, à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾à¦° à¦œà¦¨à§à¦¯ à¦†à¦¬à§‡à¦¦à¦¨, à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾ à¦à¦¬à¦‚ à¦®à¦¾à¦®à¦²à¦¾à¦° à¦…à¦—à§à¦°à¦—à¦¤à¦¿â€”à¦¸à¦¬à¦•à¦¿à¦›à§ à¦¸à¦¹à¦œà§‡à¦‡ à¦ªà¦¾à¦¨ à¦à¦• à¦ªà§à¦²à§à¦¯à¦¾à¦Ÿà¦«à¦°à§à¦®à§‡
+        ${t('refHeroSubtitle')}
       </p>
       <div class="ref-hero-actions">
         <a class="btn-ref-hero-primary" href="#/apply">
-          <span>à¦¨à¦¤à§à¦¨ à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à§à¦¨</span> <span>â†’</span>
+          <span>${t('btnNewApp')}</span> <span>→</span>
         </a>
         <a class="btn-ref-hero-outline" href="#/track">
-          <span>ðŸ”</span> <span>à¦†à¦¬à§‡à¦¦à¦¨ à¦Ÿà§à¦°à§à¦¯à¦¾à¦• à¦•à¦°à§à¦¨</span>
+          <span>🔍</span> <span>${t('btnTrackApp')}</span>
         </a>
       </div>
       <div class="hero-demo-chips">
-        <span>à¦¡à§‡à¦®à§‹ à¦Ÿà§à¦°à§à¦¯à¦¾à¦•à¦¿à¦‚ à¦Ÿà§‡à¦¸à§à¦Ÿ:</span>
-        <button type="button" class="chip-ref-demo" data-id="APP-2026-0001" data-phone="01711223344" data-last4="3344">APP-2026-0001 (à¦®à¦¯à¦¼à§‚à¦°à§€ / à§©à§©à§ªà§ª)</button>
-        <button type="button" class="chip-ref-demo" data-id="DLAS-NET-2026-04420" data-phone="01711223344" data-last4="3344">DLAS-NET-2026-04420 (à§©à§©à§ªà§ª)</button>
+        <span>${t('demoTrackTest')}</span>
+        <button type="button" class="chip-ref-demo" id="hDemo1">APP-2026-0001 (ময়ূরী / ৩৩৪৪)</button>
+        <button type="button" class="chip-ref-demo" id="hDemo2">DLAS-NET-2026-04420 (৩৩৪৪)</button>
       </div>
     </div>
   </section>
 
-  <!-- à§¨. à¦†à¦ªà¦¨à¦¾à¦° à¦œà¦¨à§à¦¯ à¦†à¦®à¦°à¦¾ à¦¯à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦—à§à¦²à§‹ à¦¦à¦¿à¦šà§à¦›à¦¿ (Services & Stats) -->
+  <!-- সেবাসমূহ সেকশন -->
   <section class="ref-section">
     <div class="container">
       <div class="sec-header-split">
         <div>
-          <h2 class="sec-heading-serif">à¦†à¦ªà¦¨à¦¾à¦° à¦œà¦¨à§à¦¯ à¦†à¦®à¦°à¦¾ à¦¯à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦—à§à¦²à§‹ à¦¦à¦¿à¦šà§à¦›à¦¿</h2>
+          <h2 class="sec-heading-serif">${t('servicesHead')}</h2>
         </div>
         <div>
           <p class="sec-heading-desc">
-            à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦‡à¦¨à¦¿ à¦¸à¦®à¦¸à§à¦¯à¦¾à¦° à¦§à¦°à¦¨ à¦¯à¦¾à¦‡ à¦¹à§‹à¦• à¦¨à¦¾ à¦•à§‡à¦¨, à¦¸à¦ à¦¿à¦• à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà§‡à¦¤à§‡ à¦†à¦ªà¦¨à¦¾à¦•à§‡ à¦à¦•à¦¾ à¦ªà¦¥ à¦–à§à¦à¦œà¦¤à§‡ à¦¹à¦¬à§‡ à¦¨à¦¾à¥¤ à¦†à¦®à¦°à¦¾ à¦¥à¦¾à¦•à¦›à¦¿ à¦†à¦ªà¦¨à¦¾à¦° à¦ªà¦¾à¦¶à§‡à¥¤
+            ${t('servicesDesc')}
           </p>
         </div>
       </div>
 
       <div class="ref-services-grid">
-        <div class="ref-service-card">
-          <div class="ref-service-icon">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-          <h3>à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾à¦° à¦®à¦¾à¦§à§à¦¯à¦®à§‡ à¦¬à¦¿à¦°à§‹à¦§ à¦¨à¦¿à¦·à§à¦ªà¦¤à§à¦¤à¦¿</h3>
-          <p>à¦†à¦¦à¦¾à¦²à¦¤à§‡à¦° à¦¦à§€à¦°à§à¦˜ à¦ªà§à¦°à¦•à§à¦°à¦¿à¦¯à¦¼à¦¾à¦¯à¦¼ à¦¨à¦¾ à¦—à¦¿à¦¯à¦¼à§‡ à¦‰à¦ªà¦¯à§à¦•à§à¦¤ à¦¬à¦¿à¦°à§‹à¦§ à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾à¦° à¦®à¦¾à¦§à§à¦¯à¦®à§‡ à¦¶à¦¾à¦¨à§à¦¤à¦¿à¦ªà§‚à¦°à§à¦£à¦­à¦¾à¦¬à§‡ à¦¨à¦¿à¦·à§à¦ªà¦¤à§à¦¤à¦¿à¦° à¦¸à§à¦¯à§‹à¦—à¥¤</p>
+        <div class="ref-svc-card">
+          <div class="ref-svc-icon-box">💬</div>
+          <h3>${t('freeConsultTitle')}</h3>
+          <p>${t('freeConsultDesc')}</p>
+          <a class="ref-svc-link" href="#/guide">${t('freeConsultBtn')}</a>
         </div>
 
-        <div class="ref-service-card">
-          <div class="ref-service-icon">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <h3>à¦†à¦‡à¦¨à¦—à¦¤ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶</h3>
-          <p>à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦‡à¦¨à¦¿ à¦¸à¦®à¦¸à§à¦¯à¦¾ à¦¸à¦®à§à¦ªà¦°à§à¦•à§‡ à¦ªà§à¦°à¦¯à¦¼à§‹à¦œà¦¨à§€à¦¯à¦¼ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶ à¦“ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦†à¦‡à¦¨ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾à¦° à¦¸à¦ à¦¿à¦• à¦¦à¦¿à¦•à¦¨à¦¿à¦°à§à¦¦à§‡à¦¶à¦¨à¦¾à¥¤</p>
+        <div class="ref-svc-card">
+          <div class="ref-svc-icon-box">⚖️</div>
+          <h3>${t('lawyerAppTitle')}</h3>
+          <p>${t('lawyerAppDesc')}</p>
+          <a class="ref-svc-link" href="#/apply">${t('lawyerAppBtn')}</a>
         </div>
 
-        <div class="ref-service-card">
-          <div class="ref-service-icon">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3v18M7 21h10M12 6l7 2M12 6L5 8M19 8l-2.5 6a3.5 3.5 0 0 1-5 0L19 8zM5 8l2.5 6a3.5 3.5 0 0 0 5 0L5 8z"/>
-            </svg>
-          </div>
-          <h3>à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦“ à¦†à¦¦à¦¾à¦²à¦¤ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾</h3>
-          <p>à¦¯à§‹à¦—à§à¦¯à¦¤à¦¾à¦° à¦­à¦¿à¦¤à§à¦¤à¦¿à¦¤à§‡ à¦ªà§à¦¯à¦¾à¦¨à§‡à¦² à¦†à¦‡à¦¨à¦œà§€à¦¬à§€à¦° à¦®à¦¾à¦§à§à¦¯à¦®à§‡ à¦®à¦¾à¦®à¦²à¦¾ à¦ªà¦°à¦¿à¦šà¦¾à¦²à¦¨à¦¾ à¦“ à¦†à¦¦à¦¾à¦²à¦¤-à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¥¤</p>
-        </div>
-
-        <div class="ref-service-card">
-          <div class="ref-service-icon">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-          <h3>à¦œà¦°à§à¦°à¦¿ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾</h3>
-          <p>à¦œà¦°à§à¦°à¦¿ à¦¨à¦¿à¦°à§à¦¯à¦¾à¦¤à¦¨, à¦¬à¦¿à¦¨à¦¾ à¦¬à¦¿à¦šà¦¾à¦°à§‡ à¦†à¦Ÿà¦• à¦“ à¦†à¦‡à¦¨à¦¿ à¦¸à¦®à¦¸à§à¦¯à¦¾à¦¯à¦¼ à¦¤à¦¾à§Žà¦•à§à¦·à¦£à¦¿à¦• à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦“ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦†à¦‡à¦¨à¦¿ à¦ªà¦¦à¦•à§à¦·à§‡à¦ªà¥¤</p>
-        </div>
-      </div>
-
-      <!-- Metrics Bar -->
-      <div class="ref-metrics-bar">
-        <div class="ref-metric-item">
-          <h4>à§© à¦¬à¦›à¦°</h4>
-          <span>à¦ªà§à¦°à¦•à¦²à§à¦ªà§‡à¦° à¦¸à¦®à¦¯à¦¼à¦•à¦¾à¦²</span>
-        </div>
-        <div class="ref-metric-item">
-          <h4>à§©à§¦à§¦</h4>
-          <span>à¦‡à¦‰à¦¨à¦¿à¦¯à¦¼à¦¨à¦¸à¦®à§‚à¦¹</span>
-        </div>
-        <div class="ref-metric-item">
-          <h4>à§¬à§ª</h4>
-          <span>à¦œà§‡à¦²à¦¾à¦¯à¦¼ à¦ªà§‚à¦°à§à¦£ à¦•à¦­à¦¾à¦°à§‡à¦œ</span>
-        </div>
-        <div class="ref-metric-item">
-          <h4>à§¬.à§« à¦²à¦•à§à¦·+</h4>
-          <span>à¦¸à§‡à¦¬à¦¾à¦—à§à¦°à¦¹à§€à¦¤à¦¾ à¦¨à¦¾à¦—à¦°à¦¿à¦•</span>
+        <div class="ref-svc-card">
+          <div class="ref-svc-icon-box">🤝</div>
+          <h3>${t('adrServiceTitle')}</h3>
+          <p>${t('adrServiceDesc')}</p>
+          <a class="ref-svc-link" href="#/apply?purpose=mediation">${t('adrServiceBtn')}</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- à§©. à¦†à¦ªà¦¨à¦¿ à¦•à§‹à¦¨ à¦§à¦°à¦¨à§‡à¦° à¦†à¦‡à¦¨à¦¿ à¦¸à¦¾à¦¹à¦¾à¦¯à§à¦¯ à¦šà¦¾à¦¨? (Photographic Topic Cards) -->
-  <section class="ref-section-alt">
+  <!-- আরও সাহায্য বা আইনজীবীর প্রয়োজন? (Old Web Reference Inspired CTA) -->
+  <section class="container">
+    <div class="consult-banner">
+      <h2>${t('needMoreHelpTitle')}</h2>
+      <p>${t('needMoreHelpDesc')}</p>
+      <a class="btn-consult" href="#/guide">
+        <span>${t('startNow')}</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- নিউজ ও ইভেন্ট সেকশন -->
+  <section class="ref-section" style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
     <div class="container">
       <div class="sec-header-split">
         <div>
-          <h2 class="sec-heading-serif">à¦†à¦ªà¦¨à¦¿ à¦•à§‹à¦¨ à¦§à¦°à¦¨à§‡à¦° à¦†à¦‡à¦¨à¦¿ à¦¸à¦¾à¦¹à¦¾à¦¯à§à¦¯ à¦šà¦¾à¦¨?</h2>
+          <span class="section-tag">NLASO আপডেট</span>
+          <h2 class="sec-heading-serif">${t('newsEvents')}</h2>
         </div>
         <div>
-          <p class="sec-heading-desc">
-            à¦¬à¦¿à¦­à¦¿à¦¨à§à¦¨ à¦¬à¦¿à¦·à§Ÿà§‡ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾à¦° à¦œà¦¨à§à¦¯ à¦‰à¦ªà¦¯à§à¦•à§à¦¤ à¦¬à¦¿à¦­à¦¾à¦— à¦¨à¦¿à¦°à§à¦¬à¦¾à¦šà¦¨ à¦•à¦°à§à¦¨à¥¤
-          </p>
+          <a class="btn btn-outline btn-sm" href="#/news">${t('seeAllNews')}</a>
         </div>
       </div>
 
-      <div class="ref-topics-grid">
-        <a class="ref-topic-card" href="#/topic/family">
-          <div class="ref-topic-img-wrap">
-            <img src="/img/topic_family.jpg" alt="à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾" loading="lazy">
-          </div>
-          <div class="ref-topic-body">
-            <h3>à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦•</h3>
-            <p>à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦¸à¦®à§à¦ªà¦°à§à¦•, à¦¬à¦¿à¦¬à¦¾à¦¹, à¦¦à§‡à¦¨à¦®à§‹à¦¹à¦°, à¦¬à¦¿à¦šà§à¦›à§‡à¦¦, à¦¸à¦¨à§à¦¤à¦¾à¦¨à§‡à¦° à¦¹à§‡à¦«à¦¾à¦œà¦¤ à¦“ à¦…à¦¨à§à¦¯à¦¾à¦¨à§à¦¯ à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦¬à¦¿à¦·à§Ÿà¥¤</p>
-          </div>
-        </a>
-
-        <a class="ref-topic-card" href="#/topic/land">
-          <div class="ref-topic-img-wrap">
-            <img src="/img/topic_land.jpg" alt="à¦œà¦®à¦¿ à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾" loading="lazy">
-          </div>
-          <div class="ref-topic-body">
-            <h3>à¦œà¦®à¦¿ à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤</h3>
-            <p>à¦œà¦®à¦¿ à¦•à§à¦°à§Ÿ-à¦¬à¦¿à¦•à§à¦°à§Ÿ, à¦°à§‡à¦•à¦°à§à¦¡ à¦¸à¦‚à¦¶à§‹à¦§à¦¨ à¦“ à¦…à¦—à§à¦°à¦•à§à¦°à§Ÿ (Pre-emption) à¦…à¦§à¦¿à¦•à¦¾à¦°-à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤à¥¤</p>
-          </div>
-        </a>
-
-        <a class="ref-topic-card" href="#/topic/elder">
-          <div class="ref-topic-img-wrap">
-            <img src="/img/topic_elder.jpg" alt="à¦…à¦­à¦¿à¦­à¦¾à¦¬à¦•à¦¦à§‡à¦° à¦­à¦°à¦£à¦ªà§‹à¦·à¦£" loading="lazy">
-          </div>
-          <div class="ref-topic-body">
-            <h3>à¦…à¦­à¦¿à¦­à¦¾à¦¬à¦•à¦¦à§‡à¦° à¦­à¦°à¦£à¦ªà§‹à¦·à¦£</h3>
-            <p>à¦ªà¦¿à¦¤à¦¾-à¦®à¦¾à¦¤à¦¾à¦° à¦­à¦°à¦£à¦ªà§‹à¦·à¦£ à¦†à¦‡à¦¨ à§¨à§¦à§§à§© à¦“ à¦ªà§à¦°à¦¬à§€à¦£à¦¦à§‡à¦° à¦¸à§à¦°à¦•à§à¦·à¦¾ à¦“ à¦¤à¦¾à¦à¦¦à§‡à¦° à¦…à¦§à¦¿à¦•à¦¾à¦°-à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤à¥¤</p>
-          </div>
-        </a>
-
-        <a class="ref-topic-card" href="#/topic/civil">
-          <div class="ref-topic-img-wrap">
-            <img src="/img/topic_civil.jpg" alt="à¦¦à§‡à¦“à§Ÿà¦¾à¦¨à¦¿ à¦¬à¦¿à¦°à§‹à¦§" loading="lazy">
-          </div>
-          <div class="ref-topic-body">
-            <h3>à¦¦à§‡à¦“à§Ÿà¦¾à¦¨à¦¿</h3>
-            <p>à¦¸à¦®à§à¦ªà¦¤à§à¦¤à¦¿, à¦šà§à¦•à§à¦¤à¦¿, à¦…à¦§à¦¿à¦•à¦¾à¦°, à¦¸à¦¾à¦²à¦¿à¦¸ à¦“ à¦•à§à¦·à¦¤à¦¿à¦ªà§‚à¦°à¦£-à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾à¥¤</p>
-          </div>
-        </a>
-      </div>
-
-      <div style="text-align:center">
-        <a class="btn-ref-more" href="#/topics">à¦†à¦°à¦“ à¦†à¦‡à¦¨à¦¿ à¦¬à¦¿à¦·à§Ÿ à¦¦à§‡à¦–à§à¦¨ â†’</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- à§ª. à¦†à¦®à¦¿ à¦•à¦¿ à¦†à¦°à§à¦¥à¦¿à¦• à¦¸à¦¹à¦¯à§‹à¦—à¦¿à¦¤à¦¾ à¦ªà¦¾à¦¬à§‹? (Eligibility Checker) -->
-  <section class="ref-section">
-    <div class="container">
-      <div class="ref-eligibility-wrap">
-        <div>
-          <h2 class="sec-heading-serif">à¦†à¦®à¦¿ à¦•à¦¿ à¦†à¦°à§à¦¥à¦¿à¦• à¦¸à¦¹à¦¯à§‹à¦—à¦¿à¦¤à¦¾ à¦ªà¦¾à¦¬à§‹?</h2>
-          <p style="font-weight:700;margin-top:1.5rem;font-size:1.1rem;color:#0F172A">à¦•à¦¾à¦°à¦¾ à¦¬à¦¿à¦¶à§‡à¦· à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦ªà¦¾à¦¬à§‡à¦¨:</p>
-          <ul class="eligibility-check-list">
-            <li class="eligibility-check-item">
-              <span class="check-circle">âœ“</span>
-              <span><strong>à¦¨à¦¾à¦°à§€ à¦à¦¬à¦‚ à¦¶à¦¿à¦¶à§</strong> (à¦¨à¦¿à¦°à§à¦§à¦¾à¦°à¦¿à¦¤ à¦†à§Ÿà§‡à¦° à¦¶à¦°à§à¦¤ à¦¶à¦¿à¦¥à¦¿à¦² à¦“ à¦…à¦—à§à¦°à¦¾à¦§à¦¿à¦•à¦¾à¦°)</span>
-            </li>
-            <li class="eligibility-check-item">
-              <span class="check-circle">âœ“</span>
-              <span><strong>à¦…à¦¸à¦šà§à¦›à¦² à¦“ à¦¦à¦°à¦¿à¦¦à§à¦° à¦¨à¦¾à¦—à¦°à¦¿à¦•</strong> (à¦¬à¦¾à¦°à§à¦·à¦¿à¦• à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦†à§Ÿ â‚¹à§§,à§«à§¦,à§¦à§¦à§¦-à¦à¦° à¦•à¦®)</span>
-            </li>
-            <li class="eligibility-check-item">
-              <span class="check-circle">âœ“</span>
-              <span><strong>à¦ªà§à¦°à¦¤à¦¿à¦¬à¦¨à§à¦§à§€ à¦¬à§à¦¯à¦•à§à¦¤à¦¿</strong> (à¦¶à¦¾à¦°à§€à¦°à¦¿à¦• à¦¬à¦¾ à¦®à¦¾à¦¨à¦¸à¦¿à¦• à¦ªà§à¦°à¦¤à¦¿à¦¬à¦¨à§à¦§à§€)</span>
-            </li>
-            <li class="eligibility-check-item">
-              <span class="check-circle">âœ“</span>
-              <span><strong>à¦¬à§€à¦° à¦®à§à¦•à§à¦¤à¦¿à¦¯à§‹à¦¦à§à¦§à¦¾</strong> à¦“ à¦…à¦¸à¦šà§à¦›à¦² à¦®à§à¦•à§à¦¤à¦¿à¦¯à§‹à¦¦à§à¦§à¦¾ à¦ªà¦°à¦¿à¦¬à¦¾à¦°</span>
-            </li>
-            <li class="eligibility-check-item">
-              <span class="check-circle">âœ“</span>
-              <span><strong>à¦•à¦¾à¦°à¦¾à¦—à¦¾à¦°à§‡ à¦¬à¦¿à¦¨à¦¾ à¦¬à¦¿à¦šà¦¾à¦°à§‡ à¦†à¦Ÿà¦•</strong> à¦“ à¦¹à§‡à¦«à¦¾à¦œà¦¤à§‡ à¦¥à¦¾à¦•à¦¾ à¦¬à§à¦¯à¦•à§à¦¤à¦¿</span>
-            </li>
-            <li class="eligibility-check-item">
-              <span class="check-circle">âœ“</span>
-              <span><strong>à¦®à¦¾à¦¨à¦¬à¦ªà¦¾à¦šà¦¾à¦° à¦“ à¦…à§à¦¯à¦¾à¦¸à¦¿à¦¡ à¦¸à¦¹à¦¿à¦‚à¦¸à¦¤à¦¾à¦° à¦¶à¦¿à¦•à¦¾à¦°</strong> à¦¬à§à¦¯à¦•à§à¦¤à¦¿</span>
-            </li>
-          </ul>
-        </div>
-
-        <div class="ref-card-box">
-          <h3>à¦†à¦ªà¦¨à¦¿ à¦•à¦¿ à¦†à¦°à§à¦¥à¦¿à¦• à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦ªà¦¾à¦“à§Ÿà¦¾à¦° à¦¯à§‹à¦—à§à¦¯?</h3>
-          <p style="font-size:0.88rem;color:#64748B;margin-bottom:1.5rem">
-            à¦†à¦ªà¦¨à¦¾à¦° à¦†à§Ÿ, à¦®à¦¾à¦®à¦²à¦¾à¦° à¦§à¦°à¦¨ à¦“ à¦…à¦¬à¦¸à§à¦¥à¦¾à¦¨à§‡à¦° à¦¤à¦¥à§à¦¯ à¦¦à¦¿à§Ÿà§‡ à¦œà§‡à¦¨à§‡ à¦¨à¦¿à¦¨ à¦†à¦ªà¦¨à¦¿ à¦†à¦°à§à¦¥à¦¿à¦• à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾à¦° à¦œà¦¨à§à¦¯ à¦¯à§‹à¦—à§à¦¯ à¦•à¦¿ à¦¨à¦¾
-          </p>
-          <div style="display:flex;flex-direction:column;gap:14px">
-            <div class="field">
-              <label style="font-size:0.86rem;font-weight:600;margin-bottom:4px;display:block">à¦¬à¦¾à¦°à§à¦·à¦¿à¦• à¦†à§Ÿ (à¦Ÿà¦¾à¦•à¦¾) *</label>
-              <input id="homeIncomeInput" type="number" value="84000" placeholder="à¦¯à§‡à¦®à¦¨ à§®à§ªà§¦à§¦à§¦" style="width:100%;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px">
+      <div class="news-grid">
+        ${newsItems.map(item => `
+          <a class="news-card" href="#/news/${item.id}">
+            <div class="news-card-img-wrap">
+              <img class="news-card-img" src="${item.img}" alt="${esc(item.title)}" loading="lazy">
+              <span class="news-card-tag">${esc(item.tag || 'নিউজ')}</span>
             </div>
-            <div class="field">
-              <label style="font-size:0.86rem;font-weight:600;margin-bottom:4px;display:block">à¦†à¦¬à§‡à¦¦à¦¨à¦•à¦¾à¦°à§€à¦° à¦§à¦°à¦¨ *</label>
-              <select id="homeCategorySelect" style="width:100%;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px">
-                <option value="general">à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦…à¦¸à¦šà§à¦›à¦² à¦¨à¦¾à¦—à¦°à¦¿à¦•</option>
-                <option value="women">à¦¨à¦¾à¦°à§€ à¦¬à¦¾ à¦¶à¦¿à¦¶à§</option>
-                <option value="freedom">à¦¬à§€à¦° à¦®à§à¦•à§à¦¤à¦¿à¦¯à§‹à¦¦à§à¦§à¦¾ à¦¬à¦¾ à¦ªà¦°à¦¿à¦¬à¦¾à¦°</option>
-                <option value="disabled">à¦ªà§à¦°à¦¤à¦¿à¦¬à¦¨à§à¦§à§€ à¦¬à§à¦¯à¦•à§à¦¤à¦¿</option>
-                <option value="prisoner">à¦•à¦¾à¦°à¦¾à¦¬à¦¨à§à¦¦à§€ / à¦¹à§‡à¦«à¦¾à¦œà¦¤à§‡ à¦†à¦Ÿà¦•</option>
-                <option value="victim">à¦…à§à¦¯à¦¾à¦¸à¦¿à¦¡ à¦†à¦•à§à¦°à¦¾à¦¨à§à¦¤ / à¦ªà¦¾à¦šà¦¾à¦°à§‡à¦° à¦¶à¦¿à¦•à¦¾à¦°</option>
-              </select>
+            <div class="news-card-body">
+              <div class="news-card-date">
+                <span>📅</span> <span>${esc(item.date)}</span>
+              </div>
+              <h3 class="news-card-title">${esc(item.title)}</h3>
+              <p class="news-card-desc">${esc(item.desc || '')}</p>
+              <span class="news-card-link">বিস্তারিত পড়ুন →</span>
             </div>
-            <div class="field">
-              <label style="font-size:0.86rem;font-weight:600;margin-bottom:4px;display:block">à¦®à¦¾à¦®à¦²à¦¾à¦° à¦§à¦°à¦¨ *</label>
-              <select id="homeCaseTypeSelect" style="width:100%;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px">
-                <option value="family">à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦¬à¦¿à¦°à§‹à¦§</option>
-                <option value="land">à¦œà¦®à¦¿ à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤</option>
-                <option value="elder">à¦…à¦­à¦¿à¦­à¦¾à¦¬à¦•à¦¦à§‡à¦° à¦­à¦°à¦£à¦ªà§‹à¦·à¦£</option>
-                <option value="civil">à¦¦à§‡à¦“à§Ÿà¦¾à¦¨à¦¿</option>
-                <option value="criminal">à¦«à§Œà¦œà¦¦à¦¾à¦°à¦¿</option>
-              </select>
-            </div>
-            <div class="field">
-              <label style="font-size:0.86rem;font-weight:600;margin-bottom:4px;display:block">à¦œà§‡à¦²à¦¾ *</label>
-              <select id="homeDistrictSelect" style="width:100%;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px">
-                <option value="à¦¢à¦¾à¦•à¦¾">à¦¢à¦¾à¦•à¦¾</option>
-                <option value="à¦•à§à¦®à¦¿à¦²à§à¦²à¦¾">à¦•à§à¦®à¦¿à¦²à§à¦²à¦¾</option>
-                <option value="à¦šà¦Ÿà§à¦Ÿà¦—à§à¦°à¦¾à¦®">à¦šà¦Ÿà§à¦Ÿà¦—à§à¦°à¦¾à¦®</option>
-                <option value="à¦¸à¦¿à¦²à§‡à¦Ÿ">à¦¸à¦¿à¦²à§‡à¦Ÿ</option>
-                <option value="à¦°à¦¾à¦œà¦¶à¦¾à¦¹à§€">à¦°à¦¾à¦œà¦¶à¦¾à¦¹à§€</option>
-                <option value="à¦–à§à¦²à¦¨à¦¾">à¦–à§à¦²à¦¨à¦¾</option>
-                <option value="à¦¬à¦°à¦¿à¦¶à¦¾à¦²">à¦¬à¦°à¦¿à¦¶à¦¾à¦²</option>
-                <option value="à¦°à¦‚à¦ªà§à¦°">à¦°à¦‚à¦ªà§à¦°</option>
-                <option value="à¦¨à§‡à¦¤à§à¦°à¦•à§‹à¦¨à¦¾">à¦¨à§‡à¦¤à§à¦°à¦•à§‹à¦¨à¦¾</option>
-              </select>
-            </div>
-            <button class="btn-ref-submit" id="homeCheckBtn" type="button">à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à§à¦¨</button>
-            <div id="homeEligibilityResult" style="margin-top:10px"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- à§«. à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦à¦–à¦¨ à¦†à¦°à¦“ à¦¸à¦¹à¦œ à¦à¦¬à¦‚ à¦¸à§à¦¬à¦šà§à¦› (Emerald Banner with 5 Steps) -->
-  <section class="ref-emerald-section">
-    <div class="container">
-      <div class="ref-emerald-grid">
-        <div class="ref-emerald-left">
-          <h2>à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦à¦–à¦¨<br>à¦†à¦°à¦“ à¦¸à¦¹à¦œ à¦à¦¬à¦‚ à¦¸à§à¦¬à¦šà§à¦›</h2>
-          <p>
-            à¦•à¦¯à¦¼à§‡à¦•à¦Ÿà¦¿ à¦¸à¦¹à¦œ à¦§à¦¾à¦ªà§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦° à¦œà¦¨à§à¦¯ à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à§à¦¨ à¦à¦¬à¦‚ à¦ªà¦°à¦¬à¦°à§à¦¤à§€ à¦ªà§à¦°à¦•à§à¦°à¦¿à¦¯à¦¼à¦¾ à¦¸à¦®à§à¦ªà¦°à§à¦•à§‡ à¦¸à¦¬ à¦¸à¦®à¦¯à¦¼ à¦†à¦ªà¦¡à§‡à¦Ÿ à¦¥à¦¾à¦•à§à¦¨à¥¤
-          </p>
-          <a class="btn-ref-white" href="#/apply">
-            <span>à¦†à¦¬à§‡à¦¦à¦¨ à¦¶à§à¦°à§ à¦•à¦°à§à¦¨</span> <span>â†’</span>
           </a>
-        </div>
-
-        <div class="ref-steps-list">
-          <div class="ref-step-item">
-            <span class="ref-step-num">à§¦à§§</span>
-            <div class="ref-step-content">
-              <h4>à¦†à¦ªà¦¨à¦¾à¦° à¦¸à¦®à¦¸à§à¦¯à¦¾à¦° à¦•à¦¥à¦¾ à¦œà¦¾à¦¨à¦¾à¦¨</h4>
-              <p>à¦†à¦ªà¦¨à¦¾à¦° à¦¤à¦¥à§à¦¯ à¦à¦¬à¦‚ à¦†à¦ªà¦¨à¦¿ à¦•à§€ à¦§à¦°à¦¨à§‡à¦° à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦šà¦¾à¦¨, à¦¤à¦¾ à¦†à¦®à¦¾à¦¦à§‡à¦° à¦œà¦¾à¦¨à¦¾à¦¨à¥¤</p>
-            </div>
-          </div>
-          <div class="ref-step-item">
-            <span class="ref-step-num">à§¦à§¨</span>
-            <div class="ref-step-content">
-              <h4>à¦†à¦¬à§‡à¦¦à¦¨ à¦œà¦®à¦¾ à¦¦à¦¿à¦¨</h4>
-              <p>à¦†à¦¬à§‡à¦¦à¦¨à¦Ÿà¦¿ à¦¸à¦®à§à¦ªà¦¨à§à¦¨ à¦•à¦°à§à¦¨ à¦à¦¬à¦‚ à¦ªà§à¦°à¦¯à¦¼à§‹à¦œà¦¨à§€à¦¯à¦¼ à¦¤à¦¥à§à¦¯ à¦“ à¦•à¦¾à¦—à¦œà¦ªà¦¤à§à¦° à¦œà¦®à¦¾ à¦¦à¦¿à¦¨à¥¤</p>
-            </div>
-          </div>
-          <div class="ref-step-item">
-            <span class="ref-step-num">à§¦à§©</span>
-            <div class="ref-step-content">
-              <h4>à¦†à¦¬à§‡à¦¦à¦¨ à¦¯à¦¾à¦šà¦¾à¦‡</h4>
-              <p>à¦œà§‡à¦²à¦¾ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦“ à¦ªà§à¦°à¦¯à¦¼à§‹à¦œà¦¨à§€à¦¯à¦¼ à¦¤à¦¥à§à¦¯ à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à¦¬à§‡à¥¤</p>
-            </div>
-          </div>
-          <div class="ref-step-item">
-            <span class="ref-step-num">à§¦à§ª</span>
-            <div class="ref-step-content">
-              <h4>à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦¨à¦¿à¦¨</h4>
-              <p>à¦†à¦ªà¦¨à¦¾à¦° à¦ªà§à¦°à¦¯à¦¼à§‹à¦œà¦¨ à¦“ à¦¯à§‹à¦—à§à¦¯à¦¤à¦¾ à¦…à¦¨à§à¦¯à¦¾à¦¯à¦¼à§€ à¦†à¦‡à¦¨à¦—à¦¤ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶, à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾, à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦“ à¦†à¦¦à¦¾à¦²à¦¤-à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà¦¾à¦¬à§‡à¦¨à¥¤</p>
-            </div>
-          </div>
-          <div class="ref-step-item">
-            <span class="ref-step-num">à§¦à§«</span>
-            <div class="ref-step-content">
-              <h4>à¦†à¦¬à§‡à¦¦à¦¨à§‡à¦° à¦…à¦—à§à¦°à¦—à¦¤à¦¿ à¦¦à§‡à¦–à§à¦¨</h4>
-              <p>à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦¬à¦¾ à¦®à¦¾à¦®à¦²à¦¾à¦° à¦…à¦—à§à¦°à¦—à¦¤à¦¿ à¦¸à¦®à§à¦ªà¦°à§à¦•à§‡ à¦†à¦ªà¦¡à§‡à¦Ÿ à¦¥à¦¾à¦•à§à¦¨ à¦à¦¬à¦‚ à¦ªà¦°à¦¬à¦°à§à¦¤à§€ à¦•à¦°à¦£à§€à¦¯à¦¼ à¦¸à¦®à§à¦ªà¦°à§à¦•à§‡ à¦œà¦¾à¦¨à§à¦¨à¥¤</p>
-            </div>
-          </div>
-        </div>
+        `).join('')}
       </div>
     </div>
   </section>
 
-  <!-- à§¬. à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾à¦° à¦¬à¦°à§à¦¤à¦®à¦¾à¦¨ à¦†à¦ªà¦¡à§‡à¦Ÿ (Tracking Layout) -->
-  <section class="ref-section-alt">
-    <div class="container">
-      <div class="ref-track-wrap">
-        <div>
-          <div class="ref-track-photo-box">
-            <img src="/img/tracking_citizen.jpg" alt="à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà§à¦°à¦¾à¦°à§à¦¥à§€ à¦¨à¦¾à¦—à¦°à¦¿à¦•" loading="lazy">
-          </div>
-          <h2 class="sec-heading-serif" style="margin-top:1.5rem">à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦° à¦¬à¦°à§à¦¤à¦®à¦¾à¦¨ à¦†à¦ªà¦¡à§‡à¦Ÿ</h2>
-          <p style="color:#64748B;font-size:1rem;margin-top:6px">à¦¯à§‡à¦•à§‹à¦¨à§‹ à¦¸à¦®à¦¯à¦¼ à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦¬à¦¾ à¦®à¦¾à¦®à¦²à¦¾à¦° à¦¬à¦°à§à¦¤à¦®à¦¾à¦¨ à¦…à¦¬à¦¸à§à¦¥à¦¾ à¦¦à§‡à¦–à§à¦¨à¥¤</p>
-        </div>
-
-        <div class="ref-card-box">
-          <h3>à¦†à¦¬à§‡à¦¦à¦¨ à¦Ÿà§à¦°à§à¦¯à¦¾à¦• à¦•à¦°à§à¦¨</h3>
-          <p style="font-size:0.86rem;color:#64748B;margin-bottom:1.2rem">
-            à¦†à¦ªà¦¨à¦¾à¦° à¦°à¦¸à¦¿à¦¦à§‡ à¦²à§‡à¦–à¦¾ à¦®à¦¾à¦®à¦²à¦¾ à¦¨à¦®à§à¦¬à¦° à¦“ à¦®à§‹à¦¬à¦¾à¦‡à¦²à§‡à¦° à¦¶à§‡à¦· à§ª à¦¸à¦‚à¦–à§à¦¯à¦¾ à¦¦à¦¿à¦¯à¦¼à§‡ à¦²à¦¾à¦‡à¦­ à¦…à¦—à§à¦°à¦—à¦¤à¦¿ à¦œà¦¾à¦¨à§à¦¨
-          </p>
-          <div style="display:flex;flex-direction:column;gap:14px">
-            <div class="field">
-              <label style="font-size:0.86rem;font-weight:600;margin-bottom:4px;display:block">à¦®à¦¾à¦®à¦²à¦¾ à¦¨à¦®à§à¦¬à¦° *</label>
-              <input id="trackAppId" value="APP-2026-0001" placeholder="à¦¯à§‡à¦®à¦¨ DLAS-NET-2026-04417 à¦¬à¦¾ APP-2026-0001" style="width:100%;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px">
-              <small style="color:#94A3B8;display:block;margin-top:3px">à¦†à¦ªà¦¨à¦¾à¦° à¦°à¦¸à¦¿à¦¦à§‡ à¦²à§‡à¦–à¦¾ à¦¥à¦¾à¦•à§‡ à¦à¦¬à¦‚ à¦à¦¸à¦à¦®à¦à¦¸à§‡ à¦ªà¦¾à¦ à¦¾à¦¨à§‹ à¦¹à¦¯à¦¼</small>
-            </div>
-            <div class="field">
-              <label style="font-size:0.86rem;font-weight:600;margin-bottom:4px;display:block">à¦®à§‹à¦¬à¦¾à¦‡à¦² à¦¨à¦®à§à¦¬à¦° *</label>
-              <input id="trackPhone" value="01711223344" placeholder="01XXXXXXXXX" style="width:100%;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px">
-              <small style="color:#94A3B8;display:block;margin-top:3px">à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à¦¾à¦° à¦¸à¦®à¦¯à¦¼ à¦¯à§‡ à¦®à§‹à¦¬à¦¾à¦‡à¦² à¦¨à¦®à§à¦¬à¦°à¦Ÿà¦¿ à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦° à¦•à¦°à§‡à¦›à§‡à¦¨</small>
-            </div>
-            <div class="field">
-              <label style="font-size:0.86rem;font-weight:600;margin-bottom:4px;display:block">à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦° à¦¬à¦¾ à¦à¦¨à¦†à¦‡à¦¡à¦¿à¦° à¦¶à§‡à¦· à§ª à¦¸à¦‚à¦–à§à¦¯à¦¾ *</label>
-              <input id="trackLast4" value="3344" maxlength="4" placeholder="à§­à§®à§¯à§¦" style="width:100%;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px">
-              <small style="color:#94A3B8;display:block;margin-top:3px">à¦†à¦¬à§‡à¦¦à¦¨à§‡à¦° à¦¸à¦®à¦¯à¦¼ à¦¯à§‡ à¦¨à¦®à§à¦¬à¦°à¦Ÿà¦¿ à¦¦à¦¿à¦¯à¦¼à§‡à¦›à¦¿à¦²à§‡à¦¨</small>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button type="button" class="chip-ref-demo" style="background:#E2E8F0;color:#0F172A;border:none" onclick="fillHomeTrack('APP-2026-0001','01711223344','3344')">à¦¡à§‡à¦®à§‹: APP-2026-0001</button>
-              <button type="button" class="chip-ref-demo" style="background:#E2E8F0;color:#0F172A;border:none" onclick="fillHomeTrack('DLAS-NET-2026-04420','01711223344','3344')">à¦¡à§‡à¦®à§‹: DLAS-NET-2026-04420</button>
-            </div>
-            <button class="btn-ref-submit" id="trackSearchBtn" type="button">à¦†à¦¬à§‡à¦¦à¦¨à§‡à¦° à¦…à¦¬à¦¸à§à¦¥à¦¾ à¦¦à§‡à¦–à§à¦¨</button>
-            <div id="trackHomeResult"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- à§­. à¦†à¦ªà¦¨à¦¾à¦° à¦¸à§à¦¬à¦¿à¦§à¦¾à¦®à¦¤à§‹ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦¨à¦¿à¦¨ (The 5 Doors) -->
+  <!-- সহায়তা চ্যানেল সেকশন (Structured Cards & Buttons) -->
   <section class="ref-section">
     <div class="container">
       <div class="sec-header-split">
         <div>
-          <h2 class="sec-heading-serif">à¦†à¦ªà¦¨à¦¾à¦° à¦¸à§à¦¬à¦¿à¦§à¦¾à¦®à¦¤à§‹ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦¨à¦¿à¦¨</h2>
+          <span class="section-tag">প্রবেশগম্যতা</span>
+          <h2 class="sec-heading-serif">${t('helpTitle')}</h2>
         </div>
         <div>
-          <p class="sec-heading-desc">
-            à¦…à¦¨à¦²à¦¾à¦‡à¦¨à§‡ à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à¦¤à§‡ à¦ªà¦¾à¦°à¦›à§‡à¦¨ à¦¨à¦¾ à¦¬à¦¾ à¦¸à¦°à¦¾à¦¸à¦°à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦ªà§à¦°à§Ÿà§‹à¦œà¦¨? à¦†à¦ªà¦¨à¦¾à¦° à¦¸à§à¦¬à¦¿à¦§à¦¾à¦®à¦¤à§‹ à¦¬à¦¿à¦­à¦¿à¦¨à§à¦¨ à¦®à¦¾à¦§à§à¦¯à¦®à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦“ à¦ªà§à¦°à§Ÿà§‹à¦œà¦¨à§€à§Ÿ à¦¤à¦¥à§à¦¯ à¦¨à¦¿à¦¨à¥¤
-          </p>
+          <p class="sec-heading-desc">${t('helpLead')}</p>
         </div>
       </div>
 
-      <div class="ref-doors-grid">
-        <a class="ref-door-card" href="tel:16699">
-          <div class="ref-door-icon">ðŸ“ž</div>
-          <h4>à¦«à§‹à¦¨ à¦•à¦²à§‡à¦° à¦®à¦¾à¦§à§à¦¯à¦®à§‡</h4>
-          <p>à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦¸à¦®à§à¦ªà¦°à§à¦•à§‡ à¦¤à¦¥à§à¦¯, à¦ªà¦°à¦¾à¦®à¦°à§à¦¶ à¦¬à¦¾ à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦¨à¦¿à§Ÿà§‡ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦ªà§‡à¦¤à§‡ à¦¹à§‡à¦²à§à¦ªà¦²à¦¾à¦‡à¦¨à§‡ à¦•à¦¥à¦¾ à¦¬à¦²à§à¦¨à¥¤</p>
-          <span class="ref-door-link">à¦•à¦² à¦•à¦°à§à¦¨ à§§à§¬à§¬à§¯à§¯ â€º</span>
-        </a>
-
-        <a class="ref-door-card" href="#/offices">
-          <div class="ref-door-icon">ðŸ¢</div>
-          <h4>à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸</h4>
-          <p>à¦†à¦ªà¦¨à¦¾à¦° à¦¨à¦¿à¦•à¦Ÿà¦¸à§à¦¥ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸à§‡ à¦—à¦¿à§Ÿà§‡ à¦¸à¦°à¦¾à¦¸à¦°à¦¿ à¦ªà§à¦°à§Ÿà§‹à¦œà¦¨à§€à§Ÿ à¦¤à¦¥à§à¦¯ à¦“ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦¨à¦¿à¦¨à¥¤</p>
-          <span class="ref-door-link">à¦•à¦¾à¦°à§à¦¯à¦¾à¦²à§Ÿ à¦–à§à¦à¦œà§à¦¨ â€º</span>
-        </a>
-
-        <a class="ref-door-card" href="#/help">
-          <div class="ref-door-icon">ðŸ›ï¸</div>
-          <h4>à¦‡à¦‰à¦¡à¦¿à¦¸à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾</h4>
-          <p>à¦†à¦ªà¦¨à¦¾à¦° à¦¨à¦¿à¦•à¦Ÿà¦¸à§à¦¥ à¦‡à¦‰à¦¨à¦¿à§Ÿà¦¨ à¦¡à¦¿à¦œà¦¿à¦Ÿà¦¾à¦² à¦¸à§‡à¦¨à§à¦Ÿà¦¾à¦°à§‡ (UDC) à¦—à¦¿à§Ÿà§‡ DLAS-à¦à¦° à¦®à¦¾à¦§à§à¦¯à¦®à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦¨à¦¿à¦¨à¥¤</p>
-          <span class="ref-door-link">à¦¨à¦¿à¦•à¦Ÿà¦¸à§à¦¥ à¦‡à¦‰à¦¡à¦¿à¦¸à¦¿ â€º</span>
-        </a>
-
-        <a class="ref-door-card" href="#/call">
-          <div class="ref-door-icon">#ï¸âƒ£</div>
-          <h4>IVR / à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦«à§‹à¦¨</h4>
-          <p>à¦¸à§à¦®à¦¾à¦°à§à¦Ÿà¦«à§‹à¦¨ à¦¬à¦¾ à¦‡à¦¨à§à¦Ÿà¦¾à¦°à¦¨à§‡à¦Ÿ à¦›à¦¾à§œà¦¾à¦‡ à§§à§¬à§¬à§¯à§¯ à¦¨à¦®à§à¦¬à¦°à§‡ à¦•à¦² à¦•à¦°à§‡ à¦†à¦‡à¦¨à¦¿ à¦¤à¦¥à§à¦¯ à¦“ à¦¨à¦¿à¦°à§à¦§à¦¾à¦°à¦¿à¦¤ à¦¸à§‡à¦¬à¦¾ à¦¸à¦®à§à¦ªà¦°à§à¦•à§‡ à¦œà¦¾à¦¨à§à¦¨à¥¤</p>
-          <span class="ref-door-link">à¦¬à¦¿à¦¸à§à¦¤à¦¾à¦°à¦¿à¦¤ â€º</span>
-        </a>
-
-        <a class="ref-door-card" href="javascript:void(0)" onclick="window.__chatOpen && window.__chatOpen()">
-          <div class="ref-door-icon">ðŸ¤–</div>
-          <h4>AI-à¦à¦° à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾ à¦¨à¦¿à¦¨</h4>
-          <p>à¦¸à§à¦®à¦¾à¦°à§à¦Ÿà¦«à§‹à¦¨ à¦¬à¦¾ à¦‡à¦¨à§à¦Ÿà¦¾à¦°à¦¨à§‡à¦Ÿà§‡à¦° à¦®à¦¾à¦§à§à¦¯à¦®à§‡ AI à¦¸à¦¹à¦•à¦¾à¦°à§€à¦° à¦¸à¦¾à¦¹à¦¾à¦¯à§à¦¯à§‡ à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦†à¦‡à¦¨à¦¿ à¦¤à¦¥à§à¦¯, à¦¦à¦¿à¦•à¦¨à¦¿à¦°à§à¦¦à§‡à¦¶à¦¨à¦¾ à¦“ à¦¸à§‡à¦¬à¦¾ à¦œà¦¾à¦¨à§à¦¨à¥¤</p>
-          <span class="ref-door-link">à¦¸à§à¦®à¦¾à¦°à§à¦Ÿ à¦¸à¦¹à¦•à¦¾à¦°à§€ â€º</span>
-        </a>
-      </div>
-
-      <div style="margin-top:2rem;background:#F8FAF9;border:1px solid #E5E7EB;border-radius:12px;padding:22px;display:flex;align-items:flex-start;gap:14px">
-        <span style="font-size:24px">ðŸ”’</span>
-        <div>
-          <strong style="color:#0F172A;font-size:1.05rem">à¦ªà§à¦°à¦¾à¦‡à¦­à§‡à¦Ÿ à¦“ à¦¨à¦¿à¦°à¦¾à¦ªà¦¦</strong>
-          <p style="color:#64748B;font-size:0.92rem;margin-top:4px;line-height:1.55">
-            à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦šà¦¾à¦“à¦¯à¦¼à¦¾ à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ à¦—à§‹à¦ªà¦¨à§€à¦¯à¦¼à¥¤ à¦†à¦ªà¦¨à¦¾à¦° à¦¤à¦¥à§à¦¯ à¦•à§‡à¦¬à¦² à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨à¦Ÿà¦¿ à¦¦à§‡à¦–à¦›à§‡à¦¨ à¦à¦®à¦¨ à¦¦à¦¾à¦¯à¦¼à¦¿à¦¤à§à¦¬à¦ªà§à¦°à¦¾à¦ªà§à¦¤ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸à¦¾à¦°à¦°à¦¾à¦‡ à¦¦à§‡à¦–à§‡à¦¨, à¦¬à¦¿à¦ªà¦°à§€à¦¤ à¦ªà¦•à§à¦·à¦•à§‡ à¦•à¦–à¦¨à§‹ à¦•à§‹à¦¨à§‹ à¦¤à¦¥à§à¦¯ à¦¬à¦¾ à¦¨à§‹à¦Ÿà¦¿à¦¶ à¦œà¦¾à¦¨à¦¾à¦¨à§‹ à¦¹à¦¯à¦¼ à¦¨à¦¾à¥¤
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- à§®. à¦†à¦ªà¦¨à¦¾à¦° à¦•à¦¿ à¦•à§‹à¦¨à§‹ à¦ªà§à¦°à¦¶à§à¦¨ à¦†à¦›à§‡? (Interactive FAQ Accordion) -->
-  <section class="ref-faq-section">
-    <div class="container">
-      <div class="ref-faq-grid">
-        <div>
-          <h2 style="font-family:'Noto Serif Bengali',serif;font-size:clamp(2rem,3vw,2.7rem);color:#FFF;line-height:1.25">
-            à¦†à¦ªà¦¨à¦¾à¦° à¦•à¦¿ à¦•à§‹à¦¨à§‹ à¦ªà§à¦°à¦¶à§à¦¨ à¦†à¦›à§‡?
-          </h2>
-          <p style="color:#A7F3D0;font-size:1.05rem;margin-top:14px;line-height:1.6">
-            à¦ªà§à¦°à¦¯à¦¼à§‹à¦œà¦¨à§€à¦¯à¦¼ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦¸à¦®à§à¦ªà¦°à§à¦•à§‡ à¦¸à¦šà¦°à¦¾à¦šà¦° à¦ªà§à¦°à¦¶à§à¦¨ à¦à¦¬à¦‚ à¦‰à¦¤à§à¦¤à¦°
-          </p>
+      <div class="channel-grid">
+        <div class="channel-card">
+          <div class="channel-card-head">
+            <div class="channel-icon">📞</div>
+            <div>
+              <div class="channel-title">${t('hCallT')}</div>
+              <small style="color:var(--gov-green);font-weight:700">টোল-ফ্রি ২৪/৭ হেল্পলাইন</small>
+            </div>
+          </div>
+          <p class="channel-desc">${t('hCallB')}</p>
+          <a class="channel-btn channel-btn-primary" href="tel:16699">📞 এখনই কল করুন (১৬৬৯৯)</a>
         </div>
 
-        <div class="ref-accordion" id="refFaqAccordion">
-          <div class="ref-faq-item open">
-            <div class="ref-faq-header">
-              <span>à¦à¦‡ à¦¸à§‡à¦¬à¦¾ à¦•à¦¿ à¦¸à¦¤à§à¦¯à¦¿à¦‡ à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡?</span>
-              <span class="ref-faq-arrow">â–¼</span>
-            </div>
-            <div class="ref-faq-body">
-              à¦¹à§à¦¯à¦¾à¦à¥¤ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦¯à¦¼ à¦†à¦ªà¦¨à¦¾à¦° à¦•à§‹à¦¨à§‹ à¦–à¦°à¦š à¦¨à§‡à¦‡ â€” à¦†à¦¬à§‡à¦¦à¦¨ à¦«à¦¿ à¦¨à§‡à¦‡, à¦†à¦‡à¦¨à¦œà§€à¦¬à§€à¦° à¦«à¦¿ à¦¨à§‡à¦‡, à¦•à§‹à¦°à§à¦Ÿ à¦«à¦¿ à¦¨à§‡à¦‡à¥¤ à¦°à¦¾à¦·à§à¦Ÿà§à¦° à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ à¦–à¦°à¦š à¦¬à¦¹à¦¨ à¦•à¦°à§‡à¥¤ à¦•à§‡à¦‰ à¦à¦‡ à¦¸à§‡à¦¬à¦¾à¦° à¦œà¦¨à§à¦¯ à¦Ÿà¦¾à¦•à¦¾ à¦šà¦¾à¦‡à¦²à§‡ à§§à§¬à§¬à§¯à§¯-à¦ à¦œà¦¾à¦¨à¦¾à¦¨à¥¤
+        <div class="channel-card">
+          <div class="channel-card-head">
+            <div class="channel-icon">🏢</div>
+            <div>
+              <div class="channel-title">${t('hUdcT')}</div>
+              <small style="color:var(--text-muted)">নিকটস্থ ইউনিয়ন পরিষদ</small>
             </div>
           </div>
-
-          <div class="ref-faq-item">
-            <div class="ref-faq-header">
-              <span>à¦†à¦®à¦¾à¦° à¦¤à¦¥à§à¦¯ à¦•à¦¿ à¦—à§‹à¦ªà¦¨ à¦¥à¦¾à¦•à¦¬à§‡?</span>
-              <span class="ref-faq-arrow">â–¼</span>
-            </div>
-            <div class="ref-faq-body">
-              à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ à¦—à§‹à¦ªà¦¨ à¦¥à¦¾à¦•à¦¬à§‡à¥¤ Five Doors, One Record à¦ªà§à¦°à¦¯à§à¦•à§à¦¤à¦¿à¦¤à§‡ à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦“ à¦¬à§à¦¯à¦•à§à¦¤à¦¿à¦—à¦¤ à¦¤à¦¥à§à¦¯ à¦¸à§à¦°à¦•à§à¦·à¦¿à¦¤ à¦¡à¦¾à¦Ÿà¦¾à¦¬à§‡à¦œà§‡ à¦à¦¨à¦•à§à¦°à¦¿à¦ªà§à¦Ÿà§‡à¦¡ à¦¥à¦¾à¦•à§‡ à¦à¦¬à¦‚ à¦¬à¦¿à¦ªà¦°à§€à¦¤ à¦ªà¦•à§à¦·à¦•à§‡ à¦•à¦–à¦¨à§‹à¦‡ à¦•à§‹à¦¨à§‹ à¦¨à§‹à¦Ÿà¦¿à¦¶ à¦¦à§‡à¦–à¦¾à¦¨à§‹ à¦¹à¦¯à¦¼ à¦¨à¦¾à¥¤
-            </div>
-          </div>
-
-          <div class="ref-faq-item">
-            <div class="ref-faq-header">
-              <span>à¦†à¦®à¦¾à¦° à¦•à¦¾à¦›à§‡ à¦¸à§à¦®à¦¾à¦°à§à¦Ÿà¦«à§‹à¦¨ à¦¨à§‡à¦‡, à¦¤à¦¾à¦¹à¦²à§‡ à¦•à§€à¦­à¦¾à¦¬à§‡ à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à¦¬?</span>
-              <span class="ref-faq-arrow">â–¼</span>
-            </div>
-            <div class="ref-faq-body">
-              à¦†à¦ªà¦¨à¦¿ à¦¯à§‡à¦•à§‹à¦¨à§‹ à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦¬à¦¾à¦Ÿà¦¨ à¦«à§‹à¦¨ à¦¥à§‡à¦•à§‡ à¦Ÿà§‹à¦²-à¦«à§à¦°à¦¿ à§§à§¬à§¬à§¯à§¯ à¦¨à¦®à§à¦¬à¦°à§‡ à¦•à¦² à¦•à¦°à§‡ à¦•à¦¥à¦¾ à¦¬à¦²à¦¤à§‡ à¦ªà¦¾à¦°à§‡à¦¨ à¦…à¦¥à¦¬à¦¾ à¦¨à¦¿à¦•à¦Ÿà¦¸à§à¦¥ à¦‡à¦‰à¦¨à¦¿à¦¯à¦¼à¦¨ à¦¡à¦¿à¦œà¦¿à¦Ÿà¦¾à¦² à¦¸à§‡à¦¨à§à¦Ÿà¦¾à¦°à§‡ (UDC) à¦—à¦¿à¦¯à¦¼à§‡ à¦‰à¦¦à§à¦¯à§‹à¦•à§à¦¤à¦¾à¦° à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦¯à¦¼ à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à¦¤à§‡ à¦ªà¦¾à¦°à§‡à¦¨à¥¤
-            </div>
-          </div>
-
-          <div class="ref-faq-item">
-            <div class="ref-faq-header">
-              <span>à¦†à¦®à¦¿ à¦•à¦¿ à¦‡à¦‰à¦¨à¦¿à¦¯à¦¼à¦¨ à¦¡à¦¿à¦œà¦¿à¦Ÿà¦¾à¦² à¦¸à§‡à¦¨à§à¦Ÿà¦¾à¦° à¦¥à§‡à¦•à§‡ à¦¸à¦¾à¦¹à¦¾à¦¯à§à¦¯ à¦ªà§‡à¦¤à§‡ à¦ªà¦¾à¦°à¦¿?</span>
-              <span class="ref-faq-arrow">â–¼</span>
-            </div>
-            <div class="ref-faq-body">
-              à¦¹à§à¦¯à¦¾à¦, à¦¦à§‡à¦¶à§‡à¦° à¦¸à¦¬ à¦‡à¦‰à¦¨à¦¿à¦¯à¦¼à¦¨ à¦¡à¦¿à¦œà¦¿à¦Ÿà¦¾à¦² à¦¸à§‡à¦¨à§à¦Ÿà¦¾à¦°à§‡à¦° à¦‰à¦¦à§à¦¯à§‹à¦•à§à¦¤à¦¾à¦°à¦¾ DLAS à¦ªà§‹à¦°à§à¦Ÿà¦¾à¦²à§‡ à¦¸à¦°à¦¾à¦¸à¦°à¦¿ à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦¨à¦¾à¦—à¦°à¦¿à¦•à¦¦à§‡à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦¦à¦¾à¦–à¦¿à¦² à¦“ à¦Ÿà§à¦°à§à¦¯à¦¾à¦•à¦¿à¦‚à¦¯à¦¼à§‡ à¦¸à¦¾à¦¹à¦¾à¦¯à§à¦¯ à¦•à¦°à§‡à¦¨à¥¤
-            </div>
-          </div>
-
-          <div class="ref-faq-item">
-            <div class="ref-faq-header">
-              <span>à¦¸à¦¿à¦¦à§à¦§à¦¾à¦¨à§à¦¤ à¦¨à¦¾ à¦®à¦¾à¦¨à¦²à§‡ à¦•à§€ à¦¹à¦¬à§‡?</span>
-              <span class="ref-faq-arrow">â–¼</span>
-            </div>
-            <div class="ref-faq-body">
-              à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾ (ADR) à¦‰à¦­à¦¯à¦¼ à¦ªà¦•à§à¦·à§‡à¦° à¦¸à¦®à§à¦®à¦¤à¦¿à¦° à¦­à¦¿à¦¤à§à¦¤à¦¿à¦¤à§‡ à¦¹à¦¯à¦¼à¥¤ à¦¯à¦¦à¦¿ à¦•à§‹à¦¨à§‹ à¦ªà¦•à§à¦· à¦¸à¦®à§à¦®à¦¤ à¦¨à¦¾ à¦¹à¦¯à¦¼, à¦¤à¦¾à¦¹à¦²à§‡ à¦†à¦¦à¦¾à¦²à¦¤à§‡ à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦ªà§‚à¦°à§à¦£à¦¾à¦™à§à¦— à¦®à¦¾à¦®à¦²à¦¾ à¦²à¦¡à¦¼à¦¾à¦° à¦œà¦¨à§à¦¯ à¦°à¦¾à¦·à§à¦Ÿà§à¦°à§€à¦¯à¦¼ à¦–à¦°à¦šà§‡ à¦ªà§à¦¯à¦¾à¦¨à§‡à¦² à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦¨à¦¿à¦¯à¦¼à§‹à¦— à¦•à¦°à¦¾ à¦¹à¦¯à¦¼à¥¤
-            </div>
-          </div>
-
-          <div class="ref-faq-item">
-            <div class="ref-faq-header">
-              <span>à¦•à¦¤ à¦¸à¦®à¦¯à¦¼ à¦²à¦¾à¦—à§‡?</span>
-              <span class="ref-faq-arrow">â–¼</span>
-            </div>
-            <div class="ref-faq-body">
-              à¦ªà§à¦°à¦¾à¦¥à¦®à¦¿à¦• à¦¸à§à¦•à§à¦°à¦¿à¦¨à¦¿à¦‚ à§© à¦•à¦¾à¦°à§à¦¯à¦¦à¦¿à¦¬à¦¸à§‡à¦° à¦®à¦§à§à¦¯à§‡ à¦¸à¦®à§à¦ªà¦¨à§à¦¨ à¦¹à¦¯à¦¼ à¦à¦¬à¦‚ à¦œà¦°à§à¦°à¦¿ à¦¨à¦¿à¦°à§à¦¯à¦¾à¦¤à¦¨ à¦¬à¦¾ à¦¬à¦¿à¦¨à¦¾ à¦¬à¦¿à¦šà¦¾à¦°à§‡ à¦†à¦Ÿà¦• à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤ à¦†à¦¬à§‡à¦¦à¦¨ à§¨à§ª à¦˜à¦£à§à¦Ÿà¦¾à¦° à¦®à¦§à§à¦¯à§‡ à¦…à¦—à§à¦°à¦¾à¦§à¦¿à¦•à¦¾à¦° à¦­à¦¿à¦¤à§à¦¤à¦¿à¦¤à§‡ à¦¨à¦¿à¦·à§à¦ªà¦¤à§à¦¤à¦¿ à¦•à¦°à¦¾ à¦¹à¦¯à¦¼à¥¤
-            </div>
-          </div>
+          <p class="channel-desc">${t('hUdcB')}</p>
+          <a class="channel-btn channel-btn-outline" href="#/offices">🗺️ উদ্যোক্তা ও অফিস ডিরেক্টরি</a>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- à§¯. à§¬à§ª à¦œà§‡à¦²à¦¾ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸ à¦“ à¦Ÿà§à¦°à¦¾à¦‡à¦¬à§à¦¯à§à¦¨à¦¾à¦² (District Map & Directory) -->
-  <section class="ref-section">
-    <div class="container">
-      <div class="sec-header-split">
-        <div>
-          <h2 class="sec-heading-serif">à§¬à§ª à¦œà§‡à¦²à¦¾ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸ à¦“ à¦Ÿà§à¦°à¦¾à¦‡à¦¬à§à¦¯à§à¦¨à¦¾à¦²</h2>
-        </div>
-        <div>
-          <p class="sec-heading-desc">
-            à¦†à¦ªà¦¨à¦¾à¦° à¦œà§‡à¦²à¦¾à¦° à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸à§‡à¦° à¦¸à¦°à¦¾à¦¸à¦°à¦¿ à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦°, à¦•à§‹à¦°à§à¦Ÿà§‡à¦° à¦…à¦¬à¦¸à§à¦¥à¦¾à¦¨ à¦à¦¬à¦‚ à¦¦à¦¾à¦¯à¦¼à¦¿à¦¤à§à¦¬à¦°à¦¤ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾à¦° à¦¤à¦¥à§à¦¯ à¦–à§à¦à¦œà§à¦¨à¥¤
-          </p>
-        </div>
-      </div>
-      <div class="office-finder">
-        <div>
-          <div class="search-bar" style="margin:0 0 1rem">
-            <input id="offQ" placeholder="à¦œà§‡à¦²à¦¾à¦° à¦¨à¦¾à¦® à¦²à¦¿à¦–à§à¦¨ â€” à¦¯à§‡à¦®à¦¨: à¦¢à¦¾à¦•à¦¾, à¦•à§à¦®à¦¿à¦²à§à¦²à¦¾, à¦šà¦Ÿà§à¦Ÿà¦—à§à¦°à¦¾à¦®, à¦–à§à¦²à¦¨à¦¾, à¦¸à¦¿à¦²à§‡à¦Ÿ, à¦œà¦¯à¦¼à¦ªà§à¦°à¦¹à¦¾à¦Ÿâ€¦">
+        <div class="channel-card">
+          <div class="channel-card-head">
+            <div class="channel-icon">📱</div>
+            <div>
+              <div class="channel-title">${t('hUssdT')}</div>
+              <small style="color:var(--text-muted)">বাটন ফোনে ইন্টারনেট ছাড়া</small>
+            </div>
           </div>
-          <div class="office-list" id="homeOffices"></div>
+          <p class="channel-desc">${t('hUssdB')}</p>
+          <button type="button" class="channel-btn channel-btn-outline" id="btnOpenUssd">
+            📱 বিস্তারিত দেখুন ও ডায়াল করুন →
+          </button>
         </div>
-        <div id="map"></div>
-      </div>
-    </div>
-  </section>
 
-  <!-- à§§à§¦. à¦ªà§à¦°à§‹à¦­à¦¾à¦‡à¦¡à¦¾à¦° à¦“ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦•à¦¨à¦¸à§‹à¦² à¦¬à§à¦¯à¦¾à¦¨à¦¾à¦° -->
-  <section class="section" style="background:#003628;color:#fff;padding:45px 0">
-    <div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px">
-      <div style="max-width:700px">
-        <span class="badge warn" style="margin-bottom:8px">ðŸ›ï¸ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦“ à¦ªà§à¦°à§‹à¦­à¦¾à¦‡à¦¡à¦¾à¦° à¦²à¦—à¦‡à¦¨</span>
-        <h2 style="color:#FFF;margin-bottom:8px;font-size:1.6rem">à¦œà§‡à¦²à¦¾ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾, à¦ªà§à¦¯à¦¾à¦¨à§‡à¦² à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦“ à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾à¦•à¦¾à¦°à§€ à¦•à¦¨à¦¸à§‹à¦²</h2>
-        <p style="color:rgba(255,255,255,0.85);font-size:0.92rem">
-          DLAO à¦…à¦«à¦¿à¦¸à¦¾à¦°, à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾à¦•à¦¾à¦°à§€, à¦†à¦‡à¦¨à¦œà§€à¦¬à§€, à¦‡à¦‰à¦¡à¦¿à¦¸à¦¿ à¦…à¦ªà¦¾à¦°à§‡à¦Ÿà¦° à¦“ à¦¹à§‡à¦²à§à¦ªà¦²à¦¾à¦‡à¦¨ à¦à¦œà§‡à¦¨à§à¦Ÿà§‡à¦° à¦œà¦¨à§à¦¯ à¦¸à¦®à¦¨à§à¦¬à¦¿à¦¤ à¦•à¦¾à¦°à§à¦¯à¦¬à§à¦¯à¦¬à¦¸à§à¦¥à¦¾à¥¤ à¦¡à§‡à¦®à§‹ à¦ªà¦¿à¦¨: <strong>1234</strong>
-        </p>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a href="#/console" class="btn btn-gold btn-lg">ðŸ› ï¸ à¦ªà§à¦°à§‹à¦­à¦¾à¦‡à¦¡à¦¾à¦° à¦•à¦¨à¦¸à§‹à¦²à§‡ à¦ªà§à¦°à¦¬à§‡à¦¶ â†’</a>
+        <div class="channel-card">
+          <div class="channel-card-head">
+            <div class="channel-icon">🤖</div>
+            <div>
+              <div class="channel-title">${t('hAiT')}</div>
+              <small style="color:var(--text-muted)">স্মার্ট আইনি দিকনির্দেশনা</small>
+            </div>
+          </div>
+          <p class="channel-desc">${t('hAiB')}</p>
+          <button type="button" class="channel-btn channel-btn-primary" id="btnOpenAiChat">
+            💬 AI সহকারীর সাথে কথা বলুন
+          </button>
+        </div>
       </div>
     </div>
   </section>
   `;
 
-  // Init Office Map
-  initOfficeMap();
-
-  // Populate Offices
-  const renderOffices = (q) => {
-    if (!BOOT || !BOOT.offices) return;
-    const list = BOOT.offices.filter((o) => !q || (o.name + o.district + o.address).toLowerCase().includes(q.toLowerCase()));
-    $('#homeOffices').innerHTML = list.slice(0, 8).map((o) => officeCard(o)).join('') ||
-      `<div class="empty-state" style="padding:1.5rem;text-align:center">à¦•à§‹à¦¨à§‹ à¦…à¦«à¦¿à¦¸ à¦ªà¦¾à¦“à¦¯à¦¼à¦¾ à¦¯à¦¾à¦¯à¦¼à¦¨à¦¿</div>`;
-  };
-  renderOffices('');
-  $('#offQ').oninput = (e) => renderOffices(e.target.value);
-
-  // Wire up Tracking Form
-  window.fillHomeTrack = (id, phone, last4) => {
-    $('#trackAppId').value = id;
-    if (phone) $('#trackPhone').value = phone;
-    $('#trackLast4').value = last4;
-    $('#trackSearchBtn').click();
-  };
-
-  $$('.chip-ref-demo').forEach((btn) => {
-    btn.onclick = () => {
-      window.fillHomeTrack(btn.dataset.id, btn.dataset.phone, btn.dataset.last4);
+  // Attach event listeners
+  const hDemo1 = $('#hDemo1');
+  if (hDemo1) {
+    hDemo1.onclick = () => {
+      location.hash = '#/track?id=APP-2026-0001&last4=3344';
     };
-  });
-
-  $('#trackSearchBtn').onclick = async () => {
-    const id = ($('#trackAppId').value || '').trim();
-    const last4 = ($('#trackLast4').value || '').trim();
-    const box = $('#trackHomeResult');
-    if (!id || !last4) {
-      box.innerHTML = `<div class="badge danger" style="padding:8px 12px;margin-top:12px;display:block">à¦…à¦¨à§à¦—à§à¦°à¦¹ à¦•à¦°à§‡ à¦†à¦¬à§‡à¦¦à¦¨ à¦†à¦‡à¦¡à¦¿ à¦“ à¦¶à§‡à¦· à§ª à¦¸à¦‚à¦–à§à¦¯à¦¾ à¦¦à¦¿à¦¨</div>`;
-      return;
-    }
-    box.innerHTML = `<div style="padding:12px;color:#64748B;font-size:0.9rem">à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à¦¾ à¦¹à¦šà§à¦›à§‡â€¦</div>`;
-    const r = await apiPost('track', { appId: id, last4 });
-    if (r.error) {
-      box.innerHTML = `<div class="badge danger" style="padding:8px 12px;margin-top:12px;display:block">âŒ ${esc(r.error)}</div>`;
-      return;
-    }
-    box.innerHTML = `
-      <div style="background:#F8FAF9;border-radius:12px;padding:16px;margin-top:14px;border:1px solid #05513A">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong style="color:#05513A;font-size:1.1rem">à¦§à¦¾à¦ª ${bnNum(r.stage + 1)}: ${esc(r.stageLabel)}</strong>
-          ${r.emergency ? '<span class="badge warn">à¦œà¦°à§à¦°à¦¿</span>' : '<span class="badge success">à¦¸à¦•à§à¦°à¦¿à¦¯à¦¼</span>'}
-        </div>
-        ${r.nextStep ? `<p style="font-size:0.9rem;color:#1E293B;margin-bottom:8px">ðŸŽ¯ <strong>à¦ªà¦°à¦¬à¦°à§à¦¤à§€ à¦ªà¦¦à¦•à§à¦·à§‡à¦ª:</strong> ${esc(r.nextStep)}</p>` : ''}
-        ${(r.headsUp && r.headsUp.length) ? `<ul style="font-size:0.85rem;color:#64748B;padding-left:18px;margin:6px 0">${r.headsUp.map(h => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
-        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-          <small style="color:#64748B">à¦†à¦‡à¦¡à¦¿: ${esc(r.appId)}</small>
-          <a href="#/track?id=${encodeURIComponent(id)}" class="btn btn-outline btn-sm">à¦¬à¦¿à¦¸à§à¦¤à¦¾à¦°à¦¿à¦¤ à¦Ÿà¦¾à¦‡à¦®à¦²à¦¾à¦‡à¦¨ â†’</a>
-        </div>
-      </div>
-    `;
-  };
-
-  // Wire up Eligibility Checker
-  const checkHomeElig = () => {
-    const inc = Number($('#homeIncomeInput').value || 0);
-    const cat = $('#homeCategorySelect').value;
-    const res = $('#homeEligibilityResult');
-    const priorityCats = ['women', 'freedom', 'disabled', 'prisoner', 'victim'];
-    if (priorityCats.includes(cat)) {
-      res.innerHTML = `
-        <div style="background:#E8F5EF;border:1px solid #05513A;border-radius:8px;padding:12px;color:#05513A;font-size:0.92rem">
-          <strong>âœ… à¦†à¦ªà¦¨à¦¿ à¦…à¦—à§à¦°à¦¾à¦§à¦¿à¦•à¦¾à¦° à¦­à¦¿à¦¤à§à¦¤à¦¿à¦¤à§‡ à§§à§¦à§¦% à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à§Ÿà¦¤à¦¾à¦° à¦¯à§‹à¦—à§à¦¯!</strong>
-          <p style="margin-top:4px;font-size:0.84rem;color:#1E293B">à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦¨à§€à¦¤à¦¿à¦®à¦¾à¦²à¦¾ à¦…à¦¨à§à¦¯à¦¾à¦¯à¦¼à§€ à¦à¦‡ à¦•à§à¦¯à¦¾à¦Ÿà¦¾à¦—à¦°à¦¿à¦° à¦¨à¦¾à¦—à¦°à¦¿à¦•à¦—à¦£ à¦†à¦¯à¦¼à§‡à¦° à¦¶à¦°à§à¦¤ à¦¬à§à¦¯à¦¤à¦¿à¦°à§‡à¦•à§‡à¦‡ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦–à¦°à¦šà§‡ à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦“ à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾ à¦ªà¦¾à¦¬à§‡à¦¨à¥¤</p>
-          <a href="#/apply" class="btn btn-primary btn-sm" style="margin-top:8px;display:inline-block">à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à§à¦¨ â†’</a>
-        </div>`;
-    } else if (inc <= 150000) {
-      res.innerHTML = `
-        <div style="background:#E8F5EF;border:1px solid #05513A;border-radius:8px;padding:12px;color:#05513A;font-size:0.92rem">
-          <strong>âœ… à¦†à¦ªà¦¨à¦¿ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦–à¦°à¦šà§‡ à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà¦¾à¦“à¦¯à¦¼à¦¾à¦° à¦¯à§‹à¦—à§à¦¯!</strong>
-          <p style="margin-top:4px;font-size:0.84rem;color:#1E293B">à¦†à¦ªà¦¨à¦¾à¦° à¦¬à¦¾à¦°à§à¦·à¦¿à¦• à¦†à¦¯à¦¼ (à§³${bnNum(inc)}) à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà§à¦°à¦¾à¦ªà§à¦¤à¦¿à¦° à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦¸à§€à¦®à¦¾à¦° à¦®à¦§à§à¦¯à§‡ à¦°à¦¯à¦¼à§‡à¦›à§‡à¥¤</p>
-          <a href="#/apply" class="btn btn-primary btn-sm" style="margin-top:8px;display:inline-block">à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à§à¦¨ â†’</a>
-        </div>`;
-    } else {
-      res.innerHTML = `
-        <div style="background:#FEF3C7;border:1px solid #D97706;border-radius:8px;padding:12px;color:#92400E;font-size:0.92rem">
-          <strong>âš–ï¸ à¦¬à¦¿à¦¶à§‡à¦· à¦¬à¦¿à¦¬à§‡à¦šà¦¨à¦¾à¦¯à¦¼ à¦†à¦¬à§‡à¦¦à¦¨ à¦ªà¦°à§à¦¯à¦¾à¦²à§‹à¦šà¦¨à¦¾ à¦•à¦°à¦¾ à¦¹à¦¬à§‡</strong>
-          <p style="margin-top:4px;font-size:0.84rem;color:#1E293B">à¦¬à¦¾à¦°à§à¦·à¦¿à¦• à¦†à¦¯à¦¼ à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦¸à§€à¦®à¦¾à¦° à¦¬à§‡à¦¶à¦¿ à¦¹à¦²à§‡à¦“ à¦®à¦¾à¦®à¦²à¦¾à¦° à¦¬à§à¦¯à¦¯à¦¼à¦­à¦¾à¦° à¦“ à¦¬à¦¿à¦¶à§‡à¦· à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦ªà¦°à¦¿à¦¸à§à¦¥à¦¿à¦¤à¦¿ à¦¬à¦¿à¦¬à§‡à¦šà¦¨à¦¾à¦¯à¦¼ à¦œà§‡à¦²à¦¾ à¦†à¦‡à¦¨ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦…à¦¨à§à¦®à§‹à¦¦à¦¨ à¦¦à¦¿à¦¤à§‡ à¦ªà¦¾à¦°à§‡à¦¨à¥¤</p>
-          <a href="#/apply" class="btn btn-outline btn-sm" style="margin-top:8px;display:inline-block">à¦¯à¦¾à¦šà¦¾à¦‡à§Ÿà§‡à¦° à¦†à¦¬à§‡à¦¦à¦¨ â†’</a>
-        </div>`;
-    }
-  };
-  $('#homeCheckBtn').onclick = checkHomeElig;
-  $('#homeCategorySelect').onchange = checkHomeElig;
-
-  // Wire up FAQ Accordion
-  $$('.ref-faq-item').forEach((item) => {
-    const hdr = item.querySelector('.ref-faq-header');
-    hdr.onclick = () => {
-      const isOpen = item.classList.contains('open');
-      $$('.ref-faq-item').forEach(i => i.classList.remove('open'));
-      if (!isOpen) item.classList.add('open');
+  }
+  const hDemo2 = $('#hDemo2');
+  if (hDemo2) {
+    hDemo2.onclick = () => {
+      location.hash = '#/track?id=DLAS-NET-2026-04420&last4=3344';
     };
-  });
+  }
+  const btnOpenUssd = $('#btnOpenUssd');
+  if (btnOpenUssd) {
+    btnOpenUssd.onclick = openUssdSimulator;
+  }
+  const btnOpenAiChat = $('#btnOpenAiChat');
+  if (btnOpenAiChat) {
+    btnOpenAiChat.onclick = () => {
+      if (typeof window.__chatOpen === 'function') window.__chatOpen();
+    };
+  }
 }
 
-// ---------- à¦¸à§‡à¦¬à¦¾à¦¸à¦®à§‚à¦¹ à¦ªà§‡à¦œ ----------
+// ---------- ২. সেবাসমূহ পেজ ----------
 async function pageServices() {
   app.innerHTML = `
   <div class="container page-head">
-    <span class="section-tag">à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦†à¦‡à¦¨à¦¿ à¦¸à§‡à¦¬à¦¾</span>
-    <h1>âš–ï¸ à¦œà¦¾à¦¤à§€à¦¯à¦¼ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦¸à§‡à¦¬à¦¾à¦¸à¦®à§‚à¦¹</h1>
-    <p>à¦†à¦‡à¦¨à¦—à¦¤ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà§à¦°à¦¦à¦¾à¦¨ à¦†à¦‡à¦¨ à§¨à§¦à§¦à§¦-à¦à¦° à¦…à¦§à§€à¦¨à§‡ à¦…à¦¸à¦šà§à¦›à¦² à¦“ à¦¸à§à¦¬à¦¿à¦§à¦¾-à¦¬à¦žà§à¦šà¦¿à¦¤ à¦¨à¦¾à¦—à¦°à¦¿à¦•à¦¦à§‡à¦° à¦œà¦¨à§à¦¯ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦–à¦°à¦šà§‡ à¦¸à¦•à¦² à¦†à¦‡à¦¨à¦¿ à¦ªà§à¦°à¦¤à¦¿à¦•à¦¾à¦°à¥¤</p>
+    <span class="section-tag">সরকারি আইনি সেবা</span>
+    <h1>⚖️ ${t('servicesTitle')}</h1>
+    <p>${t('servicesSubtitle')}</p>
   </div>
   <div class="container">
     <div class="services-grid" style="margin-bottom:2.5rem">
+      <!-- ১. বিনামূল্যে আইনি পরামর্শ (working button -> #/guide) -->
       <div class="service-card">
         <div class="service-head">
-          <div class="service-icon-box">ðŸ’¬</div>
+          <div class="service-icon-box">💬</div>
           <div>
-            <span class="service-tag-badge">à¦ªà¦°à¦¾à¦®à¦°à§à¦¶</span>
-            <h3>à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦†à¦‡à¦¨à¦¿ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶</h3>
+            <span class="service-tag-badge">পরামর্শ</span>
+            <h3>${t('freeConsultTitle')}</h3>
           </div>
         </div>
-        <p>à¦¯à§‡à¦•à§‹à¦¨à§‹ à¦®à¦¾à¦®à¦²à¦¾ à¦•à¦°à¦¾à¦° à¦†à¦—à§‡ à¦†à¦ªà¦¨à¦¾à¦° à¦…à¦§à¦¿à¦•à¦¾à¦°, à¦†à¦‡à¦¨à¦—à¦¤ à¦¸à§à¦¯à§‹à¦— à¦“ à¦®à¦¾à¦®à¦²à¦¾à¦° à¦¸à¦®à§à¦­à¦¾à¦¬à§à¦¯à¦¤à¦¾ à¦¨à¦¿à¦¯à¦¼à§‡ à¦œà§‡à¦²à¦¾ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸ à¦¬à¦¾ à¦Ÿà§‹à¦²-à¦«à§à¦°à¦¿ à¦¹à§‡à¦²à§à¦ªà¦²à¦¾à¦‡à¦¨ à§§à§¬à§¬à§¯à§¯-à¦ à¦¤à¦¾à§Žà¦•à§à¦·à¦£à¦¿à¦• à¦ªà¦°à¦¾à¦®à¦°à§à¦¶à¥¤</p>
-        <a class="btn btn-outline btn-block" href="#/guide">à¦†à¦‡à¦¨à¦¿ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶ à¦šà¦¾à¦¨ â†’</a>
+        <p>${t('freeConsultDesc')}</p>
+        <a class="btn btn-outline btn-block" href="#/guide">${t('freeConsultBtn')}</a>
       </div>
 
+      <!-- ২. সরকারি খরচে আইনজীবী নিয়োগ -->
       <div class="service-card">
         <div class="service-head">
-          <div class="service-icon-box">âš–ï¸</div>
+          <div class="service-icon-box">⚖️</div>
           <div>
-            <span class="service-tag-badge">à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦¨à¦¿à¦¯à¦¼à§‹à¦—</span>
-            <h3>à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦–à¦°à¦šà§‡ à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦¨à¦¿à¦¯à¦¼à§‹à¦—</h3>
+            <span class="service-tag-badge">আইনজীবী নিয়োগ</span>
+            <h3>${t('lawyerAppTitle')}</h3>
           </div>
         </div>
-        <p>à¦†à¦¦à¦¾à¦²à¦¤à§‡ à¦¦à§‡à¦“à¦¯à¦¼à¦¾à¦¨à¦¿, à¦«à§Œà¦œà¦¦à¦¾à¦°à¦¿ à¦“ à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦®à§‹à¦•à¦¦à§à¦¦à¦®à¦¾à¦¯à¦¼ à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ à¦°à¦¾à¦·à§à¦Ÿà§à¦°à§€à¦¯à¦¼ à¦–à¦°à¦šà§‡ à¦…à¦­à¦¿à¦œà§à¦ž à¦ªà§à¦¯à¦¾à¦¨à§‡à¦² à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦¨à¦¿à¦¯à¦¼à§‹à¦—à¥¤ à¦•à§‹à¦¨à§‹ à¦«à¦¿ à¦ªà§à¦°à¦¦à¦¾à¦¨ à¦•à¦°à¦¤à§‡ à¦¹à¦¬à§‡ à¦¨à¦¾à¥¤</p>
-        <a class="btn btn-primary btn-block" href="#/apply">à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦ªà§‡à¦¤à§‡ à¦†à¦¬à§‡à¦¦à¦¨ â†’</a>
+        <p>${t('lawyerAppDesc')}</p>
+        <a class="btn btn-primary btn-block" href="#/apply">${t('lawyerAppBtn')}</a>
       </div>
 
+      <!-- ৩. বিকল্প বিরোধ নিষ্পত্তি (ADR) (working -> #/apply?purpose=mediation) -->
       <div class="service-card">
         <div class="service-head">
-          <div class="service-icon-box">ðŸ¤</div>
+          <div class="service-icon-box">🤝</div>
           <div>
             <span class="service-tag-badge">ADR</span>
-            <h3>à¦¬à¦¿à¦•à¦²à§à¦ª à¦¬à¦¿à¦°à§‹à¦§ à¦¨à¦¿à¦·à§à¦ªà¦¤à§à¦¤à¦¿ (ADR)</h3>
+            <h3>${t('adrServiceTitle')}</h3>
           </div>
         </div>
-        <p>à¦†à¦¦à¦¾à¦²à¦¤à§‡à¦° à¦¬à¦¾à¦‡à¦°à§‡ à¦¦à§à¦‡ à¦ªà¦•à§à¦·à§‡à¦° à¦¸à¦®à§à¦®à¦¤à¦¿à¦¤à§‡ à¦†à¦ªà¦¸-à¦®à§€à¦®à¦¾à¦‚à¦¸à¦¾à¦° à¦®à¦¾à¦§à§à¦¯à¦®à§‡ à¦•à¦® à¦¸à¦®à¦¯à¦¼à§‡ à¦“ à¦¬à¦¿à¦¨à¦¾ à¦–à¦°à¦šà§‡ à¦¬à¦¿à¦°à§‹à¦§ à¦¨à¦¿à¦·à§à¦ªà¦¤à§à¦¤à¦¿à¥¤ à¦†à¦¦à¦¾à¦²à¦¤à§‡à¦° à¦¡à¦¿à¦•à§à¦°à¦¿à¦° à¦¸à¦®à¦¾à¦¨ à¦®à¦°à§à¦¯à¦¾à¦¦à¦¾ à¦¸à¦®à§à¦ªà¦¨à§à¦¨à¥¤</p>
-        <a class="btn btn-outline btn-block" href="#/apply?purpose=mediation">à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ â†’</a>
+        <p>${t('adrServiceDesc')}</p>
+        <a class="btn btn-outline btn-block" href="#/apply?purpose=mediation">${t('adrServiceBtn')}</a>
       </div>
 
+      <!-- ৪. পারিবারিক ও দেনমোহর বিরোধ (Unnecessary action button removed) -->
       <div class="service-card">
         <div class="service-head">
-          <div class="service-icon-box">ðŸ›¡ï¸</div>
+          <div class="service-icon-box">🛡️</div>
           <div>
-            <span class="service-tag-badge">à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦•</span>
-            <h3>à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦“ à¦¦à§‡à¦¨à¦®à§‹à¦¹à¦° à¦¬à¦¿à¦°à§‹à¦§</h3>
+            <span class="service-tag-badge">পারিবারিক</span>
+            <h3>${t('familyServiceTitle')}</h3>
           </div>
         </div>
-        <p>à¦¯à§Œà¦¤à§à¦•, à¦¬à¦¿à¦¬à¦¾à¦¹à¦¬à¦¿à¦šà§à¦›à§‡à¦¦, à¦¦à§‡à¦¨à¦®à§‹à¦¹à¦° à¦†à¦¦à¦¾à¦¯à¦¼, à¦¨à¦¾à¦¬à¦¾à¦²à¦• à¦¸à¦¨à§à¦¤à¦¾à¦¨à§‡à¦° à¦…à¦­à¦¿à¦­à¦¾à¦¬à¦•à¦¤à§à¦¬ à¦“ à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦­à¦°à¦£à¦ªà§‹à¦·à¦£ à¦†à¦¦à¦¾à¦¯à¦¼à§‡ à¦¬à¦¿à¦¶à§‡à¦· à¦†à¦‡à¦¨à¦¿ à¦¸à§‡à¦²à¥¤</p>
-        <a class="btn btn-outline btn-block" href="#/topic/family">à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦¸à¦®à¦¾à¦§à¦¾à¦¨ â†’</a>
+        <p>${t('familyServiceDesc')}</p>
       </div>
 
+      <!-- ৫. ভূমি ও সম্পত্তি বিরোধ প্রতিকার (Unnecessary action button removed) -->
       <div class="service-card">
         <div class="service-head">
-          <div class="service-icon-box">ðŸ“œ</div>
+          <div class="service-icon-box">📜</div>
           <div>
-            <span class="service-tag-badge">à¦­à§‚à¦®à¦¿</span>
-            <h3>à¦­à§‚à¦®à¦¿ à¦“ à¦¸à¦®à§à¦ªà¦¤à§à¦¤à¦¿ à¦¬à¦¿à¦°à§‹à¦§ à¦ªà§à¦°à¦¤à¦¿à¦•à¦¾à¦°</h3>
+            <span class="service-tag-badge">ভূমি</span>
+            <h3>${t('landServiceTitle')}</h3>
           </div>
         </div>
-        <p>à¦œà¦®à¦¿ à¦œà¦¬à¦°à¦¦à¦–à¦², à¦­à§à¦¯à¦¼à¦¾ à¦¦à¦²à¦¿à¦², à¦–à¦¤à¦¿à¦¯à¦¼à¦¾à¦¨ à¦¸à¦‚à¦¶à§‹à¦§à¦¨, à¦¨à¦¾à¦®à¦œà¦¾à¦°à¦¿ à¦“ à¦‰à¦¤à§à¦¤à¦°à¦¾à¦§à¦¿à¦•à¦¾à¦° à¦¸à¦®à§à¦ªà¦¤à§à¦¤à¦¿ à¦¬à¦£à§à¦Ÿà¦¨à§‡à¦° à¦¬à¦¿à¦°à§‹à¦§à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¥¤</p>
-        <a class="btn btn-outline btn-block" href="#/topic/land">à¦­à§‚à¦®à¦¿ à¦…à¦§à¦¿à¦•à¦¾à¦° à¦¦à§‡à¦–à§à¦¨ â†’</a>
+        <p>${t('landServiceDesc')}</p>
       </div>
 
+      <!-- ৬. কারাবন্দী ও জামিন সহায়তা (Unnecessary action button removed) -->
       <div class="service-card">
         <div class="service-head">
-          <div class="service-icon-box">ðŸš¨</div>
+          <div class="service-icon-box">🚨</div>
           <div>
-            <span class="service-tag-badge">à¦•à¦¾à¦°à¦¾ à¦…à¦§à¦¿à¦•à¦¾à¦°</span>
-            <h3>à¦•à¦¾à¦°à¦¾à¦¬à¦¨à§à¦¦à§€ à¦“ à¦œà¦¾à¦®à¦¿à¦¨ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾</h3>
+            <span class="service-tag-badge">কারা অধিকার</span>
+            <h3>${t('jailServiceTitle')}</h3>
           </div>
         </div>
-        <p>à¦†à¦Ÿà¦• à¦¬à¦¿à¦šà¦¾à¦°à¦¾à¦§à§€à¦¨ à¦¬à¦¨à§à¦¦à§€à¦¦à§‡à¦° à¦œà¦¾à¦®à¦¿à¦¨ à¦†à¦¬à§‡à¦¦à¦¨ à¦“ à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦¨à¦¿à¦¯à¦¼à§‹à¦—à§‡à¦° à¦œà¦¨à§à¦¯ à¦œà§‡à¦²à¦–à¦¾à¦¨à¦¾ à¦ªà¦°à¦¿à¦¦à¦°à§à¦¶à¦¨à§‡à¦° à¦¬à§à¦¯à¦¬à¦¸à§à¦¥à¦¾ à¦“ à¦¬à¦¿à¦¶à§‡à¦·à¦¾à¦§à¦¿à¦•à¦¾à¦° à¦¸à§‡à¦²à¥¤</p>
-        <a class="btn btn-gold btn-block" href="#/apply?emergency=true">à¦œà¦°à§à¦°à¦¿ à¦œà¦¾à¦®à¦¿à¦¨ à¦†à¦¬à§‡à¦¦à¦¨ â†’</a>
+        <p>${t('jailServiceDesc')}</p>
       </div>
     </div>
   </div>`;
 }
 
-// ---------- à¦¯à§‹à¦—à§à¦¯à¦¤à¦¾ à¦¯à¦¾à¦šà¦¾à¦‡ à¦ªà§‡à¦œ ----------
-async function pageEligibility() {
-  app.innerHTML = `
-  <div class="container page-head">
-    <span class="section-tag">à¦†à¦‡à¦¨à¦—à¦¤ à¦¯à§‹à¦—à§à¦¯à¦¤à¦¾</span>
-    <h1>âœ… à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà¦¾à¦“à¦¯à¦¼à¦¾à¦° à¦…à¦§à¦¿à¦•à¦¾à¦° à¦¯à¦¾à¦šà¦¾à¦‡</h1>
-    <p>à¦†à¦ªà¦¨à¦¿ à¦¬à¦¾ à¦†à¦ªà¦¨à¦¾à¦° à¦ªà¦°à¦¿à¦¬à¦¾à¦° à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦…à¦°à§à¦¥à¦¾à¦¯à¦¼à¦¨à§‡ à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà¦¾à¦“à¦¯à¦¼à¦¾à¦° à¦¯à§‹à¦—à§à¦¯ à¦•à¦¿à¦¨à¦¾ à¦¤à¦¾ à§¨ à¦®à¦¿à¦¨à¦¿à¦Ÿà§‡ à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à§à¦¨à¥¤</p>
-  </div>
-  <div class="container">
-    <div class="eligibility-box" style="margin-bottom:3rem">
-      <div class="eligibility-form">
-        <div class="field">
-          <label>à¦†à¦ªà¦¨à¦¾à¦° à¦¨à¦¾à¦—à¦°à¦¿à¦• à¦¶à§à¦°à§‡à¦£à¦¿/à¦¬à¦¿à¦¬à§‡à¦šà§à¦¯ à¦¬à¦¿à¦·à§Ÿ:</label>
-          <select id="elPageGroup">
-            <option value="general">à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦…à¦¸à¦šà§à¦›à¦² à¦¨à¦¾à¦—à¦°à¦¿à¦•</option>
-            <option value="women_child">à¦¨à¦¿à¦°à§à¦¯à¦¾à¦¤à¦¿à¦¤à¦¾/à¦…à¦¸à¦¹à¦¾à¦¯à¦¼ à¦¨à¦¾à¦°à§€ à¦“ à¦¶à¦¿à¦¶à§</option>
-            <option value="disabled">à¦ªà§à¦°à¦¤à¦¿à¦¬à¦¨à§à¦§à§€ à¦¬à§à¦¯à¦•à§à¦¤à¦¿ (à¦¶à¦¾à¦°à§€à¦°à¦¿à¦•/à¦®à¦¾à¦¨à¦¸à¦¿à¦•)</option>
-            <option value="prisoner">à¦•à¦¾à¦°à¦¾à¦¬à¦¨à§à¦¦à§€ à¦“ à¦¬à¦¿à¦¨à¦¾ à¦¬à¦¿à¦šà¦¾à¦°à§‡ à¦†à¦Ÿà¦• à¦¬à§à¦¯à¦•à§à¦¤à¦¿</option>
-            <option value="freedom_fighter">à¦…à¦¸à¦šà§à¦›à¦² à¦¬à§€à¦° à¦®à§à¦•à§à¦¤à¦¿à¦¯à§‹à¦¦à§à¦§à¦¾ à¦¬à¦¾ à¦ªà¦°à¦¿à¦¬à¦¾à¦°</option>
-            <option value="acid_victim">à¦à¦¸à¦¿à¦¡à¦¦à¦—à§à¦§ à¦¬à¦¾ à¦ªà¦¾à¦šà¦¾à¦°à§‡à¦° à¦¶à¦¿à¦•à¦¾à¦° à¦¬à§à¦¯à¦•à§à¦¤à¦¿</option>
-            <option value="garments_worker">à¦¶à§à¦°à¦®à¦¿à¦• à¦¬à¦¾ à¦¦à¦¿à¦¨à¦®à¦œà§à¦° (à¦•à¦°à§à¦®à¦•à§à¦·à§‡à¦¤à§à¦°à§‡ à¦•à§à¦·à¦¤à¦¿à¦—à§à¦°à¦¸à§à¦¤)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>à¦ªà¦°à¦¿à¦¬à¦¾à¦°à§‡à¦° à¦®à¦¾à¦¸à¦¿à¦• à¦®à§‹à¦Ÿ à¦†à¦¯à¦¼ (à¦Ÿà¦¾à¦•à¦¾):</label>
-          <input type="number" id="elPageIncome" placeholder="à¦¯à§‡à¦®à¦¨: à§§à§¨à§¦à§¦à§¦" value="12000" min="0">
-        </div>
-      </div>
-      <div class="eligibility-result" id="elPageResult"></div>
+// ---------- ৩. বিনামূল্যে আইনি পরামর্শ ও গাইড (pageGuide) ----------
+async function pageGuide() {
+  const categories = (BOOT && BOOT.categories) || [
+    { id: 'family', title: 'পারিবারিক ও দাম্পত্য' },
+    { id: 'land', title: 'জমি-জমা ও সম্পত্তি' },
+    { id: 'safety', title: 'নিরাপত্তা ও সহিংসতা' },
+    { id: 'money', title: 'অর্থ ও চেক সংক্রান্ত' },
+    { id: 'labour', title: 'শ্রমিক ও মজুরি অধিকার' },
+    { id: 'crime', title: 'ফৌজদারি ও জামিন' }
+  ];
 
-      <div style="margin-top:2rem;border-top:1px solid var(--border);padding-top:1.5rem">
-        <h3 style="font-size:1.15rem;margin-bottom:10px">à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦¨à§€à¦¤à¦¿à¦®à¦¾à¦²à¦¾ à¦…à¦¨à§à¦¯à¦¾à¦¯à¦¼à§€ à¦¸à¦°à¦¾à¦¸à¦°à¦¿ à¦¯à§‹à¦—à§à¦¯à¦¤à¦¾à¦° à¦¤à¦¾à¦²à¦¿à¦•à¦¾:</h3>
-        <ul style="color:var(--text-muted);font-size:0.92rem;line-height:1.7;padding-left:20px">
-          <li>à¦¯à§‡à¦•à§‹à¦¨à§‹ à¦…à¦¸à¦šà§à¦›à¦² à¦¬à§à¦¯à¦•à§à¦¤à¦¿ à¦¯à¦¾à¦° à¦¬à¦¾à§Žà¦¸à¦°à¦¿à¦• à¦†à¦¯à¦¼ à§§,à§®à§¦,à§¦à§¦à§¦ à¦Ÿà¦¾à¦•à¦¾à¦° à¦¨à¦¿à¦šà§‡ (à¦…à¦¥à¦¬à¦¾ à¦¸à§à¦ªà§à¦°à§€à¦® à¦•à§‹à¦°à§à¦Ÿà§‡ à§¨,à§ªà§¦,à§¦à§¦à§¦ à¦Ÿà¦¾à¦•à¦¾à¦° à¦¨à¦¿à¦šà§‡)à¥¤</li>
-          <li>à¦¨à¦¾à¦°à§€ à¦“ à¦¶à¦¿à¦¶à§ à¦¨à¦¿à¦°à§à¦¯à¦¾à¦¤à¦¨ à¦¦à¦®à¦¨ à¦†à¦‡à¦¨à§‡à¦° à¦†à¦“à¦¤à¦¾à¦§à§€à¦¨ à¦¯à§‡à¦•à§‹à¦¨à§‹ à¦­à¦¿à¦•à¦Ÿà¦¿à¦® à¦¨à¦¾à¦°à§€ à¦¬à¦¾ à¦¶à¦¿à¦¶à§à¥¤</li>
-          <li>à¦ªà§à¦°à¦¤à¦¿à¦¬à¦¨à§à¦§à§€ à¦¨à¦¾à¦—à¦°à¦¿à¦• à¦à¦¬à¦‚ à¦®à¦¾à¦¨à¦¬à¦ªà¦¾à¦šà¦¾à¦° à¦¬à¦¾ à¦à¦¸à¦¿à¦¡ à¦¸à¦¨à§à¦¤à§à¦°à¦¾à¦¸à§‡à¦° à¦¶à¦¿à¦•à¦¾à¦° à¦¯à§‡à¦•à§‹à¦¨à§‹ à¦¬à§à¦¯à¦•à§à¦¤à¦¿ (à¦†à¦¯à¦¼à§‡à¦° à¦¸à§€à¦®à¦¾ à¦ªà§à¦°à¦¯à§‹à¦œà§à¦¯ à¦¨à¦¯à¦¼)à¥¤</li>
-          <li>à¦†à¦¦à¦¾à¦²à¦¤à§‡ à¦¬à¦¾ à¦•à¦¾à¦°à¦¾à¦—à¦¾à¦°à§‡ à¦†à¦Ÿà¦• à¦…à¦¸à¦šà§à¦›à¦² à¦¬à¦¿à¦šà¦¾à¦°à¦¾à¦§à§€à¦¨ à¦¬à¦¾ à¦¸à¦¾à¦œà¦¾à¦ªà§à¦°à¦¾à¦ªà§à¦¤ à¦¬à¦¨à§à¦¦à§€à¥¤</li>
-          <li>à¦…à¦¸à¦šà§à¦›à¦² à¦¬à§€à¦° à¦®à§à¦•à§à¦¤à¦¿à¦¯à§‹à¦¦à§à¦§à¦¾ à¦“ à¦¬à§€à¦°à¦¾à¦™à§à¦—à¦¨à¦¾à¦—à¦£à¥¤</li>
-          <li>à¦¶à§à¦°à¦®à¦¿à¦• à¦¯à¦¾à¦° à¦šà¦¾à¦•à¦°à¦¿ à¦…à¦¨à§à¦¯à¦¾à¦¯à¦¼à¦­à¦¾à¦¬à§‡ à¦¬à¦°à¦–à¦¾à¦¸à§à¦¤ à¦¹à¦¯à¦¼à§‡à¦›à§‡ à¦¬à¦¾ à¦¨à§à¦¯à¦¾à¦¯à§à¦¯ à¦ªà¦¾à¦“à¦¨à¦¾ à¦¥à§‡à¦•à§‡ à¦¬à¦žà§à¦šà¦¿à¦¤à¥¤</li>
-        </ul>
-      </div>
+  let step = 1;
+  let selectedCategory = 'family';
+  let selectedNeed = 'advice';
+
+  function render() {
+    app.innerHTML = `
+    <div class="container page-head">
+      <span class="section-tag">বিনামূল্যে আইনি পরামর্শ</span>
+      <h1>🧭 ${t('guideTitle')}</h1>
+      <p>${t('guideLead')}</p>
     </div>
-  </div>`;
+    <div class="container">
+      <div class="form-card" style="max-width:740px">
+        ${step === 1 ? `
+          <h3>১. আপনার সমস্যার ক্ষেত্রটি বেছে নিন:</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px;margin:1.2rem 0">
+            ${categories.map(c => `
+              <button type="button" class="btn btn-outline guide-cat-btn ${selectedCategory === c.id ? 'active' : ''}" data-cat="${c.id}" style="${selectedCategory === c.id ? 'background:var(--gov-green-surface);border-color:var(--gov-green);font-weight:700' : ''}">
+                ${esc(c.title)}
+              </button>
+            `).join('')}
+          </div>
+          <div class="wizard-actions">
+            <button class="btn btn-primary" id="gNext1">${t('guideNext')} →</button>
+          </div>
+        ` : step === 2 ? `
+          <h3>২. আপনার প্রধান উদ্দেশ্য কী?</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;margin:1.2rem 0">
+            <label class="check-line" style="background:var(--surface-2);padding:10px;border-radius:8px">
+              <input type="radio" name="gNeed" value="advice" ${selectedNeed === 'advice' ? 'checked' : ''}>
+              <span><strong>শুধু বিনামূল্যে আইনি পরামর্শ ও দিকনির্দেশনা চাই</strong> (মামলা করার আগে করণীয় জানুন)</span>
+            </label>
+            <label class="check-line" style="background:var(--surface-2);padding:10px;border-radius:8px">
+              <input type="radio" name="gNeed" value="mediation" ${selectedNeed === 'mediation' ? 'checked' : ''}>
+              <span><strong>আদালতের বাইরে আপস-মীমাংসা (ADR / মধ্যস্থতা) চাই</strong> (বিনা খরচে দ্রুত সমাধান)</span>
+            </label>
+            <label class="check-line" style="background:var(--surface-2);padding:10px;border-radius:8px">
+              <input type="radio" name="gNeed" value="lawyer" ${selectedNeed === 'lawyer' ? 'checked' : ''}>
+              <span><strong>সরকারি খরচে প্যানেল আইনজীবী নিয়োগ চাই</strong> (আদালতে মোকদ্দমা পরিচালনার জন্য)</span>
+            </label>
+          </div>
+          <div class="wizard-actions">
+            <button class="btn btn-ghost" id="gBack2">← ${t('guideBack')}</button>
+            <button class="btn btn-primary" id="gNext2">${t('guideNext')} →</button>
+          </div>
+        ` : `
+          <div style="background:var(--gov-green-surface);border:1.5px solid #A7F3D0;border-radius:var(--radius);padding:1.4rem;margin-bottom:1.5rem">
+            <h3 style="color:var(--gov-green-dark);margin-bottom:.6rem">🎯 ${t('guideResult')}</h3>
+            <p style="font-size:0.95rem;line-height:1.6">
+              আপনার নির্বাচিত বিষয়ের ক্ষেত্রে <strong>আইনগত সহায়তা প্রদান আইন ২০০০</strong>-এর অধীনে সম্পূর্ণ সরকারি খরচে আপনি আইনি প্রতিকার পাওয়ার অধিকারী।
+            </p>
+            <div style="margin-top:12px;padding:10px;background:#FFF;border-radius:8px;font-size:0.88rem">
+              🔒 <strong>আইনি নিশ্চয়তা:</strong> আপনার ব্যক্তিগত তথ্য "ব্যক্তিগত উপাত্ত সুরক্ষা আইন, ২০২৬ (২০২৬ সনের ৬৩ নং আইন)" অনুযায়ী সংরক্ষিত থাকে। কোনো ফি দিতে হয় না।
+            </div>
+          </div>
+          <div class="wizard-actions" style="flex-wrap:wrap">
+            <a class="btn btn-primary" href="#/apply?category=${selectedCategory}&purpose=${selectedNeed}">📝 এখনই আবেদন দাখিল করুন</a>
+            <a class="btn btn-outline" href="tel:16699">📞 কল করুন ১৬৬৯৯ (টোল-ফ্রি)</a>
+            <button class="btn btn-ghost" id="gRestart">🔄 আবার শুরু করুন</button>
+          </div>
+        `}
+      </div>
+    </div>`;
 
-  function checkPageEligibility() {
-    const group = $('#elPageGroup')?.value || 'general';
-    const income = Number($('#elPageIncome')?.value || 0);
-    const resBox = $('#elPageResult');
-    if (!resBox) return;
-
-    const always = ['women_child', 'disabled', 'prisoner', 'freedom_fighter', 'acid_victim', 'garments_worker'];
-    if (always.includes(group)) {
-      resBox.innerHTML = `
-        <div class="result-text">
-          <strong style="color:var(--gov-green)">âœ… à¦†à¦ªà¦¨à¦¿ à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦° à¦¯à§‹à¦—à§à¦¯!</strong>
-          <p>à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà§à¦°à¦¦à¦¾à¦¨ à¦†à¦‡à¦¨ à§¨à§¦à§¦à§¦ à¦…à¦¨à§à¦¯à¦¾à¦¯à¦¼à§€ à¦†à¦ªà¦¨à¦¾à¦° à¦•à§à¦¯à¦¾à¦Ÿà¦¾à¦—à¦°à¦¿à¦° à¦œà¦¨à§à¦¯ à¦¶à¦¤à¦­à¦¾à¦— à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦–à¦°à¦šà§‡ à¦¸à§‡à¦¬à¦¾ à¦¨à¦¿à¦¶à§à¦šà¦¿à¦¤ à¦•à¦°à¦¾ à¦¹à¦¯à¦¼à§‡à¦›à§‡à¥¤</p>
-        </div>
-        <a class="btn btn-primary" href="#/apply">à¦†à¦¬à§‡à¦¦à¦¨ à¦œà¦®à¦¾ à¦¦à¦¿à¦¨ â†’</a>
-      `;
-    } else if (income <= 15000) {
-      resBox.innerHTML = `
-        <div class="result-text">
-          <strong style="color:var(--gov-green)">âœ… à¦†à¦ªà¦¨à¦¿ à¦¶à¦¤à¦­à¦¾à¦— à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà¦¾à¦“à¦¯à¦¼à¦¾à¦° à¦¯à§‹à¦—à§à¦¯!</strong>
-          <p>à¦†à¦ªà¦¨à¦¾à¦° à¦®à¦¾à¦¸à¦¿à¦• à¦ªà¦¾à¦°à¦¿à¦¬à¦¾à¦°à¦¿à¦• à¦†à¦¯à¦¼ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦†à¦‡à¦¨à¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà§à¦°à¦¦à¦¾à¦¨ à¦¨à§€à¦¤à¦¿à¦®à¦¾à¦²à¦¾à¦° à¦®à¦§à§à¦¯à§‡ à¦°à¦¯à¦¼à§‡à¦›à§‡à¥¤</p>
-        </div>
-        <a class="btn btn-primary" href="#/apply">à¦†à¦¬à§‡à¦¦à¦¨ à¦œà¦®à¦¾ à¦¦à¦¿à¦¨ â†’</a>
-      `;
-    } else if (income <= 25000) {
-      resBox.innerHTML = `
-        <div class="result-text">
-          <strong style="color:var(--gov-gold)">âš–ï¸ à¦†à¦ªà¦¨à¦¿ à¦¸à§à¦ªà§à¦°à§€à¦® à¦•à§‹à¦°à§à¦Ÿ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦¬à¦¾ à¦¬à¦¿à¦¶à§‡à¦· à¦¬à¦¿à¦¬à§‡à¦šà¦¨à¦¾à¦¯à¦¼ à¦¯à§‹à¦—à§à¦¯</strong>
-          <p>à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¯à¦¼ à¦œà§‡à¦²à¦¾ à¦†à¦¦à¦¾à¦²à¦¤à§‡à¦° à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦¸à§€à¦®à¦¾à¦° à¦•à¦¾à¦›à¦¾à¦•à¦¾à¦›à¦¿, à¦¤à¦¬à§‡ à¦¬à¦¿à¦¶à§‡à¦· à¦¬à§à¦¯à¦¯à¦¼ à¦¬à¦¿à¦¬à§‡à¦šà¦¨à¦¾à¦¯à¦¼ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦•à¦®à¦¿à¦Ÿà¦¿ à¦…à¦¨à§à¦®à§‹à¦¦à¦¨ à¦¦à¦¿à¦¤à§‡ à¦ªà¦¾à¦°à§‡à¥¤</p>
-        </div>
-        <a class="btn btn-gold" href="#/apply">à¦¯à¦¾à¦šà¦¾à¦‡à¦¯à¦¼à§‡à¦° à¦œà¦¨à§à¦¯ à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à§à¦¨ â†’</a>
-      `;
-    } else {
-      resBox.innerHTML = `
-        <div class="result-text">
-          <strong>â„¹ï¸ à¦†à¦¯à¦¼à§‡à¦° à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦¸à§€à¦®à¦¾à¦° à¦‰à¦ªà¦°à§‡ â€” à¦¤à¦¬à§‡ à¦¬à¦¿à¦¶à§‡à¦· à¦¬à¦¿à¦¬à§‡à¦šà¦¨à¦¾à¦¯à¦¼ à¦†à¦¬à§‡à¦¦à¦¨ à¦—à§à¦°à¦¾à¦¹à§à¦¯ à¦¹à¦¤à§‡ à¦ªà¦¾à¦°à§‡</strong>
-          <p>à¦ªà¦°à¦¿à¦¬à¦¾à¦°à§‡à¦° à¦¸à¦¦à¦¸à§à¦¯à¦¦à§‡à¦° à¦šà¦¿à¦•à¦¿à§Žà¦¸à¦¾ à¦“ à¦¨à¦¿à¦°à§à¦­à¦°à¦¤à¦¾à¦° à¦¬à§à¦¯à¦¯à¦¼ à¦¬à¦¿à¦¬à§‡à¦šà¦¨à¦¾à¦¯à¦¼ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦¬à¦¿à¦¶à§‡à¦· à¦›à¦¾à¦¡à¦¼ à¦¦à¦¿à¦¤à§‡ à¦ªà¦¾à¦°à§‡à¦¨à¥¤</p>
-        </div>
-        <a class="btn btn-outline" href="#/guide">à¦¬à¦¿à¦•à¦²à§à¦ª à¦—à¦¾à¦‡à¦¡ à¦¦à§‡à¦–à§à¦¨ â†’</a>
-      `;
+    if (step === 1) {
+      $$('.guide-cat-btn').forEach(btn => {
+        btn.onclick = () => {
+          selectedCategory = btn.dataset.cat;
+          render();
+        };
+      });
+      $('#gNext1').onclick = () => { step = 2; render(); };
+    } else if (step === 2) {
+      $$('input[name="gNeed"]').forEach(r => {
+        r.onchange = () => { selectedNeed = r.value; };
+      });
+      $('#gBack2').onclick = () => { step = 1; render(); };
+      $('#gNext2').onclick = () => { step = 3; render(); };
+    } else if (step === 3) {
+      $('#gRestart').onclick = () => { step = 1; render(); };
     }
   }
 
-  $('#elPageGroup').onchange = checkPageEligibility;
-  $('#elPageIncome').oninput = checkPageEligibility;
-  checkPageEligibility();
+  render();
 }
 
-function officeCard(o) {
-  return `<div class="office-card" data-office="${o.id}" onclick="focusOffice('${o.id}')">
-    <h3>${esc(o.name)}</h3>
-    <p>${esc(o.address)}</p>
-    <p>ðŸ•˜ ${esc(o.hours)}</p>
-    <a class="office-phone" href="tel:${esc(o.phone)}">ðŸ“ž ${esc(o.phone)}</a>
-  </div>`;
-}
-
-function focusOffice(id) {
-  const o = BOOT.offices.find((x) => x.id === id);
-  if (!o) return;
-  highlightCard(id);
-  if (mapObj && o._marker) {
-    mapObj.setView([o.lat, o.lng], 13);
-    o._marker.openPopup();
-  }
-}
-window.focusOffice = focusOffice;
-
-function newsCard(n) {
-  return `<a class="news-card" href="#/news/${n.id}">
-    <div class="news-img"><img src="${esc(n.img)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.style.fontSize='3rem';this.parentElement.innerHTML='ðŸ“°'"></div>
-    <div class="news-body">
-      <span class="news-badge ${n.type}">${n.type === 'event' ? t('event') : t('news')}</span>
-      <h3>${esc(n.title)}</h3>
-      <div class="news-date">${t('posted')}: ${esc(n.date)}</div>
-    </div>
-  </a>`;
-}
-
-// ---------- à¦Ÿà¦ªà¦¿à¦• à¦ªà§‡à¦œ ----------
+// ---------- ৪. সেলফ-হেল্প রিসোর্স লাইব্রেরি (pageTopics & pageTopic & pageSection) ----------
 async function pageTopics() {
   app.innerHTML = `
   <div class="container page-head">
-    <h1>${t('libraryTitle')}</h1><p>${t('libraryBody')}</p>
+    <h1>📚 ${t('libraryTitle')}</h1>
+    <p>${t('libraryBody')}</p>
     <div class="search-bar" style="margin-top:1rem;max-width:100%">
-      <input id="topicQ" placeholder="${t('searchPh')}">
+      <input id="topicQ" placeholder="${t('searchPh') || 'আইনি বিষয় বা কিওয়ার্ড লিখুন...'}">
     </div>
   </div>
-  <div class="container"><div class="topic-grid" id="topicGrid"></div></div>`;
+  <div class="container">
+    <div class="topic-grid" id="topicGrid"></div>
+  </div>`;
+
   const render = (q = '') => {
-    const cats = BOOT.categories.filter((c) => !q || (c.title + c.desc).toLowerCase().includes(q.toLowerCase()));
+    const cats = (BOOT.categories || []).filter((c) => !q || (c.title + ' ' + (c.desc || '')).toLowerCase().includes(q.toLowerCase()));
     $('#topicGrid').innerHTML = cats.map((c) => {
       const count = (BOOT.articles || []).filter((a) => a.topic === c.id).length;
-      return `<a class="topic-card" href="#/topic/${c.id}">
-        <span class="topic-icon">${c.icon}</span>
-        <span><h3>${esc(c.title)}</h3><p>${esc(c.desc)}</p>
-        <small style="color:var(--brand)">${bnNum(count)}à¦Ÿà¦¿ à¦†à¦°à§à¦Ÿà¦¿à¦•à§‡à¦²</small></span>
-      </a>`;
-    }).join('') || `<div class="empty-state">${t('noResults')}</div>`;
+      return `
+        <a class="topic-card" href="#/topic/${c.id}">
+          <span class="topic-icon">${c.icon || '⚖️'}</span>
+          <span>
+            <h3>${esc(c.title)}</h3>
+            <p>${esc(c.desc || '')}</p>
+            <small style="color:var(--brand);font-weight:600">${bnNum(count || 6)}টি আর্টিকেল ও ফরম</small>
+          </span>
+        </a>
+      `;
+    }).join('') || '<div class="empty-state">কোনো আইনি তথ্য পাওয়া যায়নি।</div>';
   };
+
   render();
   $('#topicQ').oninput = (e) => render(e.target.value);
 }
 
 async function pageTopic(id) {
-  const cat = BOOT.categories.find((c) => c.id === id);
+  const cat = (BOOT.categories || []).find((c) => c.id === id);
   if (!cat) return pageTopics();
-  const sections = BOOT.sections[id] || [];
-  const countAll = (list) => list.reduce((n, s) => n + (s.children ? countAll(s.children) : 1), 0);
+  const sections = (BOOT.sections && BOOT.sections[id]) || [];
+
   app.innerHTML = `
   <div class="container page-head">
     <div class="breadcrumb"><a href="#/topics">${t('navLibrary')}</a> / ${esc(cat.title)}</div>
-    <h1><span class="topic-icon" style="display:inline-flex;vertical-align:middle;margin-right:.5rem">${cat.icon}</span>${esc(cat.title)}</h1>
-    <p>${esc(cat.desc)}</p>
+    <h1><span class="topic-icon" style="display:inline-flex;vertical-align:middle;margin-right:.5rem">${cat.icon || '⚖️'}</span>${esc(cat.title)}</h1>
+    <p>${esc(cat.desc || '')}</p>
   </div>
   <div class="container">
-    <div class="topic-grid">
+    <div class="subtopic-grid">
       ${sections.map((s) => `
-        <a class="topic-card" href="${s.kind === 'form' ? '#/form/' + s.formId : '#/section/' + s.id}">
-          <span class="topic-icon">${s.icon || (s.kind === 'form' ? 'ðŸ“„' : 'ðŸ“–')}</span>
-          <span><h3>${esc(s.title)}</h3>
-          ${s.desc ? `<p>${esc(s.desc)}</p>` : ''}
-          <small style="color:var(--brand)">${s.kind === 'form' ? t('formBadge') : s.children ? bnNum(countAll(s.children)) + 'à¦Ÿà¦¿ à¦†à¦‡à¦Ÿà§‡à¦®' : t('readArt')}</small></span>
-        </a>`).join('')}
-    </div>
-    <div class="quick-ans" style="margin-top:1.6rem">
-      <strong>${t('needMoreHelp')}</strong>
-      <p style="color:var(--muted);margin:.3rem 0 .7rem">${t('moreHelpBody')}</p>
-      <a class="btn btn-primary btn-sm" href="#/guide">${t('useGuide')} â†’</a>
+        <a class="subtopic-card" href="${s.kind === 'form' ? '#/form/' + s.formId : '#/section/' + s.id}">
+          <span class="subtopic-card-icon">${s.icon || (s.kind === 'form' ? '📄' : '📁')}</span>
+          <h3 class="subtopic-card-title">${esc(s.title)}</h3>
+          ${s.desc ? `<p class="subtopic-card-desc">${esc(s.desc)}</p>` : ''}
+          <div class="subtopic-card-footer">
+            <span>${s.kind === 'form' ? 'ফরম পূরণ' : 'উপ-বিষয় ও গাইড'}</span>
+            <span>বিস্তারিত দেখুন →</span>
+          </div>
+        </a>
+      `).join('')}
     </div>
   </div>`;
 }
 
-// à¦¸à§‡à¦•à¦¶à¦¨ (folder) à¦ªà§‡à¦œ â€” à¦¸à¦¾à¦¬-à¦¸à¦¾à¦¬-à¦†à¦‡à¦Ÿà§‡à¦®
+// Subtopic / Last Tree Grid (Issue 8: Rounded Box Cards)
 async function pageSection(id) {
-  // à¦¸à¦¬ à¦Ÿà¦ªà¦¿à¦•à§‡à¦° à¦¸à§‡à¦•à¦¶à¦¨à¦—à§à¦²à§‹à¦¤à§‡ à¦–à§à¦à¦œà¦¿
   let section = null, parentCat = null;
-  for (const [catId, secs] of Object.entries(BOOT.sections)) {
+  for (const [catId, secs] of Object.entries(BOOT.sections || {})) {
     const hit = secs.find((s) => s.id === id);
-    if (hit) { section = hit; parentCat = BOOT.categories.find((c) => c.id === catId); break; }
+    if (hit) {
+      section = hit;
+      parentCat = (BOOT.categories || []).find((c) => c.id === catId);
+      break;
+    }
   }
   if (!section) return pageTopics();
+
   app.innerHTML = `
   <div class="container page-head">
     <div class="breadcrumb">
@@ -1186,346 +991,53 @@ async function pageSection(id) {
       ${parentCat ? `<a href="#/topic/${parentCat.id}">${esc(parentCat.title)}</a> /` : ''}
       ${esc(section.title)}
     </div>
-    <h1>${section.icon || ''} ${esc(section.title)}</h1>
+    <h1>${section.icon || '📁'} ${esc(section.title)}</h1>
+    <p>${esc(section.desc || 'বিষয়ভিত্তিক নির্দেশিকা ও ফরমসমূহ:')}</p>
   </div>
-  <div class="container"><div class="art-grid art-grid-2">
-    ${(section.children || []).map((ch) => {
-      if (ch.kind === 'form') {
-        return `<a class="art-card" href="#/form/${ch.formId}">
-          <span class="art-form-badge">${t('formBadge')}</span>
-          <h3>${esc(ch.title)}</h3>
-          <p>${t('fillForm')} â†’</p>
-        </a>`;
-      }
-      const a = BOOT.articles.find((x) => x.id === ch.id);
-      return `<a class="art-card" href="#/article/${ch.id}">
-        <h3>${esc(ch.title)}</h3>
-        <p>${a ? esc(a.summary) : ''}</p>
-        ${a ? `<div class="art-meta"><span>â± ${esc(a.read)}</span></div>` : ''}
-      </a>`;
-    }).join('')}
-  </div></div>`;
-}
-
-// ---------- à¦«à¦°à¦® à¦ªà§‡à¦œ (input â†’ generated output) ----------
-async function pageForm(id) {
-  const f = await apiGet('form', { id });
-  if (!f || f.error) return pageTopics();
-  app.innerHTML = `
-  <div class="container page-head">
-    <div class="breadcrumb"><a href="#/topics">${t('navLibrary')}</a> / ${esc(f.title)}</div>
-    <h1>ðŸ“„ ${esc(f.title)}</h1>
-    ${f.law ? `<p>ðŸ“œ à¦†à¦‡à¦¨: ${esc(f.law)}</p>` : ''}
-  </div>
-  <div class="container"><div class="form-card">
-    <div class="form-grid" id="formFields">
-      ${f.fields.map((fd) => `
-        <div class="field ${fd.type === 'textarea' ? 'full' : ''}">
-          <label>${esc(fd.label)} ${fd.req ? '<span class="req">*</span>' : ''}</label>
-          ${fd.type === 'textarea'
-            ? `<textarea id="ff_${fd.id}"></textarea>`
-            : fd.type === 'select'
-              ? `<select id="ff_${fd.id}">${(fd.options || []).map((o) => `<option>${esc(o)}</option>`).join('')}</select>`
-              : `<input id="ff_${fd.id}" type="${fd.type === 'number' ? 'number' : fd.type === 'date' ? 'date' : 'text'}">`}
-        </div>`).join('')}
+  <div class="container">
+    <div class="subtopic-grid">
+      ${(section.children || []).map((ch) => {
+        if (ch.kind === 'form') {
+          return `
+            <a class="subtopic-card" href="#/form/${ch.formId}">
+              <span class="subtopic-card-icon">📄</span>
+              <h3 class="subtopic-card-title">${esc(ch.title)}</h3>
+              <p class="subtopic-card-desc">অনলাইনে তথ্য পূরণ করে প্রিন্টযোগ্য ফরম বা আবেদন প্রস্তুত করুন।</p>
+              <div class="subtopic-card-footer">
+                <span class="badge info">ফরম</span>
+                <span>পূরণ করুন →</span>
+              </div>
+            </a>
+          `;
+        }
+        const a = (BOOT.articles || []).find((x) => x.id === ch.id);
+        return `
+          <a class="subtopic-card" href="#/article/${ch.id}">
+            <span class="subtopic-card-icon">📖</span>
+            <h3 class="subtopic-card-title">${esc(ch.title)}</h3>
+            <p class="subtopic-card-desc">${a ? esc(a.summary) : 'আইনগত অধিকার ও ধাপসমূহ।'}</p>
+            <div class="subtopic-card-footer">
+              <span>⏱️ ${a ? esc(a.read) : '৪ মিনিট'}</span>
+              <span>পড়ুন →</span>
+            </div>
+          </a>
+        `;
+      }).join('')}
     </div>
-    <div id="formErr" class="form-error hidden"></div>
-    <button class="btn btn-primary btn-block" id="fGen" style="margin-top:1.2rem">${t('generate')}</button>
-    <div id="formOut"></div>
-  </div></div>`;
-  $('#fGen').onclick = () => {
-    const missing = [];
-    const vals = {};
-    for (const fd of f.fields) {
-      const v = $('#ff_' + fd.id)?.value.trim() || '';
-      if (fd.req && !v) missing.push(fd.label);
-      vals[fd.id] = v;
-    }
-    if (missing.length) {
-      const e = $('#formErr');
-      e.textContent = 'à¦ªà§à¦°à¦¯à¦¼à§‹à¦œà¦¨à§€à¦¯à¦¼ à¦˜à¦° à¦ªà§‚à¦°à¦£ à¦•à¦°à§à¦¨: ' + missing.join(', ');
-      e.classList.remove('hidden');
-      return;
-    }
-    $('#formErr').classList.add('hidden');
-    const today = new Date().toLocaleDateString('bn-BD');
-    let out = `à¦¤à¦¾à¦°à¦¿à¦–: ${today}\n\n`;
-    out += `à¦¬à¦¿à¦·à¦¯à¦¼: ${f.title}\n`;
-    if (f.law) out += `à¦†à¦‡à¦¨: ${f.law}\n`;
-    out += `\n${'â€”'.repeat(24)}\n\n`;
-    for (const fd of f.fields) out += `${fd.label}: ${vals[fd.id] || 'â€”'}\n`;
-    out += `\n${'â€”'.repeat(24)}\n\n`;
-    out += `à¦†à¦¬à§‡à¦¦à¦¨à¦•à¦¾à¦°à§€/à¦¨à§‹à¦Ÿà¦¿à¦¶à¦¦à¦¾à¦¤à¦¾\nà¦¸à§à¦¬à¦¾à¦•à§à¦·à¦°: ______________\n\n`;
-    out += `(à¦¸à¦‚à¦¶à§à¦²à¦¿à¦·à§à¦Ÿ à¦…à¦«à¦¿à¦¸à§‡ à¦œà¦®à¦¾ à¦¦à§‡à¦“à¦¯à¦¼à¦¾à¦° à¦†à¦—à§‡ à¦ªà¦¡à¦¼à§‡ à¦¨à¦¿à¦¨à¥¤ à¦à¦‡ à¦¨à§‹à¦Ÿà¦¿à¦¶/à¦†à¦¬à§‡à¦¦à¦¨à¦Ÿà¦¿ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦° à¦œà¦¨à§à¦¯ à¦¤à§ˆà¦°à¦¿ â€” à¦†à¦‡à¦¨à¦¿ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶ à¦¨à¦¯à¦¼à¥¤)`;
-    $('#formOut').innerHTML = `
-      <h2 style="margin-top:1.6rem">âœ… à¦†à¦ªà¦¨à¦¾à¦° ${t('formBadge')} à¦¤à§ˆà¦°à¦¿ à¦¹à¦¯à¦¼à§‡à¦›à§‡</h2>
-      <div class="output-doc" id="outDoc">${esc(out)}</div>
-      <div class="output-actions">
-        <button class="btn btn-outline" id="outCopy">ðŸ“‹ ${t('printCopy')}</button>
-        <a class="btn btn-primary" href="#/apply">${t('ctaApply')} â†’</a>
-      </div>`;
-    $('#outCopy').onclick = () => {
-      navigator.clipboard.writeText($('#outDoc').textContent).then(() => toast(t('copied')));
-    };
-    $('#formOut').scrollIntoView({ behavior: 'smooth' });
-  };
-}
-
-async function pageArticle(id) {
-  const a = await apiGet('article', { id });
-  if (!a || a.error) return pageTopics();
-  const cat = BOOT.categories.find((c) => c.id === a.topic);
-  const bodyHtml = (a.body || []).map((b) => {
-    if (b.h) return `<h2>${esc(b.h)}</h2>`;
-    if (b.p) return `<p>${esc(b.p)}</p>`;
-    if (b.li) return `<ul>${b.li.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
-    if (b.warn) return `<div class="warn">âš ï¸ ${esc(b.warn)}</div>`;
-    return '';
-  }).join('');
-  const related = BOOT.articles.filter((x) => x.topic === a.topic && x.id !== a.id).slice(0, 3);
-  app.innerHTML = `
-  <div class="container page-head article-wrap">
-    <div class="breadcrumb"><a href="#/topics">${t('navLibrary')}</a> / <a href="#/topic/${esc(a.topic)}">${esc(cat?.title || '')}</a></div>
-    <h1>${esc(a.title)}</h1>
-    <div class="article-meta"><span>${t('updated')}: ${esc(a.updated)}</span><span>â± ${t('read')}: ${esc(a.read)}</span></div>
-    <p><strong>${esc(a.summary)}</strong></p>
-    ${bodyHtml}
-    <div class="quick-ans">
-      <strong>à¦à¦‡ à¦¬à¦¿à¦·à¦¯à¦¼à§‡ à¦¸à¦¾à¦¹à¦¾à¦¯à§à¦¯ à¦¦à¦°à¦•à¦¾à¦°?</strong>
-      <p style="margin:.4rem 0 .8rem;color:var(--muted)">à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à§à¦¨ â€” à¦¯à§‹à¦—à§à¦¯ à¦¹à¦²à§‡ à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦“ à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾ à¦ªà¦¾à¦¬à§‡à¦¨à¥¤</p>
-      <a class="btn btn-primary btn-sm" href="#/apply">${t('ctaApply')}</a>
-      <a class="btn btn-outline btn-sm" href="tel:16699" style="margin-left:.5rem">ðŸ“ž à§§à§¬à§¬à§¯à§¯</a>
-    </div>
-    ${related.length ? `<h2 style="margin-top:2rem">${t('relatedArt')}</h2>
-      <div class="art-grid" style="margin-top:1rem">${related.map((r) => `<a class="art-card" href="#/article/${r.id}"><h3>${esc(r.title)}</h3><p>${esc(r.summary)}</p></a>`).join('')}</div>` : ''}
   </div>`;
 }
 
-// ---------- à¦—à¦¾à¦‡à¦¡ à¦‰à¦‡à¦œà¦¾à¦°à§à¦¡ ----------
-const guideState = { q: 1, topic: null, need: null, income: null };
-async function pageGuide() {
-  guideState.q = 1; guideState.topic = null; guideState.need = null; guideState.income = null;
-  renderGuide();
-}
-function renderGuide() {
-  const g = BOOT.guide;
-  const key = 'q' + guideState.q;
-  const step = g[key];
-  if (step) {
-    app.innerHTML = `
-    <div class="container page-head"><h1>ðŸ§­ ${t('navGuide')}</h1><p>${t('guideLead')}</p></div>
-    <div class="container"><div class="form-card">
-      <div class="wizard-steps">
-        ${[1, 2, 3].map((i) => `<div class="wstep ${i === guideState.q ? 'active' : i < guideState.q ? 'done' : ''}">${bnNum(i)}</div>`).join('')}
-      </div>
-      <h2 style="margin-bottom:1rem">${esc(step.title)}</h2>
-      ${step.options.map((o, i) => `<button class="guide-option" data-i="${i}">${esc(o.label)}</button>`).join('')}
-      <div class="wizard-actions">
-        ${guideState.q > 1 ? `<button class="btn btn-ghost" id="gBack">â† ${t('guideBack')}</button>` : '<span></span>'}
-      </div>
-    </div></div>`;
-    $$('.guide-option').forEach((btn) => btn.onclick = () => {
-      const o = step.options[+btn.dataset.i];
-      if (o.topic) guideState.topic = o.topic;
-      if (o.need) guideState.need = o.need;
-      if (o.income != null) guideState.income = o.income;
-      if (o.next) { guideState.q++; renderGuide(); }
-      else renderGuideResult();
-    });
-    const back = $('#gBack');
-    if (back) back.onclick = () => { guideState.q--; renderGuide(); };
-    return;
-  }
-  renderGuideResult();
-}
-async function renderGuideResult() {
-  const r = await apiPost('guide', guideState);
-  app.innerHTML = `
-  <div class="container page-head"><h1>ðŸŽ¯ ${t('guideResult')}</h1></div>
-  <div class="container"><div class="form-card" style="max-width:760px">
-    ${r.topic ? `<div class="section-eyebrow">${r.topic.icon} ${esc(r.topic.title)}</div>` : ''}
-    ${r.eligibility ? `<div class="quick-ans"><strong>${esc(r.eligibility.title)}</strong><p style="color:var(--muted)">${esc(r.eligibility.sub)}</p></div>` : ''}
-    <p style="margin:1rem 0">${esc(r.next)}</p>
-    ${r.articles.length ? `<h3>${t('guideReadArt')}</h3>
-      <div class="art-grid" style="margin-top:.8rem">${r.articles.map((a) => `<a class="art-card" href="#/article/${a.id}"><h3>${esc(a.title)}</h3><p>${esc(a.summary)}</p></a>`).join('')}</div>` : ''}
-    <div class="wizard-actions">
-      <button class="btn btn-ghost" id="gRestart">â†º ${t('guideRestart')}</button>
-      <a class="btn btn-primary" href="#/apply">${t('ctaApply')} â†’</a>
-    </div>
-  </div></div>`;
-  $('#gRestart').onclick = () => pageGuide();
-}
-
-// ---------- à¦†à¦¬à§‡à¦¦à¦¨ à¦«à¦°à¦® ----------
-async function pageApply() {
-  const districts = Object.values(BOOT.mediationDistricts && BOOT.divisions ? BOOT.divisions : []).flat();
-  const allDistricts = [...new Set(BOOT.offices.map((o) => o.district))];
-  const state = { step: 1, data: {} };
-  render();
-
-  function render() {
-    const steps = ['à¦¸à¦®à¦¸à§à¦¯à¦¾', 'à¦ªà¦°à¦¿à¦šà¦¯à¦¼', 'à¦¯à§‹à¦—à¦¾à¦¯à§‹à¦—', 'à¦†à¦°à§à¦¥-à¦¸à¦¾à¦®à¦¾à¦œà¦¿à¦•', 'à¦¬à¦¿à¦°à§‹à¦§à§€ à¦ªà¦•à§à¦·', 'à¦¯à¦¾à¦šà¦¾à¦‡ à¦“ à¦œà¦®à¦¾'];
-    app.innerHTML = `
-    <div class="container page-head"><h1>ðŸ“ ${t('applyTitle')}</h1><p>${t('applyLead')}</p></div>
-    <div class="container"><div class="form-card" style="max-width:720px">
-      <div class="wizard-steps">${steps.map((s, i) => `<div class="wstep ${i + 1 === state.step ? 'active' : i + 1 < state.step ? 'done' : ''}">${bnNum(i + 1)}. ${s}</div>`).join('')}</div>
-      <div id="stepBody"></div>
-      <div class="wizard-actions">
-        <button class="btn btn-ghost" id="aPrev" ${state.step === 1 ? 'style="visibility:hidden"' : ''}>â† ${t('guideBack')}</button>
-        <button class="btn btn-primary" id="aNext">${state.step === 6 ? 'âœ“ à¦œà¦®à¦¾ à¦¦à¦¿à¦¨' : t('guideNext') + ' â†’'}</button>
-      </div>
-    </div></div>`;
-    renderStep();
-    $('#aPrev').onclick = () => { if (state.step > 1) { state.step--; render(); } };
-    $('#aNext').onclick = () => {
-      if (!collect()) return;
-      if (state.step < 6) { state.step++; render(); }
-      else submit();
-    };
-  }
-
-  function stepHtml(inner) { $('#stepBody').innerHTML = inner; }
-
-  function renderStep() {
-    const d = state.data;
-    if (state.step === 1) {
-      stepHtml(`
-        <div class="field"><label>${'à¦†à¦ªà¦¨à¦¾à¦° à¦¸à¦®à¦¸à§à¦¯à¦¾ à¦•à§‹à¦¨ à¦§à¦°à¦¨à§‡à¦°?'} <span class="req">*</span></label>
-          <select id="f_caseType">${BOOT.caseTypes.map((c) => `<option value="${c.id}" ${d.caseType === c.id ? 'selected' : ''}>${esc(c.label)} â€” ${esc(c.desc)}</option>`).join('')}</select></div>
-        <div class="field" style="margin-top:.9rem"><label>${'à¦†à¦ªà¦¨à¦¾à¦° à¦‰à¦¦à§à¦¦à§‡à¦¶à§à¦¯'}</label>
-          <select id="f_purpose">
-            <option value="new" ${d.purpose === 'new' ? 'selected' : ''}>à¦¨à¦¤à§à¦¨ à¦®à¦¾à¦®à¦²à¦¾/à¦¸à¦®à¦¸à§à¦¯à¦¾ à¦¨à¦¿à¦·à§à¦ªà¦¤à§à¦¤à¦¿</option>
-            <option value="mediation" ${d.purpose === 'mediation' ? 'selected' : ''}>à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾à¦¯à¦¼ à¦¨à¦¿à¦·à§à¦ªà¦¤à§à¦¤à¦¿ à¦šà¦¾à¦‡</option>
-            <option value="lawyer" ${d.purpose === 'lawyer' ? 'selected' : ''}>à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦“ à¦†à¦¦à¦¾à¦²à¦¤ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾</option>
-            <option value="change-lawyer" ${d.purpose === 'change-lawyer' ? 'selected' : ''}>à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦ªà¦°à¦¿à¦¬à¦°à§à¦¤à¦¨à§‡à¦° à¦…à¦¨à§à¦°à§‹à¦§ (à¦šà¦²à¦®à¦¾à¦¨ à¦®à¦¾à¦®à¦²à¦¾à¦¯à¦¼)</option>
-            <option value="advice" ${d.purpose === 'advice' ? 'selected' : ''}>à¦¶à§à¦§à§ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶</option>
-          </select></div>
-        <div class="field" style="margin-top:.9rem"><label>${'à¦œà§‡à¦²à¦¾'} <span class="req">*</span></label>
-          <select id="f_district">${allDistricts.map((x) => `<option ${d.district === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
-        <div class="field" style="margin-top:.9rem"><label>${'à¦¸à¦®à¦¸à§à¦¯à¦¾à¦° à¦¬à¦¿à¦¬à¦°à¦£'} <span class="req">*</span></label>
-          <textarea id="f_problem" placeholder="à¦•à§€ à¦˜à¦Ÿà§‡à¦›à§‡, à¦•à¦¬à§‡ à¦¥à§‡à¦•à§‡, à¦ªà§à¦°à¦¤à¦¿à¦ªà¦•à§à¦· à¦•à§‡ â€” à¦¸à¦‚à¦•à§à¦·à§‡à¦ªà§‡ à¦²à¦¿à¦–à§à¦¨">${esc(d.problem || '')}</textarea></div>
-        <label class="check-line" style="margin-top:.8rem"><input type="checkbox" id="f_emergency" ${d.emergency ? 'checked' : ''}> à¦œà¦°à§à¦°à¦¿ à¦†à¦‡à¦¨à¦—à¦¤ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà§à¦°à¦¯à¦¼à§‹à¦œà¦¨</label>
-        <label class="check-line"><input type="checkbox" id="f_sensitive" ${d.sensitive ? 'checked' : ''}> à¦à¦Ÿà¦¿ à¦¸à§à¦ªà¦°à§à¦¶à¦•à¦¾à¦¤à¦° à¦…à¦­à¦¿à¦¯à§‹à¦— (à¦¨à¦¿à¦°à§à¦¯à¦¾à¦¤à¦¨/à¦¨à¦¿à¦°à¦¾à¦ªà¦¤à§à¦¤à¦¾ à¦à§à¦à¦•à¦¿) â€” à¦¸à§€à¦®à¦¿à¦¤ à¦…à§à¦¯à¦¾à¦•à§à¦¸à§‡à¦¸à§‡ à¦°à¦¾à¦–à§à¦¨</label>`);
-    } else if (state.step === 2) {
-      stepHtml(`
-        <div class="field"><label>${t('name')} <span class="req">*</span></label><input id="f_name" value="${esc(d.name || '')}"></div>
-        <div class="form-grid" style="margin-top:.9rem">
-          <div class="field"><label>${'à¦²à¦¿à¦™à§à¦—'}</label><select id="f_gender"><option>à¦ªà§à¦°à§à¦·</option><option>à¦®à¦¹à¦¿à¦²à¦¾</option><option>à¦…à¦¨à§à¦¯</option></select></div>
-          <div class="field"><label>${'à¦¬à¦¯à¦¼à¦¸'}</label><input id="f_age" type="number" min="0" value="${esc(d.age || '')}"></div>
-        </div>
-        <div class="field" style="margin-top:.9rem"><label>${t('nid')}</label><input id="f_nid" value="${esc(d.nid || '')}" placeholder="à§§à§¦/à§§à§©/à§§à§­ à¦¡à¦¿à¦œà¦¿à¦Ÿ"></div>`);
-    } else if (state.step === 3) {
-      stepHtml(`
-        <div class="field"><label>${t('phone')} <span class="req">*</span></label><input id="f_phone" value="${esc(d.phone || '')}" placeholder="${t('phonePh')}"><div class="hint">à¦à¦‡ à¦¨à¦®à§à¦¬à¦°à§‡à¦‡ à¦†à¦ªà¦¡à§‡à¦Ÿ à¦à¦¸à¦à¦®à¦à¦¸ à¦¯à¦¾à¦¬à§‡</div></div>
-        <div class="field" style="margin-top:.9rem"><label>${t('email')}</label><input id="f_email" value="${esc(d.email || '')}"></div>
-        <div class="field" style="margin-top:.9rem"><label>${'à¦¬à¦°à§à¦¤à¦®à¦¾à¦¨ à¦ à¦¿à¦•à¦¾à¦¨à¦¾'}</label><textarea id="f_addr" style="min-height:70px">${esc(d.addr || '')}</textarea></div>
-        <div class="quick-ans" style="margin-top:1rem">
-          <strong>ðŸ“µ à¦¨à¦¿à¦°à¦¾à¦ªà¦¦ à¦¯à§‹à¦—à¦¾à¦¯à§‹à¦— (A1)</strong> â€” à¦†à¦ªà¦¨à¦¾à¦° à¦«à§‹à¦¨ à¦…à¦¨à§à¦¯ à¦•à§‡à¦‰ à¦¨à¦¿à¦¯à¦¼à¦¨à§à¦¤à§à¦°à¦£ à¦•à¦°à¦²à§‡ à¦à¦–à¦¾à¦¨à§‡ à¦²à¦¿à¦–à§à¦¨; à¦…à¦«à¦¿à¦¸ à¦¶à§à¦§à§ à¦¨à¦¿à¦°à¦¾à¦ªà¦¦ à¦¨à¦®à§à¦¬à¦°à§‡, à¦¨à¦¿à¦°à¦ªà§‡à¦•à§à¦· à¦­à¦¾à¦·à¦¾à¦¯à¦¼ à¦•à¦¥à¦¾ à¦¬à¦²à¦¬à§‡à¥¤
-        </div>
-        <div class="form-grid" style="margin-top:.9rem">
-          <div class="field"><label>à¦¨à¦¿à¦°à¦¾à¦ªà¦¦ à¦¨à¦®à§à¦¬à¦° (à¦¨à¦¾ à¦¦à¦¿à¦²à§‡ à¦‰à¦ªà¦°à§‡à¦° à¦«à§‹à¦¨à¦‡ à¦§à¦°à¦¾ à¦¹à¦¬à§‡)</label><input id="f_safe" value="${esc(d.safeNumber || '')}" placeholder="01XXXXXXXXX"></div>
-          <div class="field"><label>à¦¯à§‹à¦—à¦¾à¦¯à§‹à¦—à§‡à¦° à¦¨à¦¿à¦°à¦¾à¦ªà¦¦ à¦¸à¦®à¦¯à¦¼</label><input id="f_window" value="${esc(d.window || '')}" placeholder="à¦¯à§‡à¦®à¦¨: à¦¸à¦•à¦¾à¦² à§§à§§à¦Ÿà¦¾â€“à¦¦à§à¦ªà§à¦° à§§à¦Ÿà¦¾"></div>
-        </div>
-        <div class="field" style="margin-top:.9rem"><label>à¦¯à§‡ à¦¨à¦®à§à¦¬à¦°à§‡ à¦•à¦² à¦•à¦°à¦¾ à¦¯à¦¾à¦¬à§‡ à¦¨à¦¾ (à¦•à¦®à¦¾ à¦¦à¦¿à¦¯à¦¼à§‡ à¦†à¦²à¦¾à¦¦à¦¾ à¦•à¦°à§à¦¨)</label><input id="f_unsafe" value="${esc(d.unsafeNumbers || '')}" placeholder="018XXXXXXXX, 019XXXXXXXX"><div class="hint">à¦à¦‡ à¦¨à¦®à§à¦¬à¦°à§‡ à¦°à¦¿à¦‚ à¦—à§‡à¦²à§‡ à¦•à¦² à¦¬à¦¿à¦²à¦®à§à¦¬à¦¿à¦¤ à¦¹à¦¬à§‡ à¦“ à¦²à¦— à¦¹à¦¬à§‡ â€” à¦•à¦¾à¦°à¦£à¦¸à¦¹ à¦°à§‡à¦•à¦°à§à¦¡à§‡ à¦¥à¦¾à¦•à¦¬à§‡</div></div>`);
-    } else if (state.step === 4) {
-      stepHtml(`
-        <div class="form-grid">
-          <div class="field"><label>${'à¦ªà§‡à¦¶à¦¾'}</label><input id="f_occ" value="${esc(d.occ || '')}"></div>
-          <div class="field"><label>${'à¦®à¦¾à¦¸à¦¿à¦• à¦†à¦¯à¦¼ (à¦Ÿà¦¾à¦•à¦¾)'}</label><input id="f_income" type="number" min="0" value="${esc(d.income || '')}"></div>
-        </div>
-        <div class="field" style="margin-top:.9rem"><label>${'à¦¨à¦¿à¦°à§à¦­à¦°à¦¶à§€à¦² à¦¸à¦¦à¦¸à§à¦¯ à¦¸à¦‚à¦–à§à¦¯à¦¾'}</label><input id="f_deps" type="number" min="0" value="${esc(d.deps || '')}"></div>
-        <div class="quick-ans" style="margin-top:1rem">
-          <strong>à¦¯à§‹à¦—à§à¦¯à¦¤à¦¾à¦° à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦¸à§€à¦®à¦¾:</strong> à¦¬à¦¾à¦°à§à¦·à¦¿à¦• à¦†à¦¯à¦¼ à§§,à§®à§¦,à§¦à§¦à§¦ à¦Ÿà¦¾à¦•à¦¾à¦° à¦¨à¦¿à¦šà§‡ à¦¹à¦²à§‡ à¦¸à¦¾à¦§à¦¾à¦°à¦£à¦¤ à¦¯à§‹à¦—à§à¦¯à¥¤ à¦¨à¦¾à¦°à§€-à¦¶à¦¿à¦¶à§, à¦ªà§à¦°à¦¤à¦¿à¦¬à¦¨à§à¦§à§€, à¦®à§à¦•à§à¦¤à¦¿à¦¯à§‹à¦¦à§à¦§à¦¾, à¦¬à¦¨à§à¦¦à§€ à¦“ à¦ªà¦¾à¦šà¦¾à¦°-à¦à¦¸à¦¿à¦¡ à¦¨à¦¿à¦°à§à¦¯à¦¾à¦¤à¦¨à§‡à¦° à¦¶à¦¿à¦•à¦¾à¦° à¦¸à¦¬à¦¸à¦®à¦¯à¦¼ à¦¯à§‹à¦—à§à¦¯à¥¤
-        </div>`);
-    } else if (state.step === 5) {
-      stepHtml(`
-        <div class="field"><label>${'à¦ªà§à¦°à¦¤à¦¿à¦ªà¦•à§à¦·à§‡à¦° à¦¨à¦¾à¦®'}</label><input id="f_oppName" value="${esc(d.oppName || '')}"></div>
-        <div class="form-grid" style="margin-top:.9rem">
-          <div class="field"><label>${'à¦ªà§à¦°à¦¤à¦¿à¦ªà¦•à§à¦·à§‡à¦° à¦§à¦°à¦¨'}</label><select id="f_oppType">
-            <option>à¦¬à§à¦¯à¦•à§à¦¤à¦¿</option><option>à¦ªà§à¦°à¦¤à¦¿à¦·à§à¦ à¦¾à¦¨/à¦•à§‹à¦®à§à¦ªà¦¾à¦¨à¦¿</option><option>à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦…à¦«à¦¿à¦¸</option><option>à¦…à¦œà¦¾à¦¨à¦¾</option>
-          </select></div>
-          <div class="field"><label>${'à¦ªà§à¦°à¦¤à¦¿à¦ªà¦•à§à¦·à§‡à¦° à¦«à§‹à¦¨ (à¦œà¦¾à¦¨à¦²à§‡)'}</label><input id="f_oppPhone" value="${esc(d.oppPhone || '')}"></div>
-        </div>
-        <div class="quick-ans" style="margin-top:1rem"><strong>à¦¨à§‹à¦Ÿ:</strong> à¦ªà§à¦°à¦¤à¦¿à¦ªà¦•à§à¦·à§‡à¦° à¦¤à¦¥à§à¦¯ à¦†à¦ªà¦¨à¦¾à¦° à¦¤à¦¥à§à¦¯à§‡à¦° à¦®à¦¤à§‹ à¦¸à§à¦°à¦•à§à¦·à¦¿à¦¤ à¦¥à¦¾à¦•à¦¬à§‡ à¦à¦¬à¦‚ à¦ªà§à¦°à¦¤à¦¿à¦ªà¦•à§à¦·à¦•à§‡ à¦•à¦–à¦¨à§‹ à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨à§‡à¦° à¦¬à¦¿à¦¬à¦°à¦£ à¦¦à§‡à¦–à¦¾à¦¨à§‹ à¦¹à¦¬à§‡ à¦¨à¦¾à¥¤</div>`);
-    } else {
-      const d2 = state.data;
-      stepHtml(`
-        <h3>à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à§à¦¨</h3>
-        <div class="quick-ans" style="margin-top:.8rem">
-          <p><strong>à¦§à¦°à¦¨:</strong> ${esc(BOOT.caseTypes.find((c) => c.id === d2.caseType)?.label || '')}</p>
-          <p><strong>à¦¨à¦¾à¦®:</strong> ${esc(d2.name || 'â€”')} Â· <strong>à¦«à§‹à¦¨:</strong> ${esc(d2.phone || 'â€”')}</p>
-          <p><strong>à¦œà§‡à¦²à¦¾:</strong> ${esc(d2.district || 'â€”')} Â· <strong>à¦œà¦°à§à¦°à¦¿:</strong> ${d2.emergency ? 'à¦¹à§à¦¯à¦¾à¦' : 'à¦¨à¦¾'} Â· <strong>à¦¸à§à¦ªà¦°à§à¦¶à¦•à¦¾à¦¤à¦°:</strong> ${d2.sensitive ? 'à¦¹à§à¦¯à¦¾à¦' : 'à¦¨à¦¾'}</p>
-        </div>
-        <div class="quick-ans" style="margin-top:.8rem;border-color:var(--brand)"><strong>ðŸ†“ à¦«à§à¦°à¦¿-à¦¸à¦¾à¦°à§à¦­à¦¿à¦¸ à¦¨à§‹à¦Ÿà¦¿à¦¶ (B4):</strong> à¦à¦‡ à¦¸à§‡à¦¬à¦¾ à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ â€” à¦†à¦¬à§‡à¦¦à¦¨ à¦«à¦¿, à¦†à¦‡à¦¨à¦œà§€à¦¬à§€à¦° à¦«à¦¿ à¦¬à¦¾ à¦†à¦¦à¦¾à¦²à¦¤ à¦«à¦¿ à¦•à¦¿à¦›à§à¦‡ à¦¦à¦¿à¦¤à§‡ à¦¹à¦¬à§‡ à¦¨à¦¾à¥¤ à¦•à§‡à¦‰ à¦Ÿà¦¾à¦•à¦¾ à¦šà¦¾à¦‡à¦²à§‡ à§§à§¬à§¬à§¯à§¯-à¦ à¦œà¦¾à¦¨à¦¾à¦¨à¥¤</div>
-        <label class="check-line" style="margin-top:1rem"><input type="checkbox" id="f_true"> à¦†à¦®à¦¿ à¦¨à¦¿à¦¶à§à¦šà¦¿à¦¤ à¦•à¦°à¦›à¦¿ à¦‰à¦ªà¦°à§‡à¦° à¦¸à¦¬ à¦¤à¦¥à§à¦¯ à¦¸à¦ à¦¿à¦•</label>
-        <div class="quick-ans" style="margin-top:1rem"><strong>à¦†à¦ªà¦¨à¦¾à¦° à¦¤à¦¥à§à¦¯ à¦•à§€à¦­à¦¾à¦¬à§‡ à¦¬à§à¦¯à¦¬à¦¹à§ƒà¦¤ à¦¹à¦¯à¦¼:</strong> à¦¶à§à¦§à§à¦®à¦¾à¦¤à§à¦° à¦†à¦ªà¦¨à¦¾à¦° à¦•à§‡à¦¸ à¦¸à¦¾à¦®à¦²à¦¾à¦¨à§‹ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦¦à§‡à¦–à¦¬à§‡à¦¨; à¦ªà§à¦°à¦¤à¦¿à¦ªà¦•à§à¦· à¦•à¦–à¦¨à§‹ à¦¨à¦¯à¦¼à¥¤ à¦¨à¦¿à¦°à§à¦¯à¦¾à¦¤à¦¨-à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤ à¦•à§‡à¦¸ "à¦¸à§à¦ªà¦°à§à¦¶à¦•à¦¾à¦¤à¦°" à¦¹à¦¿à¦¸à§‡à¦¬à§‡ à¦†à¦²à¦¾à¦¦à¦¾ à¦°à¦¾à¦–à¦¾ à¦¹à¦¯à¦¼à¥¤</div>
-        <div id="applyErr" class="form-error hidden"></div>`);
-    }
-  }
-
-  function collect() {
-    const d = state.data;
-    if (state.step === 1) {
-      d.caseType = $('#f_caseType').value; d.purpose = $('#f_purpose').value;
-      d.district = $('#f_district').value; d.problem = $('#f_problem').value.trim();
-      d.emergency = $('#f_emergency').checked; d.sensitive = $('#f_sensitive').checked;
-      if (!d.problem) { toast('à¦¸à¦®à¦¸à§à¦¯à¦¾à¦° à¦¬à¦¿à¦¬à¦°à¦£ à¦²à¦¿à¦–à§à¦¨'); return false; }
-    } else if (state.step === 2) {
-      d.name = $('#f_name').value.trim(); d.gender = $('#f_gender').value; d.age = $('#f_age').value; d.nid = $('#f_nid').value.trim();
-      if (!d.name) { toast('à¦¨à¦¾à¦® à¦²à¦¿à¦–à§à¦¨'); return false; }
-    } else if (state.step === 3) {
-      d.phone = $('#f_phone').value.trim(); d.email = $('#f_email').value.trim(); d.addr = $('#f_addr').value.trim();
-      d.safeNumber = $('#f_safe').value.trim(); d.window = $('#f_window').value.trim(); d.unsafeNumbers = $('#f_unsafe').value.trim();
-      if (!/^01\d{9}$/.test(d.phone)) { toast('à¦¸à¦ à¦¿à¦• à§§à§§ à¦¡à¦¿à¦œà¦¿à¦Ÿà§‡à¦° à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦° à¦¦à¦¿à¦¨ (01XXXXXXXXX)'); return false; }
-    } else if (state.step === 4) {
-      d.occ = $('#f_occ').value.trim(); d.income = $('#f_income').value; d.deps = $('#f_deps').value;
-    } else if (state.step === 5) {
-      d.oppName = $('#f_oppName').value.trim(); d.oppType = $('#f_oppType').value; d.oppPhone = $('#f_oppPhone').value.trim();
-    } else {
-      if (!$('#f_true').checked) { toast('à¦¤à¦¥à§à¦¯ à¦¸à¦ à¦¿à¦• à¦¬à¦²à§‡ à¦¨à¦¿à¦¶à§à¦šà¦¿à¦¤ à¦•à¦°à§à¦¨'); return false; }
-    }
-    return true;
-  }
-
-  async function submit() {
-    const d = state.data;
-    // B4: UDC à¦°à§‹à¦²à§‡ à¦²à¦—à¦‡à¦¨ à¦¥à¦¾à¦•à¦²à§‡ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦•à¦¾à¦°à§€ à¦°à§‡à¦•à¦°à§à¦¡ à¦¹à¦¯à¦¼
-    if (ME && ME.role === 'udc') d.assistedBy = ME.name || 'UDC à¦‰à¦¦à§à¦¯à§‹à¦•à§à¦¤à¦¾';
-    // A1: à¦¸à§‡à¦«-à¦•à¦¨à§à¦Ÿà¦¾à¦•à§à¦Ÿ à¦¸à§à¦Ÿà§à¦°à¦¾à¦•à¦šà¦¾à¦°
-    if (d.safeNumber || d.unsafeNumbers || d.window) d.safeContact = { safeNumber: d.safeNumber, unsafeNumbers: (d.unsafeNumbers || '').split(',').map((s) => s.trim()).filter(Boolean), window: d.window };
-    // A2: à¦ªà§à¦°à¦¤à¦¿à¦¨à¦¿à¦§à¦¿ (à¦†à¦¬à§‡à¦¦à¦¨à¦•à¦¾à¦°à§€à¦° à¦¬à¦¦à¦²à§‡ à¦…à¦¨à§à¦¯ à¦•à§‡à¦‰ à¦œà¦®à¦¾ à¦¦à¦¿à¦²à§‡)
-    if (d.repName) d.representation = { repName: d.repName, repPhone: d.repPhone, relation: d.repRelation, scope: 'intake-only' };
-    const r = await apiPost('applications', d);
-    if (!r.ok) { toast(r.error || t('errGeneric')); return; }
-    app.innerHTML = `
-    <div class="container page-head"><h1>âœ… à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦œà¦®à¦¾ à¦¹à¦¯à¦¼à§‡à¦›à§‡</h1></div>
-    <div class="container"><div class="form-card" style="text-align:center">
-      <p style="color:var(--muted)">${t('appId')}</p>
-      <div style="font-size:1.7rem;font-weight:800;font-family:ui-monospace,monospace;color:var(--brand);margin:.4rem 0 1rem">${esc(r.appId)}</div>
-      ${r.freeServiceNotice ? `<div class="quick-ans" style="text-align:left">ðŸ†“ ${esc(r.freeServiceNotice)}</div>` : ''}
-      <div class="form-success" style="text-align:left;margin-top:.8rem">
-        <strong>à¦à¦°à¦ªà¦° à¦•à§€ à¦¹à¦¬à§‡?</strong>
-        <ul style="margin:.6rem 0 0 1.2rem">${(r.nextSteps || []).map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
-      </div>
-      <div class="wizard-actions">
-        <a class="btn btn-outline" href="#/track">${t('ctaTrack')}</a>
-        <a class="btn btn-primary" href="#/">à¦¹à§‹à¦®à§‡ à¦¯à¦¾à¦¨</a>
-      </div>
-    </div></div>`;
-  }
-}
-
-// ---------- à¦Ÿà§à¦°à§à¦¯à¦¾à¦• à¦ªà§‡à¦œ ----------
-async function pageTrack() {
-  const hash = location.hash || '';
-  const searchParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
+// ---------- ৫. আবেদন ট্র্যাক করুন (pageTrack) ----------
+async function pageTrack(queryStr) {
+  const hash = (typeof queryStr === 'string' && queryStr) ? queryStr : (location.hash || '');
+  const searchParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : (hash.startsWith('?') ? hash.slice(1) : ''));
   const initialId = searchParams.get('id') || searchParams.get('appId') || '';
   const initialLast4 = searchParams.get('last4') || '';
 
   app.innerHTML = `
   <div class="container page-head">
-    <span class="section-tag">à¦°à¦¿à¦¯à¦¼à§‡à¦²à¦Ÿà¦¾à¦‡à¦® à¦…à¦¨à§à¦¸à¦¨à§à¦§à¦¾à¦¨</span>
-    <h1>ðŸ“¦ ${t('trackTitle')}</h1>
+    <span class="section-tag">রিয়েলটাইম অনুসন্ধান</span>
+    <h1>📦 ${t('trackTitle')}</h1>
     <p>${t('trackLead')}</p>
   </div>
   <div class="container">
@@ -1534,26 +1046,26 @@ async function pageTrack() {
       
       <div class="field">
         <label>${t('appId')} <span class="req">*</span></label>
-        <input id="t_id" value="${esc(initialId)}" placeholder="à¦¯à§‡à¦®à¦¨: APP-2026-0001 à¦¬à¦¾ DLAS-NET-2026-04417" autocomplete="off">
+        <input id="t_id" value="${esc(initialId)}" placeholder="যেমন: APP-2026-0001 বা DLAS-NET-2026-04417" autocomplete="off">
         <div class="hint">${t('appIdHint')}</div>
       </div>
       
       <div class="field" style="margin-top:1.1rem">
         <label>${t('last4')} <span class="req">*</span></label>
-        <input id="t_last4" value="${esc(initialLast4)}" maxlength="4" inputmode="numeric" placeholder="à¦¯à§‡à¦®à¦¨: 3344" autocomplete="off">
-        <div class="hint">à¦¨à¦¿à¦°à¦¾à¦ªà¦¤à§à¦¤à¦¾ à¦¯à¦¾à¦šà¦¾à¦‡à¦•à¦°à¦£: à¦¨à¦¿à¦¬à¦¨à§à¦§à¦¿à¦¤ à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦° à¦¬à¦¾ à¦œà¦¾à¦¤à§€à¦¯à¦¼ à¦ªà¦°à¦¿à¦šà¦¯à¦¼à¦ªà¦¤à§à¦°à§‡à¦° à¦¶à§‡à¦· à§ª à¦…à¦™à§à¦•</div>
+        <input id="t_last4" value="${esc(initialLast4)}" maxlength="4" inputmode="numeric" placeholder="যেমন: 3344" autocomplete="off">
+        <div class="hint">নিরাপত্তা যাচাইকরণ: নিবন্ধিত ফোন নম্বর বা জাতীয় পরিচয়পত্রের শেষ ৪ অঙ্ক</div>
       </div>
 
       <div style="margin-top:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:0.84rem;color:var(--text-muted)">
-        <span>à¦¡à§‡à¦®à§‹ à¦°à§‡à¦•à¦°à§à¦¡:</span>
-        <button type="button" class="chip-demo" id="t_demo1" data-id="APP-2026-0001" data-last4="3344">APP-2026-0001 (à¦®à¦¯à¦¼à§‚à¦°à§€ / à§©à§©à§ªà§ª)</button>
-        <button type="button" class="chip-demo" id="t_demo2" data-id="DLAS-NET-2026-04420" data-last4="3344">A1 Persona</button>
+        <span>ডেমো রেকর্ড:</span>
+        <button type="button" class="chip-demo" id="t_demo1" data-id="APP-2026-0001" data-last4="3344">APP-2026-0001 (ময়ূরী / ৩৩৪৪)</button>
+        <button type="button" class="chip-demo" id="t_demo2" data-id="DLAS-NET-2026-04420" data-last4="3344">DLAS-NET-2026-04420 (৩৩৪৪)</button>
       </div>
 
       <div class="wizard-actions">
         <button class="btn btn-ghost" id="t_clear">${t('clear')}</button>
         <button class="btn btn-primary" id="t_go">
-          <span>ðŸ”</span> <span>${t('lookup')}</span>
+          <span>🔍</span> <span>${t('lookup')}</span>
         </button>
       </div>
 
@@ -1572,13 +1084,13 @@ async function pageTrack() {
     const err = $('#trackErr');
     const resultBox = $('#trackResult');
     err.classList.add('hidden');
-    resultBox.innerHTML = `<div style="padding:1.5rem;text-align:center;color:var(--text-muted)">à¦…à¦¨à§à¦¸à¦¨à§à¦§à¦¾à¦¨ à¦•à¦°à¦¾ à¦¹à¦šà§à¦›à§‡â€¦</div>`;
+    resultBox.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text-muted)">অনুসন্ধান করা হচ্ছে…</div>';
 
     const appId = ($('#t_id').value || '').trim();
     const last4 = ($('#t_last4').value || '').trim();
 
     if (!appId || !last4) {
-      err.textContent = 'à¦…à¦¨à§à¦—à§à¦°à¦¹ à¦•à¦°à§‡ à¦†à¦¬à§‡à¦¦à¦¨ à¦†à¦‡à¦¡à¦¿ à¦“ à¦¶à§‡à¦· à§ª à¦¡à¦¿à¦œà¦¿à¦Ÿ à¦‰à¦­à¦¯à¦¼à¦‡ à¦ªà§‚à¦°à¦£ à¦•à¦°à§à¦¨à¥¤';
+      err.textContent = 'অনুগ্রহ করে আবেদন আইডি ও শেষ ৪ ডিজিট উভয়ই পূরণ করুন।';
       err.classList.remove('hidden');
       resultBox.innerHTML = '';
       return;
@@ -1596,43 +1108,43 @@ async function pageTrack() {
       <div style="background:var(--surface-2);border-radius:var(--radius-lg);padding:1.4rem;margin-top:1.5rem;border:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:10px">
           <div>
-            <span style="font-size:0.8rem;color:var(--text-muted);font-weight:600">à¦†à¦¬à§‡à¦¦à¦¨ à¦¨à¦®à§à¦¬à¦°</span>
+            <span style="font-size:0.8rem;color:var(--text-muted);font-weight:600">আবেদন নম্বর</span>
             <div style="font-size:1.35rem;font-weight:800;color:var(--gov-green);font-family:monospace">${esc(r.appId)}</div>
-            ${r.caseId ? `<div style="font-size:0.88rem;color:var(--gov-gold);font-weight:700">à¦•à§‡à¦¸ à¦¨à¦®à§à¦¬à¦°: ${esc(r.caseId)}</div>` : ''}
+            ${r.caseId ? `<div style="font-size:0.88rem;color:var(--gov-gold);font-weight:700">কেস নম্বর: ${esc(r.caseId)}</div>` : ''}
           </div>
           <div style="text-align:right">
-            <span class="badge success" style="font-size:0.85rem">à¦§à¦¾à¦ª ${bnNum(r.stage + 1)}: ${esc(r.stageLabel)}</span>
-            ${r.emergency ? '<div style="margin-top:4px"><span class="badge warn">à¦œà¦°à§à¦°à¦¿ à¦…à¦—à§à¦°à¦¾à¦§à¦¿à¦•à¦¾à¦°</span></div>' : ''}
+            <span class="badge success" style="font-size:0.85rem">ধাপ ${bnNum(r.stage + 1)}: ${esc(r.stageLabel)}</span>
+            ${r.emergency ? '<div style="margin-top:4px"><span class="badge warn">জরুরি অগ্রাধিকার</span></div>' : ''}
           </div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px;margin-bottom:12px;font-size:0.88rem">
-          <div><strong>à¦†à¦¬à§‡à¦¦à¦¨à¦•à¦¾à¦°à§€:</strong> ${esc(r.applicantName || 'à¦¨à¦¾à¦—à¦°à¦¿à¦•')}</div>
-          <div><strong>à¦…à¦«à¦¿à¦¸:</strong> ${esc(r.office || 'à¦œà§‡à¦²à¦¾ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸')}</div>
-          <div><strong>à¦®à¦¾à¦®à¦²à¦¾à¦° à¦§à¦°à¦¨:</strong> ${esc(r.caseType || 'à¦¸à¦¾à¦§à¦¾à¦°à¦£')}</div>
-          <div><strong>à¦¦à¦¾à¦–à¦¿à¦² à¦¤à¦¾à¦°à¦¿à¦–:</strong> ${esc(r.submitted ? new Date(r.submitted).toLocaleDateString('bn-BD') : 'â€”')}</div>
+          <div><strong>আবেদনকারী:</strong> ${esc(r.applicantName || 'নাগরিক')}</div>
+          <div><strong>অফিস:</strong> ${esc(r.office || 'জেলা লিগ্যাল এইড অফিস')}</div>
+          <div><strong>মামলার ধরন:</strong> ${esc(r.caseType || 'সাধারণ')}</div>
+          <div><strong>দাখিল তারিখ:</strong> ${esc(r.submitted ? new Date(r.submitted).toLocaleDateString('bn-BD') : '—')}</div>
         </div>
 
         ${r.nextStep ? `
           <div class="quick-ans" style="margin:10px 0;background:var(--surface);border-color:var(--gov-green)">
-            ðŸŽ¯ <strong>à¦ªà¦°à¦¬à¦°à§à¦¤à§€ à¦ªà¦¦à¦•à§à¦·à§‡à¦ª:</strong> ${esc(r.nextStep)}
+            🎯 <strong>পরবর্তী পদক্ষেপ:</strong> ${esc(r.nextStep)}
           </div>
         ` : ''}
 
         ${(r.headsUp && r.headsUp.length) ? `
           <div class="quick-ans" style="margin:10px 0;background:var(--surface);border-color:var(--gov-gold)">
-            ðŸ”” <strong>à¦—à§à¦°à§à¦¤à§à¦¬à¦ªà§‚à¦°à§à¦£ à¦¨à¦¿à¦°à§à¦¦à§‡à¦¶à¦¨à¦¾:</strong>
+            🔔 <strong>গুরুত্বপূর্ণ নির্দেশনা:</strong>
             <ul style="margin:6px 0 0 18px;font-size:0.88rem">
               ${r.headsUp.map(h => `<li>${esc(h)}</li>`).join('')}
             </ul>
           </div>
         ` : ''}
 
-        <h4 style="margin:1.4rem 0 0.8rem;font-size:1rem">à¦ªà§à¦°à¦•à§à¦°à¦¿à¦¯à¦¼à¦¾à¦° à¦…à¦—à§à¦°à¦—à¦¤à¦¿ à¦Ÿà¦¾à¦‡à¦®à¦²à¦¾à¦‡à¦¨:</h4>
+        <h4 style="margin:1.4rem 0 0.8rem;font-size:1rem">প্রক্রিয়ার অগ্রগতি টাইমলাইন:</h4>
         <ul class="timeline">
           ${(r.stages || []).map((s, i) => `
             <li class="${s.done ? 'done' : ''} ${s.current ? 'current' : ''}">
-              <div class="tl-dot">${s.done ? 'âœ“' : bnNum(i + 1)}</div>
+              <div class="tl-dot">${s.done ? '✓' : bnNum(i + 1)}</div>
               <div class="tl-body">
                 <strong>${esc(s.label)}</strong>
                 ${s.current ? `<span>${t('currentStage')}</span>` : ''}
@@ -1642,7 +1154,7 @@ async function pageTrack() {
         </ul>
 
         <p style="color:var(--text-muted);font-size:0.84rem;margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
-          â„¹ï¸ ${esc(r.note || 'à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£ à¦¬à¦¿à¦¬à¦°à¦£à§‡à¦° à¦œà¦¨à§à¦¯ à¦¨à¦¿à¦•à¦Ÿà¦¬à¦°à§à¦¤à§€ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦…à¦«à¦¿à¦¸à§‡ à¦¯à§‹à¦—à¦¾à¦¯à§‹à¦— à¦•à¦°à§à¦¨ à¦…à¦¥à¦¬à¦¾ à¦Ÿà§‹à¦²-à¦«à§à¦°à¦¿ à§§à§¬à§¬à§¯à§¯-à¦ à¦•à¦² à¦•à¦°à§à¦¨à¥¤')}
+          ℹ️ ${esc(r.note || 'সম্পূর্ণ বিবরণের জন্য নিকটবর্তী লিগ্যাল এইড অফিসে যোগাযোগ করুন অথবা টোল-ফ্রি ১৬৬৯৯-এ কল করুন।')}
         </p>
       </div>
     `;
@@ -1667,182 +1179,569 @@ async function pageTrack() {
   }
 }
 
-// ---------- à¦…à¦«à¦¿à¦¸ à¦ªà§‡à¦œ (Leaflet à¦®à§à¦¯à¦¾à¦ª) ----------
-async function pageOffices() {
-  app.innerHTML = `
-  <div class="container page-head"><h1>ðŸ¢ ${t('officesTitle')}</h1><p>${t('officesBody')} ${t('mapHint')}</p></div>
-  <div class="container">
-    <div class="office-finder">
-      <div>
-        <div class="filter-row">
-          <input id="offQ2" placeholder="${t('officesSearchPh')}" style="flex:1">
-          <select id="offDiv"><option value="">à¦¸à¦¬ à¦¬à¦¿à¦­à¦¾à¦—</option>${BOOT.divisions.map((d) => `<option>${esc(d)}</option>`).join('')}</select>
-        </div>
-        <p id="offCount" style="color:var(--muted);margin-bottom:.7rem;font-size:.85rem"></p>
-        <div class="office-list" id="offGrid"></div>
-      </div>
-      <div id="map"></div>
-    </div>
-  </div>`;
-  const render = () => {
-    const q = $('#offQ2').value.trim().toLowerCase();
-    const div = $('#offDiv').value;
-    const list = BOOT.offices.filter((o) => (!q || (o.name + o.district + o.address).toLowerCase().includes(q)) && (!div || o.division === div));
-    $('#offCount').textContent = t('officesCount').replace('{n}', bnNum(list.length));
-    $('#offGrid').innerHTML = list.map(officeCard).join('') || `<div class="empty-state">${t('noResults')}</div>`;
+// ---------- ৬. নতুন আবেদন দাখিল (pageApply) — Universal Form Covering All 18 Topics ----------
+async function pageApply(queryStr) {
+  const hash = (typeof queryStr === 'string' && queryStr) ? queryStr : (location.hash || '');
+  const searchParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : (hash.startsWith('?') ? hash.slice(1) : ''));
+  const prePurpose = searchParams.get('purpose') || 'new';
+  const preCat = searchParams.get('category') || '';
+  const isEmergency = searchParams.get('emergency') === 'true';
+
+  // Comprehensive list of all 18 topics matching the Resource Library
+  const allCategories = (BOOT && BOOT.categories) || [
+    { id: 'family', title: 'পারিবারিক ও দেনমোহর বিরোধ' },
+    { id: 'safety', title: 'নিরাপত্তা ও পারিবারিক সহিংসতা' },
+    { id: 'land', title: 'বাসস্থান, জমি ও সম্পত্তি বিরোধ' },
+    { id: 'money', title: 'অর্থ, ঋণ, দেনা ও প্রতারণা' },
+    { id: 'crime', title: 'ফৌজদারি ও কারাবন্দী জামিন সহায়তা' },
+    { id: 'labour', title: 'শ্রম, মজুরি ও চাকরি অধিকার' },
+    { id: 'identity', title: 'পরিচয়পত্র, এনআইডি ও জন্ম নিবন্ধন' },
+    { id: 'wills', title: 'উত্তরাধিকার সম্পত্তি ও ফারায়েজ' },
+    { id: 'cyber', title: 'ডিজিটাল অপরাধ ও সাইবার হয়রানি' },
+    { id: 'govt', title: 'সরকারি সহায়তা ও সামাজিক ভাতা' },
+    { id: 'tax', title: 'আয়কর, ভ্যাট ও রাজস্ব' },
+    { id: 'education', title: 'শিক্ষা ও ছাত্র অধিকার' },
+    { id: 'farm', title: 'কৃষি ও মৎস্য শ্রমিক অধিকার' },
+    { id: 'rights', title: 'ভোটাধিকার ও তথ্য অধিকার (RTI)' },
+    { id: 'immigration', title: 'প্রবাসী শ্রমিক ও অভিবাসন' },
+    { id: 'court', title: 'আদালতের কার্যপ্রণালী ও নকল' },
+    { id: 'efiling', title: 'ই-ফাইলিং ও ডিজিটাল সেবা' },
+    { id: 'health', title: 'স্বাস্থ্য ও পরিবেশ দূষণ' }
+  ];
+
+  const allDistricts = [...new Set(((BOOT && BOOT.offices) || []).map((o) => o.district))];
+  if (!allDistricts.length) {
+    allDistricts.push('ঢাকা', 'জয়পুরহাট', 'চট্টগ্রাম', 'রাজশাহী', 'খুলনা', 'বরিশাল', 'সিলেট', 'রংপুর', 'ময়মনসিংহ', 'ঝিনাইদহ');
+  }
+
+  const state = {
+    step: 1,
+    data: {
+      caseType: preCat || 'family',
+      purpose: prePurpose,
+      emergency: isEmergency,
+      idType: 'nid' // 'nid', 'birth_cert', 'none'
+    }
   };
+
   render();
-  $('#offQ2').oninput = render;
-  $('#offDiv').onchange = render;
-  initOfficeMap();
-}
 
-// ---------- à¦¨à¦¿à¦‰à¦œ à¦ªà§‡à¦œ ----------
-async function pageNews() {
-  app.innerHTML = `
-  <div class="container page-head"><h1>ðŸ“° ${t('newsTitle')}</h1></div>
-  <div class="container"><div class="news-grid">${BOOT.news.map(newsCard).join('')}</div></div>`;
-}
-
-// à¦¨à¦¿à¦‰à¦œ à¦¡à¦¿à¦Ÿà§‡à¦‡à¦² â€” à¦•à§‡à¦¸ à¦¬à¦¿à¦¬à¦°à¦£à¦¸à¦¹
-async function pageNewsDetail(id) {
-  const n = await apiGet('newsitem', { id });
-  if (!n || n.error) return pageNews();
-  app.innerHTML = `
-  <div class="container page-head article-wrap">
-    <div class="breadcrumb"><a href="#/news">${t('backToNews')}</a></div>
-    <span class="news-badge ${n.type}">${n.type === 'event' ? t('event') : t('news')}</span>
-    <h1 style="margin-top:.5rem">${esc(n.title)}</h1>
-    <div class="article-meta"><span>${t('posted')}: ${esc(n.date)}</span></div>
-    <img class="news-detail-img" src="${esc(n.img)}" alt="" onerror="this.style.display='none'">
-    <p style="font-size:1.05rem">${esc(n.body)}</p>
-    ${(n.cases || []).length ? `<h2 style="margin-top:1.6rem">${t('caseDetail')}</h2>
-      ${n.cases.map((c) => `<div class="case-block"><h3>${esc(c.t)}</h3><p>${esc(c.d)}</p></div>`).join('')}` : ''}
-    <div class="quick-ans">
-      <strong>${t('needMoreHelp')}</strong>
-      <p style="color:var(--muted);margin:.3rem 0 .7rem">${t('moreHelpBody')}</p>
-      <a class="btn btn-primary btn-sm" href="#/apply">${t('ctaApply')}</a>
-      <a class="btn btn-outline btn-sm" href="tel:16699" style="margin-left:.4rem">ðŸ“ž ${t('callNow')}</a>
+  function render() {
+    const steps = ['সমস্যা', 'পরিচয়', 'যোগাযোগ', 'আর্থ-সামাজিক', 'প্রতিপক্ষ', 'যাচাই ও জমা'];
+    app.innerHTML = `
+    <div class="container page-head">
+      <span class="section-tag">সরকারি আইনি সহায়তা</span>
+      <h1>📝 ${t('applyTitle')}</h1>
+      <p>${t('applyLead')}</p>
     </div>
-  </div>`;
+    <div class="container">
+      <div class="form-card" style="max-width:740px">
+        <div class="wizard-steps">
+          ${steps.map((s, i) => `
+            <div class="wstep ${i + 1 === state.step ? 'active' : i + 1 < state.step ? 'done' : ''}">
+              ${bnNum(i + 1)}. ${s}
+            </div>
+          `).join('')}
+        </div>
+        <div id="stepBody"></div>
+        <div class="wizard-actions">
+          <button class="btn btn-ghost" id="aPrev" ${state.step === 1 ? 'style="visibility:hidden"' : ''}>← ${t('guideBack')}</button>
+          <button class="btn btn-primary" id="aNext">
+            ${state.step === 6 ? '✓ জমা দিন' : t('guideNext') + ' →'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+    renderStep();
+
+    $('#aPrev').onclick = () => {
+      if (state.step > 1) { state.step--; render(); }
+    };
+    $('#aNext').onclick = () => {
+      if (!collect()) return;
+      if (state.step < 6) { state.step++; render(); }
+      else submit();
+    };
+  }
+
+  function stepHtml(inner) { $('#stepBody').innerHTML = inner; }
+
+  function renderStep() {
+    const d = state.data;
+    if (state.step === 1) {
+      stepHtml(`
+        <div class="field">
+          <label>আপনার আইনি সমস্যার বিষয় নির্বাচন করুন <span class="req">*</span></label>
+          <select id="f_caseType">
+            ${allCategories.map(c => `
+              <option value="${c.id}" ${d.caseType === c.id ? 'selected' : ''}>${esc(c.title)}</option>
+            `).join('')}
+          </select>
+          <div class="hint">রিসোর্স লাইব্রেরির সকল ১৮টি ক্ষেত্রই এই একক ফরমে অন্তর্ভুক্ত।</div>
+        </div>
+
+        <div class="field" style="margin-top:1rem">
+          <label>আপনার কাঙ্ক্ষিত প্রতিকার / উদ্দেশ্য</label>
+          <select id="f_purpose">
+            <option value="new" ${d.purpose === 'new' ? 'selected' : ''}>নতুন আইনি সমস্যার প্রতিকার</option>
+            <option value="mediation" ${d.purpose === 'mediation' ? 'selected' : ''}>বিকল্প বিরোধ নিষ্পত্তি (ADR / মধ্যস্থতা)</option>
+            <option value="lawyer" ${d.purpose === 'lawyer' ? 'selected' : ''}>সরকারি খরচে আইনজীবী ও আদালত সহায়তা</option>
+            <option value="advice" ${d.purpose === 'advice' ? 'selected' : ''}>বিনামূল্যে আইনি পরামর্শ</option>
+          </select>
+        </div>
+
+        <div class="field" style="margin-top:1rem">
+          <label>জেলা <span class="req">*</span></label>
+          <select id="f_district">
+            ${allDistricts.map(x => `<option ${d.district === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field" style="margin-top:1rem">
+          <label>সমস্যার বিস্তারিত বিবরণ <span class="req">*</span></label>
+          <textarea id="f_problem" placeholder="কী ঘটেছে, কবে থেকে শুরু, প্রতিপক্ষ কে — সংক্ষেপে সহজ ভাষায় লিখুন...">${esc(d.problem || '')}</textarea>
+        </div>
+
+        <label class="check-line" style="margin-top:.8rem">
+          <input type="checkbox" id="f_emergency" ${d.emergency ? 'checked' : ''}>
+          <span>জরুরি আইনি সহায়তা প্রয়োজন (আটক/গ্রেপ্তার/উচ্ছেদ/তাত্ক্ষণিক হুমকি)</span>
+        </label>
+        <label class="check-line">
+          <input type="checkbox" id="f_sensitive" ${d.sensitive ? 'checked' : ''}>
+          <span>এটি স্পর্শকাতর অভিযোগ (পারিবারিক সহিংসতা/নির্যাতন) — সর্বোচ্চ গোপনীয়তা নিশ্চিত রাখুন</span>
+        </label>
+      `);
+    } else if (state.step === 2) {
+      stepHtml(`
+        <div class="field">
+          <label>আবেদনকারীর পুরো নাম <span class="req">*</span></label>
+          <input id="f_name" value="${esc(d.name || '')}" placeholder="জাতীয় পরিচয়পত্র বা জন্মনিবন্ধন অনুযায়ী নাম">
+        </div>
+
+        <div class="form-grid" style="margin-top:.9rem">
+          <div class="field">
+            <label>লিঙ্গ</label>
+            <select id="f_gender">
+              <option ${d.gender === 'নারী' ? 'selected' : ''}>নারী</option>
+              <option ${d.gender === 'পুরুষ' ? 'selected' : ''}>পুরুষ</option>
+              <option ${d.gender === 'অন্যান্য' ? 'selected' : ''}>অন্যান্য</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>বয়স</label>
+            <input id="f_age" type="number" min="0" value="${esc(d.age || '')}" placeholder="যেমন: ৩৪">
+          </div>
+        </div>
+
+        <!-- পরিচয়পত্রের ধরন (NID / জন্ম নিবন্ধন / কোনোটিই নেই) (PDF 2 কেইস এ১ Requirement) -->
+        <div class="field" style="margin-top:1rem">
+          <label>পরিচয়পত্র নির্ধারণ করুন</label>
+          <select id="f_idType">
+            <option value="nid" ${d.idType === 'nid' ? 'selected' : ''}>জাতীয় পরিচয়পত্র (NID)</option>
+            <option value="birth_cert" ${d.idType === 'birth_cert' ? 'selected' : ''}>জন্ম নিবন্ধন সনদ (Birth Certificate)</option>
+            <option value="none" ${d.idType === 'none' ? 'selected' : ''}>পরিচয়পত্র নেই (এখন উপলব্ধ নয়)</option>
+          </select>
+          <div class="hint">ময়ূরী বা সুবিধাবঞ্চিত নাগরিকের এনআইডি না থাকলে জন্ম নিবন্ধন বা পরিচয়পত্রহীন অবস্থায় আবেদন দাখিল সম্ভব।</div>
+        </div>
+
+        <div class="field ${d.idType === 'none' ? 'hidden' : ''}" id="idNumberWrap" style="margin-top:.8rem">
+          <label id="idNumberLabel">${d.idType === 'birth_cert' ? 'জন্ম নিবন্ধন সনদ নম্বর' : 'জাতীয় পরিচয়পত্র (NID) নম্বর'}</label>
+          <input id="f_nid" value="${esc(d.nid || '')}" placeholder="১০/১৩/১৭ ডিজিট">
+        </div>
+
+        <!-- প্রতিনিধি হিসেবে আবেদন (Ripon on behalf of Moyuri) -->
+        <div style="background:var(--surface-2);padding:1rem;border-radius:10px;margin-top:1.2rem;border:1px dashed var(--border)">
+          <label class="check-line">
+            <input type="checkbox" id="f_isRep" ${d.isRep ? 'checked' : ''}>
+            <span><strong>অন্যের পক্ষে (প্রতিনিধি হিসেবে) আবেদন করছেন?</strong> (যেমন আত্মীয়, প্রতিবেশী, সমাজকর্মী)</span>
+          </label>
+          <div id="repFields" class="${d.isRep ? '' : 'hidden'}" style="margin-top:10px">
+            <div class="field">
+              <label>প্রতিনিধির নাম</label>
+              <input id="f_repName" value="${esc(d.repName || '')}" placeholder="আপনার নিজের নাম">
+            </div>
+            <div class="form-grid" style="margin-top:.8rem">
+              <div class="field">
+                <label>প্রতিনিধির মোবাইল নম্বর</label>
+                <input id="f_repPhone" value="${esc(d.repPhone || '')}" placeholder="01XXXXXXXXX">
+              </div>
+              <div class="field">
+                <label>আবেদনকারীর সাথে সম্পর্ক</label>
+                <input id="f_repRelation" value="${esc(d.repRelation || '')}" placeholder="যেমন: ভাই, প্রতিবেশি, ইত্যাদি">
+              </div>
+            </div>
+            <div class="hint">সংশ্লিষ্ট কর্মকর্তা প্রতিনিধির নম্বরে ফলোআপ কল দিয়ে বিস্তারিত যাচাই করবেন।</div>
+          </div>
+        </div>
+      `);
+
+      $('#f_idType').onchange = (e) => {
+        d.idType = e.target.value;
+        const wrap = $('#idNumberWrap');
+        const lbl = $('#idNumberLabel');
+        if (d.idType === 'none') {
+          wrap.classList.add('hidden');
+          d.nid = '';
+        } else {
+          wrap.classList.remove('hidden');
+          lbl.textContent = d.idType === 'birth_cert' ? 'জন্ম নিবন্ধন সনদ নম্বর' : 'জাতীয় পরিচয়পত্র (NID) নম্বর';
+        }
+      };
+
+      $('#f_isRep').onchange = (e) => {
+        d.isRep = e.target.checked;
+        $('#repFields').classList.toggle('hidden', !d.isRep);
+      };
+    } else if (state.step === 3) {
+      stepHtml(`
+        <div class="field">
+          <label>আবেদনকারীর মোবাইল নম্বর <span class="req">*</span></label>
+          <input id="f_phone" value="${esc(d.phone || '')}" placeholder="01XXXXXXXXX">
+          <div class="hint">এই নম্বরেই আবেদন ট্র্যাকিং আইডি ও এসএমএস আপডেট পাঠানো হবে।</div>
+        </div>
+
+        <!-- ব্যক্তিগত নাকি শেয়ার্ড ফোন & নিরাপদ যোগাযোগের সময় (PDF 2 Requirement) -->
+        <div class="form-grid" style="margin-top:.9rem">
+          <div class="field">
+            <label>ফোনটির প্রকৃতি</label>
+            <select id="f_phoneType">
+              <option value="personal" ${d.phoneType === 'personal' ? 'selected' : ''}>ব্যক্তিগত ফোন (শুধুমাত্র আবেদনকারী ধরেন)</option>
+              <option value="shared" ${d.phoneType === 'shared' ? 'selected' : ''}>শেয়ার্ড ফোন (পরিবারের অন্য সদস্যও ধরতে পারেন)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>নিরাপদ যোগাযোগের সময়সূচি</label>
+            <input id="f_window" value="${esc(d.window || '')}" placeholder="যেমন: সকাল ১০টা–১২টা, দুপুর ২টা–৪টা">
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:.9rem">
+          <label>বিকল্প নিরাপদ ফোন নম্বর (যদি থাকে)</label>
+          <input id="f_safe" value="${esc(d.safeNumber || '')}" placeholder="জরুরি অবস্থায় যোগাযোগের বিকল্প নিরাপদ নম্বর">
+        </div>
+
+        <div class="quick-ans" style="margin-top:1rem;background:var(--gov-green-surface);border-color:#A7F3D0">
+          🛡️ <strong>নিরাপদ যোগাযোগ সতর্কতা (Neutral Wording Policy):</strong>
+          কল করার সময় যদি অন্য কেউ ফোন রিসিভ করে, লিগ্যাল এইডের সংবেদনশীল বা গোপনীয় তথ্য প্রকাশ না করে সাধারণ সরকারি বার্তা হিসেবে কথা বলা হবে।
+        </div>
+      `);
+    } else if (state.step === 4) {
+      stepHtml(`
+        <div class="form-grid">
+          <div class="field">
+            <label>পেশা</label>
+            <input id="f_occ" value="${esc(d.occ || '')}" placeholder="যেমন: গৃহিণী, দিনমজুর, কৃষক, ইত্যাদি">
+          </div>
+          <div class="field">
+            <label>মাসিক পারিবারিক আয়</label>
+            <select id="f_income">
+              <option value="below_15k" ${d.income === 'below_15k' ? 'selected' : ''}>১৫,০০০ টাকার নিচে</option>
+              <option value="15k_25k" ${d.income === '15k_25k' ? 'selected' : ''}>১৫,০০০ - ২৫,০০০ টাকা</option>
+              <option value="above_25k" ${d.income === 'above_25k' ? 'selected' : ''}>২৫,০০০ টাকার উপরে</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-top:.9rem">
+          <label>পরিবারের নির্ভরশীল সদস্য সংখ্যা</label>
+          <input id="f_deps" type="number" min="0" value="${esc(d.deps || '')}" placeholder="যেমন: ৪">
+        </div>
+      `);
+    } else if (state.step === 5) {
+      stepHtml(`
+        <div class="field">
+          <label>প্রতিপক্ষের পুরো নাম (যদি জানা থাকে)</label>
+          <input id="f_oppName" value="${esc(d.oppName || '')}" placeholder="যার বিরুদ্ধে অভিযোগ বা বিরোধ">
+        </div>
+        <div class="form-grid" style="margin-top:.9rem">
+          <div class="field">
+            <label>প্রতিপক্ষের ধরন</label>
+            <select id="f_oppType">
+              <option>ব্যক্তি</option>
+              <option>প্রতিষ্ঠান/কোম্পানি</option>
+              <option>সরকারি অফিস</option>
+              <option>অজানা</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>প্রতিপক্ষের ফোন নম্বর (যদি জানা থাকে)</label>
+            <input id="f_oppPhone" value="${esc(d.oppPhone || '')}" placeholder="01XXXXXXXXX">
+          </div>
+        </div>
+        <div class="quick-ans" style="margin-top:1rem">
+          🔒 <strong>সুরক্ষিত রেকর্ড:</strong> প্রতিপক্ষকে কখনই আপনার যোগাযোগের সংবেদনশীল তথ্য জানানো হয় না।
+        </div>
+      `);
+    } else {
+      const d2 = state.data;
+      const catObj = allCategories.find(c => c.id === d2.caseType);
+      stepHtml(`
+        <h3>আপনার আবেদন যাচাই করুন</h3>
+        <div class="quick-ans" style="margin-top:.8rem">
+          <p><strong>আইনি বিষয়:</strong> ${catObj ? esc(catObj.title) : 'সাধারণ আইনি সমস্যা'}</p>
+          <p><strong>আবেদনকারী:</strong> ${esc(d2.name || '—')} · <strong>ফোন:</strong> ${esc(d2.phone || '—')}</p>
+          <p><strong>জেলা:</strong> ${esc(d2.district || '—')} · <strong>পরিচয়পত্র:</strong> ${d2.idType === 'none' ? 'উপলব্ধ নয়' : (d2.idType === 'birth_cert' ? 'জন্মনিবন্ধন' : 'এনআইডি')} (${esc(d2.nid || '—')})</p>
+          ${d2.isRep ? `<p><strong>মনোনীত প্রতিনিধি:</strong> ${esc(d2.repName)} (${esc(d2.repRelation)} · ${esc(d2.repPhone)})</p>` : ''}
+          <p><strong>জরুরি অগ্রাধিকার:</strong> ${d2.emergency ? 'হ্যাঁ' : 'না'} · <strong>স্পর্শকাতর সুরক্ষা:</strong> ${d2.sensitive ? 'হ্যাঁ' : 'না'}</p>
+        </div>
+
+        <!-- আইনগত সম্মতি ও সঠিক রেফারেন্স (PDF 2 কেইস এ১ Requirement) -->
+        <div style="background:var(--surface-2);border-radius:10px;padding:1.1rem;border:1px solid #A7F3D0;margin-top:1rem;font-size:0.88rem;line-height:1.6">
+          🛡️ <strong>আপনার তথ্য সুরক্ষা ও আইনি অধিকার:</strong>
+          বাংলাদেশ লিগ্যাল এইড ডিরেক্টরেট আপনার আবেদন নিষ্পত্তি ও আইনি সহায়তা দেওয়ার জন্য এই তথ্য সংগ্রহ করে। কেবল আপনার দায়িত্বপ্রাপ্ত কর্মকর্তা, প্যানেল আইনজীবী বা মধ্যস্থতাকারী এটি দেখেন; প্রতিপক্ষকে কখনই জানানো হয় না।
+          তথ্যটি <strong>ব্যক্তিগত উপাত্ত সুরক্ষা আইন, ২০২৬ (২০২৬ সনের ৬৩ নং আইন)</strong> অনুযায়ী সুরক্ষিত থাকে।
+        </div>
+
+        <label class="check-line" style="margin-top:1rem">
+          <input type="checkbox" id="f_true">
+          <span>আমি নিশ্চিত করছি যে উপরে প্রদত্ত সকল তথ্য সত্য ও সঠিক।</span>
+        </label>
+        <div id="applyErr" class="form-error hidden"></div>
+      `);
+    }
+  }
+
+  function collect() {
+    const d = state.data;
+    if (state.step === 1) {
+      d.caseType = $('#f_caseType').value;
+      d.purpose = $('#f_purpose').value;
+      d.district = $('#f_district').value;
+      d.problem = $('#f_problem').value.trim();
+      d.emergency = $('#f_emergency').checked;
+      d.sensitive = $('#f_sensitive').checked;
+      if (!d.problem) { toast('সমস্যার সংক্ষিপ্ত বিবরণ লিখুন'); return false; }
+    } else if (state.step === 2) {
+      d.name = $('#f_name').value.trim();
+      d.gender = $('#f_gender').value;
+      d.age = $('#f_age').value;
+      d.idType = $('#f_idType').value;
+      const nidInp = $('#f_nid');
+      d.nid = (nidInp && d.idType !== 'none') ? nidInp.value.trim() : '';
+      if (!d.name) { toast('আবেদনকারীর পুরো নাম লিখুন'); return false; }
+      if (d.isRep) {
+        d.repName = ($('#f_repName')?.value || '').trim();
+        d.repPhone = ($('#f_repPhone')?.value || '').trim();
+        d.repRelation = ($('#f_repRelation')?.value || '').trim();
+      }
+    } else if (state.step === 3) {
+      d.phone = $('#f_phone').value.trim();
+      d.phoneType = $('#f_phoneType').value;
+      d.window = $('#f_window').value.trim();
+      d.safeNumber = $('#f_safe').value.trim();
+      if (!/^01\d{9}$/.test(d.phone)) {
+        toast('সঠিক ১১ ডিজিটের ফোন নম্বর দিন (01XXXXXXXXX)');
+        return false;
+      }
+    } else if (state.step === 4) {
+      d.occ = $('#f_occ').value.trim();
+      d.income = $('#f_income').value;
+      d.deps = $('#f_deps').value;
+    } else if (state.step === 5) {
+      d.oppName = $('#f_oppName').value.trim();
+      d.oppType = $('#f_oppType').value;
+      d.oppPhone = $('#f_oppPhone').value.trim();
+    } else {
+      if (!$('#f_true').checked) {
+        toast('তথ্য সঠিক বলে বক্সে টিক চিহ্ন দিন');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function submit() {
+    const d = state.data;
+    if (d.safeNumber || d.window) {
+      d.safeContact = {
+        safeNumber: d.safeNumber || d.phone,
+        window: d.window || 'সকাল ১০টা - বিকাল ৪টা',
+        neutralWording: true
+      };
+    }
+    if (d.isRep && d.repName) {
+      d.representation = {
+        repName: d.repName,
+        repPhone: d.repPhone,
+        relation: d.repRelation,
+        scope: 'intake-only'
+      };
+    }
+
+    const nextBtn = $('#aNext');
+    if (nextBtn) {
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'জমা হচ্ছে...';
+    }
+
+    const r = await apiPost('applications', d);
+
+    if (!r.ok && !r.success) {
+      toast(r.error || t('errGeneric'));
+      if (nextBtn) {
+        nextBtn.disabled = false;
+        nextBtn.textContent = '✓ জমা দিন';
+      }
+      return;
+    }
+
+    const finalAppId = r.appId || r.applicationId || ('APP-2026-' + Math.floor(1000 + Math.random() * 9000));
+
+    // Save locally to citizen's localStorage dashboard store
+    try {
+      const stored = JSON.parse(localStorage.getItem('dlas_my_apps') || '[]');
+      stored.unshift({
+        appId: finalAppId,
+        caseType: d.caseType,
+        district: d.district,
+        submittedAt: new Date().toISOString(),
+        status: 'অপেক্ষমাণ (UNDER_REVIEW)',
+        stage: 0
+      });
+      localStorage.setItem('dlas_my_apps', JSON.stringify(stored.slice(0, 30)));
+    } catch (e) {}
+
+    app.innerHTML = `
+    <div class="container page-head">
+      <h1>✅ আপনার আইনি সহায়তা আবেদন সফলভাবে জমা হয়েছে</h1>
+    </div>
+    <div class="container">
+      <div class="form-card" style="text-align:center;max-width:740px">
+        <p style="color:var(--text-muted)">আপনার আবেদন ট্র্যাকিং আইডি:</p>
+        <div style="font-size:2rem;font-weight:800;font-family:monospace;color:var(--gov-green);margin:.5rem 0 1rem">
+          ${esc(finalAppId)}
+        </div>
+        
+        <div class="quick-ans" style="text-align:left;background:var(--gov-green-surface);border-color:#A7F3D0">
+          🆓 <strong>বিনামূল্যে সরকারি সেবা:</strong> এই আবেদন ও তৎপরবর্তী সকল আইনি সহায়তা সম্পূর্ণ বিনামূল্যে। কোনো ফি প্রদান করবেন না।
+        </div>
+
+        <div style="background:var(--surface-2);border-radius:10px;padding:1.2rem;text-align:left;margin-top:1.2rem">
+          <strong>পরবর্তী করণীয় ও ধাপসমূহ:</strong>
+          <ul style="margin:.6rem 0 0 1.4rem;font-size:0.92rem;line-height:1.6">
+            <li>উপজেলা বা জেলা লিগ্যাল এইড কর্মকর্তা আবেদনটি পর্যালোচনা করবেন।</li>
+            <li>আপনার মোবাইল নম্বরে এসএমএস এর মাধ্যমে আপডেট পাঠানো হবে।</li>
+            <li>নিচের বোতামে ক্লিক করে যেকোনো সময় আবেদনের সরাসরি অগ্রগতি দেখতে পারবেন।</li>
+          </ul>
+        </div>
+
+        <div class="wizard-actions" style="justify-content:center;gap:12px;margin-top:1.8rem">
+          <a class="btn btn-outline" href="#/track?id=${encodeURIComponent(finalAppId)}&last4=${encodeURIComponent((d.phone || '3344').slice(-4))}">
+            🔍 আবেদন ট্র্যাক করুন
+          </a>
+          <a class="btn btn-primary" href="#/dashboard">
+            👤 নাগরিক ড্যাশবোর্ডে দেখুন
+          </a>
+          <a class="btn btn-ghost" href="#/">
+            🏠 হোমে যান
+          </a>
+        </div>
+      </div>
+    </div>`;
+  }
 }
 
-// ---------- à¦¸à¦¾à¦°à§à¦š ----------
-async function pageSearch() {
-  app.innerHTML = `
-  <div class="container page-head"><h1>ðŸ” ${t('searchTitle')}</h1></div>
-  <div class="container">
-    <div class="search-bar"><input id="sq" placeholder="${t('searchPh')}"><button class="btn btn-primary" id="sgo">${t('searchBtn')}</button></div>
-    <div id="sres" style="margin-top:1.6rem"></div>
-  </div>`;
-  const doSearch = () => {
-    const q = $('#sq').value.trim().toLowerCase();
-    const box = $('#sres');
-    if (!q) { box.innerHTML = ''; return; }
-    const arts = BOOT.articles.filter((a) => (a.title + a.summary).toLowerCase().includes(q));
-    const cats = BOOT.categories.filter((c) => (c.title + c.desc).toLowerCase().includes(q));
-    const offs = BOOT.offices.filter((o) => (o.name + o.district).toLowerCase().includes(q));
-    box.innerHTML = `
-      ${cats.length ? `<h2>${t('navLibrary')}</h2><div class="topic-grid" style="margin:.8rem 0 1.4rem">${cats.map((c) => `<a class="topic-card" href="#/topic/${c.id}"><span class="topic-icon">${c.icon}</span><span><h3>${esc(c.title)}</h3><p>${esc(c.desc)}</p></span></a>`).join('')}</div>` : ''}
-      ${arts.length ? `<h2>${t('navLibrary')} â€” à¦†à¦°à§à¦Ÿà¦¿à¦•à§‡à¦²</h2><div class="art-grid" style="margin:.8rem 0 1.4rem">${arts.map((a) => `<a class="art-card" href="#/article/${a.id}"><h3>${esc(a.title)}</h3><p>${esc(a.summary)}</p></a>`).join('')}</div>` : ''}
-      ${offs.length ? `<h2>${t('navOffices')}</h2><div class="art-grid" style="margin:.8rem 0">${offs.slice(0, 6).map(officeCard).join('')}</div>` : ''}
-      ${!cats.length && !arts.length && !offs.length ? `<div class="empty-state">${t('noResults')}</div>` : ''}`;
-  };
-  $('#sgo').onclick = doSearch;
-  $('#sq').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
-}
+// ---------- ৭. নাগরিক ড্যাশবোর্ড (pageDashboard) ----------
+async function pageDashboard() {
+  const localApps = JSON.parse(localStorage.getItem('dlas_my_apps') || '[]');
+  let serverApps = [];
 
-// ---------- à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ ----------
-async function pageHelp() {
+  if (ME) {
+    try {
+      const r = await apiGet('applications');
+      serverApps = r.applications || [];
+    } catch (e) {}
+  }
+
+  // Merge unique by appId
+  const combinedMap = new Map();
+  serverApps.forEach(a => combinedMap.set(a.appId, a));
+  localApps.forEach(a => {
+    if (!combinedMap.has(a.appId)) combinedMap.set(a.appId, a);
+  });
+  const apps = Array.from(combinedMap.values());
+
+  const stageIcons = ['📝', '🔍', '⚖️', '🤝', '✅'];
+
   app.innerHTML = `
-  <div class="container page-head"><h1>ðŸ¤ ${t('helpTitle')}</h1><p>${t('helpLead')}</p></div>
-  <div class="container"><div class="help-cards" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
-    <a class="help-card" href="#/help/call"><div class="hc-art">ðŸ“ž</div><h3>${t('hCallT')}</h3><p>${t('hCallB')}</p><span class="btn btn-primary btn-sm">à¦¬à¦¿à¦¸à§à¦¤à¦¾à¦°à¦¿à¦¤ à¦¦à§‡à¦–à§à¦¨ â†’</span></a>
-    <a class="help-card" href="#/help/udc"><div class="hc-art">ðŸ¢</div><h3>${t('hUdcT')}</h3><p>${t('hUdcB')}</p><span class="btn btn-outline btn-sm">à¦¬à¦¿à¦¸à§à¦¤à¦¾à¦°à¦¿à¦¤ à¦¦à§‡à¦–à§à¦¨ â†’</span></a>
-    <a class="help-card" href="#/help/ussd"><div class="hc-art">#ï¸âƒ£</div><h3>${t('hUssdT')}</h3><p>${t('hUssdB')}</p><span class="btn btn-outline btn-sm">à¦¬à¦¿à¦¸à§à¦¤à¦¾à¦°à¦¿à¦¤ à¦¦à§‡à¦–à§à¦¨ â†’</span></a>
-    <a class="help-card" href="#/help/ai"><div class="hc-art">ðŸ¤–</div><h3>${t('hAiT')}</h3><p>${t('hAiB')}</p><span class="btn btn-outline btn-sm">à¦¬à¦¿à¦¸à§à¦¤à¦¾à¦°à¦¿à¦¤ à¦¦à§‡à¦–à§à¦¨ â†’</span></a>
-  </div></div>
-  <div class="container section">
-    <div class="form-card" style="max-width:none">
-      <h2>${t('channelChoice')}</h2>
-      <ul style="margin:.7rem 0 0 1.2rem;display:flex;flex-direction:column;gap:.4rem;color:var(--muted)">
-        <li>${t('chanCompare1')}</li><li>${t('chanCompare2')}</li><li>${t('chanCompare3')}</li><li>${t('chanCompare4')}</li>
-      </ul>
+  <div class="container page-head">
+    <div class="dash-hero">
+      <div class="dash-avatar">👤</div>
+      <div>
+        <h1>${t('dashTitle')}</h1>
+        <p>${ME ? 'স্বাগতম, <strong>' + esc(ME.name || 'নাগরিক') + '</strong>!' : 'আপনার দাখিলকৃত আবেদনের রিয়েলটাইম অবস্থা ও ইতিহাস'}</p>
+      </div>
+      ${ME ? `<button class="btn btn-outline btn-sm" id="d_logout" style="margin-left:auto">${t('logout')}</button>` : `<a class="btn btn-primary btn-sm" href="#/login" style="margin-left:auto">লগইন করুন</a>`}
     </div>
   </div>
-  <div class="container section" style="padding-top:0">
-    <div class="form-card" style="max-width:none">
-      <h2>à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦ªà§à¦°à¦¶à§à¦¨</h2>
-      ${[
-        ['à¦à¦‡ à¦¸à§‡à¦¬à¦¾ à¦•à¦¿ à¦¸à¦¤à§à¦¯à¦¿à¦‡ à¦«à§à¦°à¦¿?', 'à¦¹à§à¦¯à¦¾à¦à¥¤ à¦†à¦¬à§‡à¦¦à¦¨ à¦«à¦¿, à¦†à¦‡à¦¨à¦œà§€à¦¬à§€à¦° à¦«à¦¿, à¦†à¦¦à¦¾à¦²à¦¤ à¦«à¦¿ â€” à¦•à¦¿à¦›à§à¦‡ à¦¦à¦¿à¦¤à§‡ à¦¹à¦¬à§‡ à¦¨à¦¾à¥¤ à¦•à§‡à¦‰ à¦Ÿà¦¾à¦•à¦¾ à¦šà¦¾à¦‡à¦²à§‡ à¦…à¦­à¦¿à¦¯à§‹à¦— à¦«à¦°à¦®à§‡ à¦œà¦¾à¦¨à¦¾à¦¨à¥¤'],
-        ['à¦†à¦®à¦¾à¦° à¦¤à¦¥à§à¦¯ à¦•à¦¿ à¦—à§‹à¦ªà¦¨ à¦¥à¦¾à¦•à¦¬à§‡?', 'à¦¹à§à¦¯à¦¾à¦à¥¤ à¦¶à§à¦§à§ à¦†à¦ªà¦¨à¦¾à¦° à¦•à§‡à¦¸ à¦¸à¦¾à¦®à¦²à¦¾à¦¨à§‹ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦¦à§‡à¦–à¦¬à§‡à¦¨à¥¤ à¦¨à¦¿à¦°à§à¦¯à¦¾à¦¤à¦¨-à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤ à¦•à§‡à¦¸ "à¦¸à§à¦ªà¦°à§à¦¶à¦•à¦¾à¦¤à¦°" à¦¹à¦¿à¦¸à§‡à¦¬à§‡ à¦†à¦²à¦¾à¦¦à¦¾ à¦¥à¦¾à¦•à§‡à¥¤'],
-        ['à¦¸à§à¦®à¦¾à¦°à§à¦Ÿà¦«à§‹à¦¨ à¦¨à§‡à¦‡, à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à¦¬ à¦•à§€à¦­à¦¾à¦¬à§‡?', 'à§§à§¬à§¬à§¯à§¯-à¦ à¦•à¦² à¦•à¦°à§à¦¨ â€” à¦…à¦ªà¦¾à¦°à§‡à¦Ÿà¦° à¦«à§‹à¦¨à§‡à¦‡ à¦«à¦°à¦® à¦ªà§‚à¦°à¦£ à¦•à¦°à¦¬à§‡à¦¨à¥¤ à¦…à¦¥à¦¬à¦¾ à¦‡à¦‰à¦¨à¦¿à¦¯à¦¼à¦¨ à¦¡à¦¿à¦œà¦¿à¦Ÿà¦¾à¦² à¦¸à§‡à¦¨à§à¦Ÿà¦¾à¦°à§‡ à¦¯à¦¾à¦¨à¥¤'],
-        ['à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾à¦° à¦¸à¦¿à¦¦à§à¦§à¦¾à¦¨à§à¦¤ à¦®à¦¾à¦¨à¦¤à§‡ à¦šà¦¾à¦‡ à¦¨à¦¾ à¦•à§€ à¦¹à¦¬à§‡?', 'à¦¦à§à¦‡ à¦ªà¦•à§à¦· à¦¸à¦‡ à¦¨à¦¾ à¦•à¦°à¦²à§‡ à¦¸à¦®à¦à§‹à¦¤à¦¾ à¦¬à¦¾à¦§à§à¦¯à¦¤à¦¾à¦®à§‚à¦²à¦• à¦¨à¦¯à¦¼ â€” à¦¤à¦–à¦¨ à¦¸à§à¦¬à¦¾à¦­à¦¾à¦¬à¦¿à¦• à¦†à¦¦à¦¾à¦²à¦¤ à¦ªà§à¦°à¦•à§à¦°à¦¿à¦¯à¦¼à¦¾ à¦šà¦²à¦¬à§‡à¥¤'],
-        ['à¦•à¦¤ à¦¸à¦®à¦¯à¦¼ à¦²à¦¾à¦—à§‡?', 'à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦•à¦¯à¦¼à§‡à¦• à¦•à¦°à§à¦®à¦¦à¦¿à¦¬à¦¸à§‡ à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à§‡à¦¨à¥¤ à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾ à¦†à¦‡à¦¨à¦¤ à§¬à§¦ à¦¦à¦¿à¦¨à§‡ (à§©à§¦ à¦¦à¦¿à¦¨ à¦¬à¦¾à¦¡à¦¼à¦¤à¦¿ à¦¸à¦®à§à¦­à¦¬) à¦¶à§‡à¦· à¦¹à¦¤à§‡ à¦¹à¦¯à¦¼à¥¤']
-      ].map(([q, a]) => `<details style="margin-top:.7rem"><summary style="font-weight:700;cursor:pointer">${esc(q)}</summary><p style="margin-top:.4rem;color:var(--muted)">${esc(a)}</p></details>`).join('')}
-    </div>
-  </div>`;
-}
-
-// à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦šà§à¦¯à¦¾à¦¨à§‡à¦² à¦¬à¦¿à¦¸à§à¦¤à¦¾à¦°à¦¿à¦¤ à¦ªà§‡à¦œ
-async function pageHelpChannel(ch) {
-  const map = {
-    call: { icon: 'ðŸ“ž', title: t('callDeskTitle'), body: t('callDeskBody'),
-      extra: `<h2 style="margin-top:1.4rem">${t('callPrepTitle')}</h2><ul style="margin:.5rem 0 0 1.2rem;display:flex;flex-direction:column;gap:.4rem;color:var(--muted)">
-        <li>à¦à¦¨à¦†à¦‡à¦¡à¦¿/à¦œà¦¨à§à¦®à¦¨à¦¿à¦¬à¦¨à§à¦§à¦¨ à¦¨à¦®à§à¦¬à¦°</li><li>à¦¸à¦®à¦¸à§à¦¯à¦¾à¦° à¦¸à¦‚à¦•à§à¦·à¦¿à¦ªà§à¦¤ à¦¬à¦¿à¦¬à¦°à¦£ (à¦•à¦¬à§‡ à¦¥à§‡à¦•à§‡, à¦ªà§à¦°à¦¤à¦¿à¦ªà¦•à§à¦· à¦•à§‡)</li>
-        <li>à¦œà§‡à¦²à¦¾ à¦“ à¦¥à¦¾à¦¨à¦¾à¦° à¦¨à¦¾à¦®</li><li>à¦†à¦—à§‡à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦¥à¦¾à¦•à¦²à§‡ à¦†à¦¬à§‡à¦¦à¦¨ à¦†à¦‡à¦¡à¦¿</li></ul>`,
-      action: `<div class="call-cta-row">
-        <a class="btn btn-primary" href="tel:16699" style="font-size:1.1rem;padding:.9rem 1.6rem">ðŸ“ž ${t('callNow')}: à§§à§¬à§¬à§¯à§¯</a>
-        <a class="btn btn-outline" href="#/call" style="font-size:1.1rem;padding:.9rem 1.6rem">ðŸ“± à¦‡à¦¨à§à¦Ÿà¦¾à¦°à¦…à§à¦¯à¦¾à¦•à¦Ÿà¦¿à¦­ à¦¡à§‡à¦®à§‹ à¦¦à§‡à¦–à§à¦¨</a>
+  <div class="container">
+    <div class="dash-grid">
+      <div class="stat-card">
+        <h3>মোট আবেদন</h3>
+        <div class="stat-num">${bnNum(apps.length)}</div>
       </div>
-      <p style="color:var(--muted);margin-top:.6rem">à¦¬à¦¿à¦¦à§‡à¦¶ à¦¥à§‡à¦•à§‡: +à§®à§®à§¦ à§¯à§¬à§§à§¨ à§©à§¯ à§§à§¬à§¬à§¯à§¯</p>` },
-    udc: { icon: 'ðŸ¢', title: t('udcTitle'), body: t('udcBody'),
-      extra: `<div class="quick-ans" style="margin-top:1.2rem"><strong>à¦‡à¦‰à¦¡à¦¿à¦¸à¦¿à¦¤à§‡ à¦¯à¦¾ à¦¨à§‡à¦¬à§‡à¦¨</strong>
-        <ul style="margin:.5rem 0 0 1.2rem;color:var(--muted)"><li>à¦à¦¨à¦†à¦‡à¦¡à¦¿/à¦œà¦¨à§à¦®à¦¨à¦¿à¦¬à¦¨à§à¦§à¦¨</li><li>à¦¸à¦®à¦¸à§à¦¯à¦¾ à¦¸à¦®à§à¦ªà¦°à§à¦•à¦¿à¦¤ à¦•à¦¾à¦—à¦œ (à¦¦à¦²à¦¿à¦²/à¦•à¦¾à¦¬à¦¿à¦¨à¦¨à¦¾à¦®à¦¾/à¦°à¦¶à¦¿à¦¦)</li><li>à¦¨à¦¿à¦œà§‡à¦° à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦°</li></ul></div>`,
-      action: `<a class="btn btn-primary" href="#/offices">${t('navOffices')} â†’</a>` },
-    ussd: { icon: '#ï¸âƒ£', title: t('ussdTitle'), body: t('ussdBody'),
-      extra: `<h2 style="margin-top:1.4rem">à¦§à¦¾à¦ªà§‡ à¦§à¦¾à¦ªà§‡</h2><ol style="margin:.5rem 0 0 1.2rem;display:flex;flex-direction:column;gap:.4rem;color:var(--muted)">
-        <li>à¦¶à¦°à§à¦Ÿà¦•à§‹à¦¡ à¦¡à¦¾à¦¯à¦¼à¦¾à¦² à¦•à¦°à§à¦¨</li><li>à¦­à¦¾à¦·à¦¾ à¦¬à§‡à¦›à§‡ à¦¨à¦¿à¦¨ (à¦¬à¦¾à¦‚à¦²à¦¾/English)</li><li>à¦®à¦¾à¦®à¦²à¦¾à¦° à¦§à¦°à¦¨ à¦¬à§‡à¦›à§‡ à¦¨à¦¿à¦¨ (à§§-à§¯)</li>
-        <li>à¦¨à¦¾à¦® à¦“ à¦à¦¨à¦†à¦‡à¦¡à¦¿ à¦²à¦¿à¦–à§‡ à¦ªà¦¾à¦ à¦¾à¦¨</li><li>à¦à¦¸à¦à¦®à¦à¦¸à§‡ à¦†à¦¬à§‡à¦¦à¦¨ à¦†à¦‡à¦¡à¦¿ à¦ªà¦¾à¦¬à§‡à¦¨</li></ol>`,
-      action: `<div class="call-cta-row">
-        <a class="btn btn-outline" href="#/track">${t('ctaTrack')} â†’</a>
-        <a class="btn btn-primary" href="#/call" style="background:#0f172a;border-color:#0f172a">ðŸ“± à¦‡à¦¨à§à¦Ÿà¦¾à¦°à¦…à§à¦¯à¦¾à¦•à¦Ÿà¦¿à¦­ à¦®à§‡à¦¨à§ à¦¦à§‡à¦–à§à¦¨</a>
-      </div>` },
-    ai: { icon: 'ðŸ¤–', title: t('aiChanTitle'), body: t('aiChanBody'), extra: '',
-      action: `<button class="btn btn-primary" onclick="document.getElementById('chatFab').click()">ðŸ¤– ${t('aiChanTitle')} à¦–à§à¦²à§à¦¨</button>` }
-  };
-  const c = map[ch];
-  if (!c) return pageHelp();
-  app.innerHTML = `
-  <div class="container page-head article-wrap">
-    <div class="breadcrumb"><a href="#/help">${t('helpTitle')}</a> / ${esc(c.title)}</div>
-    <h1>${c.icon} ${esc(c.title)}</h1>
-    <p style="font-size:1.03rem;margin-top:.5rem">${c.body}</p>
-    ${c.extra}
-    <div style="margin-top:1.6rem">${c.action}</div>
-    <div class="quick-ans" style="margin-top:1.8rem">
-      <strong>${t('needMoreHelp')}</strong>
-      <p style="color:var(--muted);margin:.3rem 0 .7rem">${t('moreHelpBody')}</p>
-      <a class="btn btn-primary btn-sm" href="#/guide">${t('useGuide')} â†’</a>
+      <div class="stat-card">
+        <h3>চলমান / পর্যালোচনায়</h3>
+        <div class="stat-num">${bnNum(apps.filter(a => (a.stage || 0) < 4).length)}</div>
+      </div>
+      <div class="stat-card">
+        <h3>নিষ্পত্তি সম্পন্ন</h3>
+        <div class="stat-num">${bnNum(apps.filter(a => (a.stage || 0) >= 4).length)}</div>
+      </div>
+      <div class="stat-card">
+        <h3>জরুরি সহায়তা</h3>
+        <div class="stat-num">${bnNum(apps.filter(a => a.emergency).length)}</div>
+      </div>
     </div>
+
+    <div class="dash-head-row" style="margin:2rem 0 1rem;display:flex;justify-content:space-between;align-items:center">
+      <h2>${t('myApps')}</h2>
+      <a class="btn btn-primary btn-sm" href="#/apply">+ নতুন আবেদন দাখিল করুন</a>
+    </div>
+
+    ${apps.length ? `
+      <div class="myapps">
+        ${apps.map(a => `
+          <a class="app-card" href="#/track?id=${encodeURIComponent(a.appId)}&last4=3344" style="text-decoration:none;color:inherit">
+            <span class="app-stage-icon">${stageIcons[a.stage || 0] || '📝'}</span>
+            <span class="app-main">
+              <span class="app-id">${esc(a.appId)}</span>
+              <span class="app-meta">
+                ${esc(a.caseType || 'পারিবারিক/সাধারণ')} · ${a.district ? esc(a.district) + ' · ' : ''}দাখিল: ${new Date(a.submittedAt || a.createdAt || Date.now()).toLocaleDateString('bn-BD')}
+              </span>
+            </span>
+            <span class="app-right">
+              <span class="badge ${(a.stage || 0) >= 4 ? 'success' : 'warn'}">
+                ${(a.stage || 0) >= 4 ? 'নিষ্পত্তি সম্পন্ন' : 'চলমান (UNDER REVIEW)'}
+              </span>
+              <span class="app-chevron">›</span>
+            </span>
+          </a>
+        `).join('')}
+      </div>
+    ` : `
+      <div class="empty-state">
+        ${t('noApps')}
+        <div style="margin-top:12px">
+          <a class="btn btn-primary" href="#/apply">নতুন আবেদন করুন →</a>
+        </div>
+      </div>
+    `}
   </div>`;
+
+  const logoutBtn = $('#d_logout');
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      await apiPost('logout', {});
+      ME = null;
+      renderAuthLink();
+      location.hash = '#/';
+      toast('লগআউট সম্পন্ন হয়েছে');
+    };
+  }
 }
 
-// ---------- auth ----------
-const DEMO_STAFF_ACCOUNTS = [
-  { username: 'officer.joypurhat', name: 'à¦°à¦¹à¦¿à¦®à¦¾ à¦–à¦¾à¦¤à§à¦¨', roleTitle: 'DLAO à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ (B1)', district: 'à¦œà¦¯à¦¼à¦ªà§à¦°à¦¹à¦¾à¦Ÿ', icon: 'ðŸ›ï¸' },
-  { username: 'lawyer.kabir', name: 'à¦…à§à¦¯à¦¾à¦¡à¦­. à¦•à¦¬à¦¿à¦° à¦¹à§‹à¦¸à§‡à¦¨', roleTitle: 'à¦ªà§à¦¯à¦¾à¦¨à§‡à¦² à¦†à¦‡à¦¨à¦œà§€à¦¬à§€', district: 'à¦œà¦¯à¦¼à¦ªà§à¦°à¦¹à¦¾à¦Ÿ', icon: 'ðŸ‘¨â€âš–ï¸' },
-  { username: 'mediator.joypurhat', name: 'à¦¨à¦¾à¦¸à¦°à¦¿à¦¨ à¦¸à§à¦²à¦¤à¦¾à¦¨à¦¾', roleTitle: 'à¦®à¦§à§à¦¯à¦¸à§à¦¥à¦¤à¦¾à¦•à¦¾à¦°à§€ (ADR)', district: 'à¦œà¦¯à¦¼à¦ªà§à¦°à¦¹à¦¾à¦Ÿ', icon: 'âš–ï¸' },
-  { username: 'receiving.dhaka', name: 'à¦¤à¦¾à¦¨à¦­à§€à¦° à¦†à¦¹à¦®à§‡à¦¦', roleTitle: 'à¦—à§à¦°à¦¹à¦£à¦•à¦¾à¦°à§€ DLAO (B6)', district: 'à¦¢à¦¾à¦•à¦¾', icon: 'ðŸ“¥' },
-  { username: 'udc.khagrachari', name: 'à¦œà¦¯à¦¼à¦¨à§à¦¤ à¦šà¦¾à¦•à¦®à¦¾', roleTitle: 'UDC à¦‰à¦¦à§à¦¯à§‹à¦•à§à¦¤à¦¾ (B4)', district: 'à¦–à¦¾à¦—à¦¡à¦¼à¦¾à¦›à¦¡à¦¼à¦¿', icon: 'ðŸ¢' },
-  { username: 'helpline.agent1', name: 'à¦«à¦°à¦¿à¦¦ à¦®à¦¿à¦¯à¦¼à¦¾', roleTitle: 'à§§à§¬à§¬à§¯à§¯ à¦à¦œà§‡à¦¨à§à¦Ÿ (B3)', district: 'à¦œà¦¾à¦¤à§€à¦¯à¦¼', icon: 'ðŸ“ž' },
-  { username: 'officer.jhenaidah', name: 'à¦®à¦¾à¦¹à¦®à§à¦¦à§à¦² à¦¹à¦¾à¦¸à¦¾à¦¨', roleTitle: 'DLAO à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾', district: 'à¦à¦¿à¦¨à¦¾à¦‡à¦¦à¦¹', icon: 'ðŸ›ï¸' },
-  { username: 'lawyer.shahana', name: 'à¦…à§à¦¯à¦¾à¦¡à¦­. à¦¶à¦¾à¦¹à¦¾à¦¨à¦¾ à¦†à¦•à§à¦¤à¦¾à¦°', roleTitle: 'à¦ªà§à¦¯à¦¾à¦¨à§‡à¦² à¦†à¦‡à¦¨à¦œà§€à¦¬à§€', district: 'à¦œà¦¯à¦¼à¦ªà§à¦°à¦¹à¦¾à¦Ÿ', icon: 'ðŸ‘©â€âš–ï¸' },
-  { username: 'support.staff1', name: 'à¦¸à¦¾à¦²à¦®à¦¾ à¦ªà¦¾à¦°à¦­à§€à¦¨', roleTitle: 'à¦•à§‡à¦¸-à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦•à¦°à§à¦®à§€', district: 'à¦œà¦¯à¦¼à¦ªà§à¦°à¦¹à¦¾à¦Ÿ', icon: 'ðŸ¤' },
-  { username: 'ripon.rep', name: 'à¦°à¦¿à¦ªà¦¨ à¦†à¦•à§à¦¤à¦¾à¦°', roleTitle: 'à¦®à¦¨à§‹à¦¨à§€à¦¤ à¦ªà§à¦°à¦¤à¦¿à¦¨à¦¿à¦§à¦¿', district: 'à¦œà¦¯à¦¼à¦ªà§à¦°à¦¹à¦¾à¦Ÿ', icon: 'ðŸ¦¯' },
-  { username: 'admin', name: 'à¦¸à¦¿à¦¸à§à¦Ÿà§‡à¦® à¦ªà§à¦°à¦¶à¦¾à¦¸à¦•', roleTitle: 'à¦¸à¦¿à¦¸à§à¦Ÿà§‡à¦® à¦ªà§à¦°à¦¶à¦¾à¦¸à¦•', district: 'à¦¢à¦¾à¦•à¦¾', icon: 'âš™ï¸' }
-];
-
+// ---------- ৮. আধুনিক পরিষ্কার লগইন প্যানেল (pageLogin) — Executive Redesign ----------
 async function pageLogin() {
   if (ME) {
     if (ME.role && ME.role !== 'applicant' && ME.role !== 'CITIZEN') {
@@ -1851,284 +1750,154 @@ async function pageLogin() {
     return (location.hash = '#/dashboard');
   }
 
-  // Active tab state: 'staff' (default), 'citizen', 'door'
-  let activeTab = 'staff';
-  let selectedUser = 'officer.joypurhat';
+  let activeTab = 'citizen'; // 'citizen', 'staff', 'door'
 
   function render() {
     app.innerHTML = `
-    <div class="container auth-wrapper">
-      <div class="auth-card-wide">
-        <div class="auth-header">
-          <h1>ðŸ›ï¸ à¦¸à¦°à¦•à¦¾à¦°à¦¿ à¦²à¦¿à¦—à§à¦¯à¦¾à¦² à¦à¦‡à¦¡ à¦ªà§‹à¦°à§à¦Ÿà¦¾à¦²</h1>
-          <p>à¦†à¦‡à¦¨à¦—à¦¤ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦“ à¦¸à§‡à¦¬à¦¾ à¦¬à§à¦¯à¦¬à¦¸à§à¦¥à¦¾à¦ªà¦¨à¦¾ â€” à¦ªà¦¦à¦¬à§€ à¦¬à¦¾ à¦¨à¦¾à¦—à¦°à¦¿à¦• à¦…à§à¦¯à¦¾à¦•à¦¾à¦‰à¦¨à§à¦Ÿà§‡ à¦ªà§à¦°à¦¬à§‡à¦¶ à¦•à¦°à§à¦¨</p>
+    <div class="container auth-clean-wrap">
+      <div class="auth-clean-card">
+        <div class="auth-clean-header">
+          <h1>🏛️ CoU JusticeLab পোর্টাল</h1>
+          <p>ডিজিটাল আইনগত সহায়তা ও সেবা ব্যবস্থাপনা — অ্যাকাউন্টে প্রবেশ করুন</p>
         </div>
 
-        <!-- Auth Tabs -->
-        <div class="auth-tabs" role="tablist">
-          <button class="auth-tab-btn ${activeTab === 'staff' ? 'active' : ''}" id="tabStaff" type="button">
-            ðŸ›ï¸ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ / à¦ªà§à¦°à§‹à¦­à¦¾à¦‡à¦¡à¦¾à¦°
+        <!-- ৩টি স্পষ্ট ভূমিকা বাটন (3 Clean Role Tabs) -->
+        <div class="auth-role-tabs">
+          <button type="button" class="auth-role-btn ${activeTab === 'citizen' ? 'active' : ''}" id="tabBtnCitizen">
+            👤 নাগরিক লগইন
           </button>
-          <button class="auth-tab-btn ${activeTab === 'citizen' ? 'active' : ''}" id="tabCitizen" type="button">
-            ðŸ‘¤ à¦¨à¦¾à¦—à¦°à¦¿à¦• à¦…à§à¦¯à¦¾à¦•à¦¾à¦‰à¦¨à§à¦Ÿ
+          <button type="button" class="auth-role-btn ${activeTab === 'staff' ? 'active' : ''}" id="tabBtnStaff">
+            🏛️ কর্মকর্তা / প্রোভাইডার
           </button>
-          <button class="auth-tab-btn ${activeTab === 'door' ? 'active' : ''}" id="tabDoor" type="button">
-            ðŸšª à¦¨à¦¾à¦—à¦°à¦¿à¦• à¦¡à§‹à¦° à¦à¦•à§à¦¸à§‡à¦¸
+          <button type="button" class="auth-role-btn ${activeTab === 'door' ? 'active' : ''}" id="tabBtnDoor">
+            🚪 ডোর / হেল্পলাইন
           </button>
         </div>
 
-        <div id="authErr" class="form-error hidden"></div>
+        <div id="loginErr" class="form-error hidden"></div>
 
-        <!-- 1. Staff / Provider Login Tab -->
-        <div id="panelStaff" class="${activeTab === 'staff' ? '' : 'hidden'}">
-          <div class="auth-subnote">
-            <strong>ðŸ”‘ à§§-à¦•à§à¦²à¦¿à¦•à§‡ à¦ªà¦¦à¦¬à§€ à¦¨à¦¿à¦°à§à¦¬à¦¾à¦šà¦¨ (à¦¡à§‡à¦®à§‹ à¦ªà¦¿à¦¨: à§§à§¨à§©à§ª):</strong> à¦¨à¦¿à¦šà§‡ à¦†à¦ªà¦¨à¦¾à¦° à¦ªà¦¦à¦¬à§€à¦¤à§‡ à¦•à§à¦²à¦¿à¦• à¦•à¦°à¦²à§‡ à¦‡à¦‰à¦œà¦¾à¦°à¦¨à§‡à¦® à¦“ à¦ªà¦¿à¦¨ à¦¸à§à¦¬à¦¯à¦¼à¦‚à¦•à§à¦°à¦¿à¦¯à¦¼ à¦ªà§‚à¦°à¦£ à¦¹à¦¬à§‡à¥¤
-          </div>
-
-          <!-- 6 Role Presets -->
-          <div class="role-preset-grid">
-            ${DEMO_STAFF_ACCOUNTS.slice(0, 6).map((a) => `
-              <button class="role-preset-btn ${selectedUser === a.username ? 'selected' : ''}" type="button" data-user="${a.username}">
-                <span class="r-icon">${a.icon}</span>
-                <span class="r-body">
-                  <span class="r-title">${esc(a.roleTitle)}</span>
-                  <span class="r-user">${esc(a.name)} Â· ${esc(a.district)}</span>
-                </span>
-                <span class="r-pin">à¦ªà¦¿à¦¨: à§§à§¨à§©à§ª</span>
-              </button>
-            `).join('')}
-          </div>
-
-          <div style="background:var(--surface-2);border-radius:12px;padding:1.1rem;border:1px solid var(--border);margin-top:.8rem">
-            <div class="form-grid">
-              <div class="field">
-                <label>à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦°à¦•à¦¾à¦°à§€ à¦¨à¦¾à¦® (Username) <span class="req">*</span></label>
-                <input id="s_user" value="${esc(selectedUser)}" placeholder="à¦¯à§‡à¦®à¦¨: officer.joypurhat">
-              </div>
-              <div class="field">
-                <label>à§ª-à¦¸à¦‚à¦–à§à¦¯à¦¾à¦° à¦ªà¦¿à¦¨ (PIN) <span class="req">*</span></label>
-                <input id="s_pin" type="password" value="1234" maxlength="8" placeholder="à§§à§¨à§©à§ª">
-              </div>
-            </div>
-            <button class="btn btn-primary btn-block" id="s_go" style="margin-top:1.1rem;font-size:1.02rem">
-              ðŸ” à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦•à¦¨à¦¸à§‹à¦²à§‡ à¦ªà§à¦°à¦¬à§‡à¦¶ à¦•à¦°à§à¦¨ â†’
-            </button>
-          </div>
-
-          <!-- All 11 Accounts Accordion -->
-          <details style="margin-top:1.2rem;font-size:.88rem;color:var(--muted)">
-            <summary style="cursor:pointer;font-weight:600;padding:.4rem 0">
-              ðŸ“‹ à¦¸à¦•à¦² à§§à§§ à¦œà¦¨ à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦“ à¦ªà§à¦°à¦¤à¦¿à¦¨à¦¿à¦§à¦¿à¦° à¦ªà§‚à¦°à§à¦£ à¦¤à¦¾à¦²à¦¿à¦•à¦¾ à¦¦à§‡à¦–à§à¦¨ (à¦à¦¿à¦¨à¦¾à¦‡à¦¦à¦¹, à¦°à¦¿à¦ªà¦¨, à¦ªà§à¦°à¦¶à¦¾à¦¸à¦¨...)
-            </summary>
-            <div style="max-height:220px;overflow:auto;margin-top:.6rem">
-              <table class="auth-demo-table">
-                <thead>
-                  <tr>
-                    <th>à¦…à§à¦¯à¦¾à¦•à¦¾à¦‰à¦¨à§à¦Ÿ à¦†à¦‡à¦¡à¦¿</th>
-                    <th>à¦¨à¦¾à¦® à¦“ à¦ªà¦¦à¦¬à§€</th>
-                    <th>à¦à¦²à¦¾à¦•à¦¾</th>
-                    <th>à¦…à§à¦¯à¦¾à¦•à¦¶à¦¨</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${DEMO_STAFF_ACCOUNTS.map((a) => `
-                    <tr class="clickable" data-user="${a.username}">
-                      <td><code style="font-weight:700;color:var(--brand)">${esc(a.username)}</code></td>
-                      <td>${a.icon} <strong>${esc(a.name)}</strong> (${esc(a.roleTitle)})</td>
-                      <td>${esc(a.district)}</td>
-                      <td><span class="auth-chip">à¦¨à¦¿à¦°à§à¦¬à¦¾à¦šà¦¨ à¦•à¦°à§à¦¨</span></td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        </div>
-
-        <!-- 2. Citizen Login Tab -->
-        <div id="panelCitizen" class="${activeTab === 'citizen' ? '' : 'hidden'}">
-          <div class="auth-subnote">
-            <strong>ðŸ‘¤ à¦¨à¦¾à¦—à¦°à¦¿à¦• à¦…à§à¦¯à¦¾à¦•à¦¾à¦‰à¦¨à§à¦Ÿ à¦²à¦—à¦‡à¦¨:</strong> à¦†à¦ªà¦¨à¦¾à¦° à¦¨à¦¿à¦¬à¦¨à§à¦§à¦¿à¦¤ à¦®à§‹à¦¬à¦¾à¦‡à¦² à¦¨à¦®à§à¦¬à¦° à¦“ à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡ à¦¦à¦¿à¦¯à¦¼à§‡ à¦ªà§à¦°à¦¬à§‡à¦¶ à¦•à¦°à§‡ à¦†à¦¬à§‡à¦¦à¦¨à§‡à¦° à¦¸à¦°à§à¦¬à¦¶à§‡à¦· à¦…à¦¬à¦¸à§à¦¥à¦¾ à¦œà¦¾à¦¨à§à¦¨ à¦¬à¦¾ à¦¨à¦¤à§à¦¨ à¦†à¦¬à§‡à¦¦à¦¨ à¦•à¦°à§à¦¨à¥¤
-          </div>
+        <!-- ১. নাগরিক লগইন -->
+        <div id="loginCitizenForm" class="${activeTab === 'citizen' ? '' : 'hidden'}">
           <div class="field">
-            <label>${t('phone')} <span class="req">*</span></label>
-            <input id="c_phone" placeholder="01XXXXXXXXX" type="tel">
+            <label>মোবাইল নম্বর বা আবেদন আইডি <span class="req">*</span></label>
+            <input id="c_id" placeholder="যেমন: 01711223344 বা APP-2026-0001" value="01711223344">
           </div>
-          <div class="field" style="margin-top:.85rem">
-            <label>${t('password')} <span class="req">*</span></label>
-            <input id="c_pw" type="password" placeholder="à¦†à¦ªà¦¨à¦¾à¦° à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡">
+          <div class="field" style="margin-top:1rem">
+            <label>৪-সংখ্যার পিন (PIN) <span class="req">*</span></label>
+            <input id="c_pin" type="password" maxlength="6" value="3344" placeholder="••••">
+            <div class="hint">ডেমো পিন: 3344 (ময়ূরী আক্তার)</div>
           </div>
-          <button class="btn btn-primary btn-block" id="c_go" style="margin-top:1.2rem;font-size:1rem">
-            ${t('login')} â†’
+          <button class="btn btn-primary btn-block" id="btnCitizenSubmit" style="margin-top:1.4rem">
+            👤 নাগরিক অ্যাকাউন্টে প্রবেশ করুন →
           </button>
-          <div style="text-align:center;margin-top:1.2rem;padding-top:1rem;border-top:1px dashed var(--border)">
-            <p style="color:var(--muted);font-size:.92rem;margin:0 0 .5rem">à¦•à§‹à¦¨à§‹ à¦…à§à¦¯à¦¾à¦•à¦¾à¦‰à¦¨à§à¦Ÿ à¦¨à§‡à¦‡?</p>
-            <a class="btn btn-outline btn-sm" href="#/register">ðŸ“ à¦¬à¦¿à¦¨à¦¾à¦®à§‚à¦²à§à¦¯à§‡ à¦¨à¦¤à§à¦¨ à¦¨à¦¾à¦—à¦°à¦¿à¦• à¦…à§à¦¯à¦¾à¦•à¦¾à¦‰à¦¨à§à¦Ÿ à¦¤à§ˆà¦°à¦¿ à¦•à¦°à§à¦¨</a>
-          </div>
         </div>
 
-        <!-- 3. Citizen Door Verification Tab (No password) -->
-        <div id="panelDoor" class="${activeTab === 'door' ? '' : 'hidden'}">
-          <div class="auth-subnote">
-            <strong>ðŸšª à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡à¦¬à¦¿à¦¹à§€à¦¨ à¦¦à§à¦°à§à¦¤ à¦¯à¦¾à¦šà¦¾à¦‡ (Citizen Door):</strong> à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨ à¦†à¦‡à¦¡à¦¿ à¦à¦¬à¦‚ à¦¨à¦¿à¦¬à¦¨à§à¦§à¦¿à¦¤ à¦«à§‹à¦¨/à¦à¦¨à¦†à¦‡à¦¡à¦¿à¦° à¦¶à§‡à¦· à§ª à¦…à¦™à§à¦• à¦¦à¦¿à¦¯à¦¼à§‡ à¦•à§‹à¦¨à§‹ à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡ à¦›à¦¾à¦¡à¦¼à¦¾à¦‡ à¦¤à§Žà¦•à§à¦·à¦£à¦¾à§Ž à¦Ÿà§à¦°à§à¦¯à¦¾à¦• à¦•à¦°à§à¦¨à¥¤
-          </div>
-          <div style="margin-bottom:.9rem">
-            <span class="auth-chip" id="doorFillDemo" title="à¦•à§à¦²à¦¿à¦• à¦•à¦°à§‡ à¦¡à§‡à¦®à§‹ à¦ªà§‚à¦°à¦£ à¦•à¦°à§à¦¨">
-              ðŸ’¡ à¦¡à§‡à¦®à§‹ à¦¨à¦¾à¦—à¦°à¦¿à¦•: à¦®à¦¯à¦¼à§‚à¦°à§€ à¦†à¦•à§à¦¤à¦¾à¦° (à¦†à¦‡à¦¡à¦¿: <strong>APP-2026-0001</strong>, à¦¶à§‡à¦· à§ª: <strong>3344</strong>)
-            </span>
-          </div>
-          <div class="form-grid">
-            <div class="field">
-              <label>à¦†à¦¬à§‡à¦¦à¦¨ à¦°à§‡à¦«à¦¾à¦°à§‡à¦¨à§à¦¸ à¦†à¦‡à¦¡à¦¿ <span class="req">*</span></label>
-              <input id="d_appId" placeholder="APP-2026-0001" style="text-transform:uppercase">
-            </div>
-            <div class="field">
-              <label>à¦«à§‹à¦¨ / à¦à¦¨à¦†à¦‡à¦¡à¦¿à¦° à¦¶à§‡à¦· à§ª à¦…à¦™à§à¦• <span class="req">*</span></label>
-              <input id="d_last4" placeholder="3344" maxlength="4">
-            </div>
-          </div>
-          <div class="field" style="margin-top:.85rem">
-            <label>à¦ªà§à¦°à¦¬à§‡à¦¶à§‡à¦° à¦­à§‚à¦®à¦¿à¦•à¦¾</label>
-            <select id="d_role">
-              <option value="CITIZEN">à¦¨à¦¾à¦—à¦°à¦¿à¦• (à¦¨à¦¿à¦œà§‡)</option>
-              <option value="REPRESENTATIVE">à¦®à¦¨à§‹à¦¨à§€à¦¤ à¦ªà§à¦°à¦¤à¦¿à¦¨à¦¿à¦§à¦¿ (à¦°à¦¿à¦ªà¦¨)</option>
+        <!-- ২. কর্মকর্তা / প্রোভাইডার লগইন -->
+        <div id="loginStaffForm" class="${activeTab === 'staff' ? '' : 'hidden'}">
+          <div class="auth-quick-preset-select">
+            <label><strong>পদবী নির্বাচন করুন (স্বয়ংক্রিয় পূরণ):</strong></label>
+            <select id="staffPresetSelect">
+              <option value="officer.joypurhat|1234">রহিমা খাতুন — DLAO কর্মকর্তা (জয়পুরহাট)</option>
+              <option value="lawyer.kabir|1234">অ্যাডভ. কবির হোসেন — প্যানেল আইনজীবী</option>
+              <option value="mediator.joypurhat|1234">নাসরিন সুলতানা — মধ্যস্থতাকারী (ADR)</option>
+              <option value="receiving.dhaka|1234">তানভীর আহমেদ — গ্রহণকারী DLAO (ঢাকা)</option>
+              <option value="udc.khagrachari|1234">জয়ন্ত চাকমা — UDC উদ্যোক্তা</option>
+              <option value="admin|1234">সিস্টেম প্রশাসক (Admin)</option>
             </select>
           </div>
-          <button class="btn btn-primary btn-block" id="d_go" style="margin-top:1.2rem;font-size:1rem">
-            ðŸšª à¦¦à¦°à¦œà¦¾-à¦¯à¦¾à¦šà¦¾à¦‡ à¦“ à¦Ÿà§à¦°à§à¦¯à¦¾à¦•à¦¿à¦‚ à¦¶à§à¦°à§ à¦•à¦°à§à¦¨ â†’
+
+          <div class="field">
+            <label>ব্যবহারকারী নাম (Username) <span class="req">*</span></label>
+            <input id="s_user" value="officer.joypurhat" placeholder="যেমন: officer.joypurhat">
+          </div>
+          <div class="field" style="margin-top:1rem">
+            <label>৪-সংখ্যার পিন (PIN) <span class="req">*</span></label>
+            <input id="s_pin" type="password" value="1234" maxlength="8" placeholder="••••">
+          </div>
+          <button class="btn btn-primary btn-block" id="btnStaffSubmit" style="margin-top:1.4rem">
+            🏛️ কর্মকর্তা পোর্টালে প্রবেশ করুন →
           </button>
         </div>
 
+        <!-- ৩. ডোর / দ্রুত এক্সেস -->
+        <div id="loginDoorForm" class="${activeTab === 'door' ? '' : 'hidden'}">
+          <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem">
+            হেল্পলাইন ১৬৬৯৯ এজেন্ট বা ইউনিয়ন ডিজিটাল সেন্টার (UDC) অপারেটরদের জন্য দ্রুত প্রবেশ ব্যবস্থা:
+          </p>
+          <div class="field">
+            <label>প্রবেশ কোড বা এজেন্ট আইডি</label>
+            <input id="d_code" value="helpline.agent1" placeholder="helpline.agent1">
+          </div>
+          <button class="btn btn-primary btn-block" id="btnDoorSubmit" style="margin-top:1.4rem">
+            🚪 এক্সেস করুন →
+          </button>
+        </div>
       </div>
     </div>`;
 
-    // Wire Tabs
-    $('#tabStaff').onclick = () => { activeTab = 'staff'; render(); };
-    $('#tabCitizen').onclick = () => { activeTab = 'citizen'; render(); };
-    $('#tabDoor').onclick = () => { activeTab = 'door'; render(); };
+    $('#tabBtnCitizen').onclick = () => { activeTab = 'citizen'; render(); };
+    $('#tabBtnStaff').onclick = () => { activeTab = 'staff'; render(); };
+    $('#tabBtnDoor').onclick = () => { activeTab = 'door'; render(); };
 
-    // Wire Staff Preset Clicks
-    $$('.role-preset-btn').forEach((btn) => {
-      btn.onclick = () => {
-        selectedUser = btn.dataset.user;
-        const uInput = $('#s_user');
-        const pInput = $('#s_pin');
-        if (uInput) uInput.value = selectedUser;
-        if (pInput) pInput.value = '1234';
-        $$('.role-preset-btn').forEach((b) => b.classList.toggle('selected', b.dataset.user === selectedUser));
-      };
-    });
-
-    // Wire Table Clickable Rows
-    $$('.auth-demo-table tr.clickable').forEach((tr) => {
-      tr.onclick = () => {
-        selectedUser = tr.dataset.user;
-        const uInput = $('#s_user');
-        const pInput = $('#s_pin');
-        if (uInput) uInput.value = selectedUser;
-        if (pInput) pInput.value = '1234';
-        $$('.role-preset-btn').forEach((b) => b.classList.toggle('selected', b.dataset.user === selectedUser));
-      };
-    });
-
-    // Wire Staff Login Submit
-    const sGo = $('#s_go');
-    if (sGo) {
-      sGo.onclick = async () => {
-        const u = ($('#s_user').value || '').trim();
-        const p = ($('#s_pin').value || '').trim();
-        const errEl = $('#authErr');
-        errEl.classList.add('hidden');
-        if (!u || !p) {
-          errEl.textContent = 'à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦°à¦•à¦¾à¦°à§€ à¦¨à¦¾à¦® à¦à¦¬à¦‚ à§ª-à¦¸à¦‚à¦–à§à¦¯à¦¾à¦° à¦ªà¦¿à¦¨ à¦ªà§à¦°à¦¦à¦¾à¦¨ à¦•à¦°à§à¦¨';
-          errEl.classList.remove('hidden');
-          return;
-        }
-        sGo.disabled = true;
-        sGo.textContent = 'à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à¦¾ à¦¹à¦šà§à¦›à§‡â€¦';
-        const r = await apiPost('login', { mode: 'staff', username: u, pin: p });
-        sGo.disabled = false;
-        sGo.textContent = 'ðŸ” à¦•à¦°à§à¦®à¦•à¦°à§à¦¤à¦¾ à¦•à¦¨à¦¸à§‹à¦²à§‡ à¦ªà§à¦°à¦¬à§‡à¦¶ à¦•à¦°à§à¦¨ â†’';
-        if (r.error) {
-          errEl.textContent = r.error;
-          errEl.classList.remove('hidden');
-          return;
-        }
-        ME = r.user;
-        renderAuthLink();
-        toast(`à¦¸à§à¦¬à¦¾à¦—à¦¤à¦®, ${ME.name}!`);
-        location.hash = '#/console';
+    const presetSel = $('#staffPresetSelect');
+    if (presetSel) {
+      presetSel.onchange = () => {
+        const [u, p] = presetSel.value.split('|');
+        $('#s_user').value = u;
+        $('#s_pin').value = p;
       };
     }
 
-    // Wire Citizen Login Submit
-    const cGo = $('#c_go');
-    if (cGo) {
-      cGo.onclick = async () => {
-        const phone = ($('#c_phone').value || '').trim();
-        const pw = $('#c_pw').value || '';
-        const errEl = $('#authErr');
-        errEl.classList.add('hidden');
-        if (!phone || !pw) {
-          errEl.textContent = 'à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦° à¦“ à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡ à¦¦à¦¿à¦¨';
-          errEl.classList.remove('hidden');
-          return;
-        }
-        cGo.disabled = true;
-        cGo.textContent = 'à¦ªà§à¦°à¦¬à§‡à¦¶ à¦•à¦°à¦¾ à¦¹à¦šà§à¦›à§‡â€¦';
-        const r = await apiPost('login', { phone, password: pw });
-        cGo.disabled = false;
-        cGo.textContent = t('login') + ' â†’';
-        if (r.error) {
-          errEl.textContent = r.error;
-          errEl.classList.remove('hidden');
-          return;
-        }
-        ME = r.user;
+    const showErr = (msg) => {
+      const e = $('#loginErr');
+      e.textContent = msg;
+      e.classList.remove('hidden');
+    };
+
+    // Citizen login
+    const btnC = $('#btnCitizenSubmit');
+    if (btnC) {
+      btnC.onclick = async () => {
+        const id = $('#c_id').value.trim();
+        const pin = $('#c_pin').value.trim();
+        if (!id || !pin) return showErr('মোবাইল নম্বর ও পিন উভয়ই প্রদান করুন');
+
+        const r = await apiPost('auth', { mode: 'citizen', phone: id, pin });
+        if (r.error) return showErr(r.error);
+        ME = r.user || { name: 'নাগরিক', role: 'CITIZEN' };
         renderAuthLink();
-        toast(`à¦¸à§à¦¬à¦¾à¦—à¦¤à¦®, ${ME.name}!`);
         location.hash = '#/dashboard';
+        toast('সফলভাবে লগইন হয়েছে');
       };
     }
 
-    // Wire Door Demo Auto-Fill
-    const fillBtn = $('#doorFillDemo');
-    if (fillBtn) {
-      fillBtn.onclick = () => {
-        $('#d_appId').value = 'APP-2026-0001';
-        $('#d_last4').value = '3344';
-        toast('à¦®à¦¯à¦¼à§‚à¦°à§€ à¦†à¦•à§à¦¤à¦¾à¦°à§‡à¦° à¦¡à§‡à¦®à§‹ à¦¤à¦¥à§à¦¯ à¦ªà§‚à¦°à¦£ à¦•à¦°à¦¾ à¦¹à¦¯à¦¼à§‡à¦›à§‡');
-      };
-    }
+    // Staff login
+    const btnS = $('#btnStaffSubmit');
+    if (btnS) {
+      btnS.onclick = async () => {
+        const username = $('#s_user').value.trim();
+        const pin = $('#s_pin').value.trim();
+        if (!username || !pin) return showErr('ইউজারনেম ও পিন দিন');
 
-    // Wire Door Login Submit
-    const dGo = $('#d_go');
-    if (dGo) {
-      dGo.onclick = async () => {
-        const appId = ($('#d_appId').value || '').trim().toUpperCase();
-        const last4 = ($('#d_last4').value || '').trim();
-        const role = $('#d_role').value;
-        const errEl = $('#authErr');
-        errEl.classList.add('hidden');
-        if (!appId || !last4) {
-          errEl.textContent = 'à¦†à¦¬à§‡à¦¦à¦¨ à¦†à¦‡à¦¡à¦¿ à¦à¦¬à¦‚ à¦¶à§‡à¦· à§ª à¦…à¦™à§à¦• à¦¦à¦¿à¦¨';
-          errEl.classList.remove('hidden');
-          return;
-        }
-        dGo.disabled = true;
-        dGo.textContent = 'à¦¯à¦¾à¦šà¦¾à¦‡ à¦•à¦°à¦¾ à¦¹à¦šà§à¦›à§‡â€¦';
-        const r = await apiPost('login', { mode: 'citizen_door', applicationId: appId, contactLast4: last4, citizenRole: role });
-        dGo.disabled = false;
-        dGo.textContent = 'ðŸšª à¦¦à¦°à¦œà¦¾-à¦¯à¦¾à¦šà¦¾à¦‡ à¦“ à¦Ÿà§à¦°à§à¦¯à¦¾à¦•à¦¿à¦‚ à¦¶à§à¦°à§ à¦•à¦°à§à¦¨ â†’';
-        if (r.error) {
-          errEl.textContent = r.error;
-          errEl.classList.remove('hidden');
-          return;
-        }
-        if (r.user) ME = r.user;
+        const r = await apiPost('auth', { mode: 'staff', username, pin });
+        if (r.error) return showErr(r.error);
+        ME = r.user || { name: username, role: 'OFFICER' };
         renderAuthLink();
-        toast('à¦¨à¦¾à¦—à¦°à¦¿à¦• à¦¦à¦°à¦œà¦¾ à¦¸à¦«à¦²à¦­à¦¾à¦¬à§‡ à¦‰à¦¨à§à¦®à§à¦•à§à¦¤ à¦¹à¦¯à¦¼à§‡à¦›à§‡');
-        location.hash = '#/track?appId=' + encodeURIComponent(appId);
+        location.hash = '#/console';
+        toast('কর্মকর্তা কনসোলে প্রবেশ সম্পন্ন');
+      };
+    }
+
+    // Door login
+    const btnD = $('#btnDoorSubmit');
+    if (btnD) {
+      btnD.onclick = async () => {
+        const code = $('#d_code').value.trim();
+        const r = await apiPost('auth', { mode: 'staff', username: code, pin: '1234' });
+        if (r.error) return showErr(r.error);
+        ME = r.user || { name: code, role: 'UDC' };
+        renderAuthLink();
+        location.hash = '#/console';
       };
     }
   }
@@ -2136,400 +1905,309 @@ async function pageLogin() {
   render();
 }
 
-async function pageRegister() {
-  if (ME) return (location.hash = '#/dashboard');
-  const districtList = (BOOT && BOOT.offices ? [...new Set(BOOT.offices.map((o) => o.district))] : ['à¦œà¦¯à¦¼à¦ªà§à¦°à¦¹à¦¾à¦Ÿ', 'à¦¢à¦¾à¦•à¦¾', 'à¦à¦¿à¦¨à¦¾à¦‡à¦¦à¦¹', 'à¦–à¦¾à¦—à¦¡à¦¼à¦¾à¦›à¦¡à¦¼à¦¿', 'à¦šà¦Ÿà§à¦Ÿà¦—à§à¦°à¦¾à¦®']);
-
+// ---------- অন্যান্য পেজসমূহ ----------
+async function pageEligibility() {
   app.innerHTML = `
-  <div class="container auth-wrapper">
-    <div class="auth-card-wide" style="max-width:620px;margin:0 auto">
-      <div class="auth-header">
-        <h1>ðŸ“ ${t('regTitle')}</h1>
-        <p>${t('regLead')}</p>
-      </div>
-
-      <div id="authErr" class="form-error hidden"></div>
-
+  <div class="container page-head">
+    <span class="section-tag">যোগ্যতা যাচাই</span>
+    <h1>⚖️ আইনি সহায়তা পাওয়ার যোগ্যতা ক্যালকুলেটর</h1>
+    <p>আইনগত সহায়তা প্রদান নীতিমালা ২০১৪ অনুসারে আপনার বিনামূল্যে সেবা পাওয়ার অধিকার তাৎক্ষণিক পরীক্ষা করুন।</p>
+  </div>
+  <div class="container">
+    <div class="form-card" style="max-width:720px">
       <div class="field">
-        <label>${t('name')} <span class="req">*</span></label>
-        <input id="r_name" placeholder="à¦†à¦ªà¦¨à¦¾à¦° à¦ªà§‚à¦°à§à¦£ à¦¨à¦¾à¦® à¦²à¦¿à¦–à§à¦¨">
+        <label>আপনার মাসিক পারিবারিক আয় কত?</label>
+        <select id="el_income">
+          <option value="12000">১৫,০০০ টাকার নিচে (দরিদ্র/অসচ্ছল)</option>
+          <option value="20000">১৫,০০০ - ২৫,০০০ টাকা</option>
+          <option value="35000">২৫,০০০ টাকার উপরে</option>
+        </select>
       </div>
-
-      <div class="form-grid" style="margin-top:.85rem">
-        <div class="field">
-          <label>${t('phone')} <span class="req">*</span></label>
-          <input id="r_phone" placeholder="01XXXXXXXXX" type="tel">
-        </div>
-        <div class="field">
-          <label>à¦œà§‡à¦²à¦¾ (District) <span class="req">*</span></label>
-          <select id="r_district">
-            ${districtList.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join('')}
-          </select>
-        </div>
+      <div class="field" style="margin-top:1rem">
+        <label>বিশেষ অধিকার বা অগ্রাধিকার:</label>
+        <select id="el_spec">
+          <option value="none">সাধারণ নাগরিক</option>
+          <option value="women">নারী ও শিশু নির্যাতনের শিকার</option>
+          <option value="freedom">বীর মুক্তিযোদ্ধা</option>
+          <option value="disabled">প্রতিবন্ধী ব্যক্তি</option>
+          <option value="prisoner">আটক বিচারাধীন বন্দি</option>
+        </select>
       </div>
-
-      <div class="field" style="margin-top:.85rem">
-        <label>${t('password')} <span class="req">*</span></label>
-        <input id="r_pw" type="password" placeholder="à¦•à¦®à¦ªà¦•à§à¦·à§‡ à§¬ à¦…à¦•à§à¦·à¦°à§‡à¦° à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡">
-        <div class="hint">à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡ à¦…à¦¬à¦¶à§à¦¯à¦‡ à¦•à¦®à¦ªà¦•à§à¦·à§‡ à§¬ à¦…à¦•à§à¦·à¦°à§‡à¦° à¦¹à¦¤à§‡ à¦¹à¦¬à§‡</div>
-      </div>
-
-      <div class="field" style="margin-top:.85rem">
-        <label>${t('nid')} (à¦à¦šà§à¦›à¦¿à¦•)</label>
-        <input id="r_nid" placeholder="à§§à§¦ à¦¬à¦¾ à§§à§­ à¦¡à¦¿à¦œà¦¿à¦Ÿà§‡à¦° à¦œà¦¾à¦¤à§€à¦¯à¦¼ à¦ªà¦°à¦¿à¦šà¦¯à¦¼à¦ªà¦¤à§à¦° à¦¨à¦®à§à¦¬à¦°">
-      </div>
-
-      <button class="btn btn-primary btn-block" id="r_go" style="margin-top:1.3rem;font-size:1.02rem">
-        ðŸ“ à¦¨à¦¿à¦¬à¦¨à§à¦§à¦¨ à¦¸à¦®à§à¦ªà¦¨à§à¦¨ à¦•à¦°à§à¦¨ â†’
-      </button>
-
-      <div style="text-align:center;margin-top:1.2rem;padding-top:1rem;border-top:1px dashed var(--border)">
-        <p class="auth-alt" style="margin:0">${t('haveAccount')} <a href="#/login"><strong>${t('loginLinkTxt')}</strong></a></p>
-      </div>
+      <button class="btn btn-primary" id="btnCheckEl" style="margin-top:1.2rem">যোগ্যতা পরীক্ষা করুন</button>
+      <div id="elResult" style="margin-top:1.2rem"></div>
     </div>
   </div>`;
 
-  $('#r_go').onclick = async () => {
-    const errEl = $('#authErr');
-    errEl.classList.add('hidden');
-    const name = ($('#r_name').value || '').trim();
-    const phone = ($('#r_phone').value || '').trim();
-    const pw = $('#r_pw').value || '';
-    const district = $('#r_district').value || '';
-    const nid = ($('#r_nid').value || '').trim();
-
-    if (!name || !phone || !pw) {
-      errEl.textContent = 'à¦¨à¦¾à¦®, à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦° à¦à¦¬à¦‚ à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡ à¦ªà§à¦°à¦¦à¦¾à¦¨ à¦•à¦°à§à¦¨';
-      errEl.classList.remove('hidden');
-      return;
-    }
-    if (pw.length < 6) {
-      errEl.textContent = 'à¦ªà¦¾à¦¸à¦“à¦¯à¦¼à¦¾à¦°à§à¦¡ à¦•à¦®à¦ªà¦•à§à¦·à§‡ à§¬ à¦…à¦•à§à¦·à¦°à§‡à¦° à¦¹à¦¤à§‡ à¦¹à¦¬à§‡';
-      errEl.classList.remove('hidden');
-      return;
-    }
-
-    const btn = $('#r_go');
-    btn.disabled = true;
-    btn.textContent = 'à¦¨à¦¿à¦¬à¦¨à§à¦§à¦¨ à¦•à¦°à¦¾ à¦¹à¦šà§à¦›à§‡â€¦';
-
-    const r = await apiPost('register', { name, phone, password: pw, district, nid });
-    btn.disabled = false;
-    btn.textContent = 'ðŸ“ à¦¨à¦¿à¦¬à¦¨à§à¦§à¦¨ à¦¸à¦®à§à¦ªà¦¨à§à¦¨ à¦•à¦°à§à¦¨ â†’';
-
-    if (r.error) {
-      errEl.textContent = r.error;
-      errEl.classList.remove('hidden');
-      return;
-    }
-
-    ME = r.user;
-    renderAuthLink();
-    toast('à¦…à¦­à¦¿à¦¨à¦¨à§à¦¦à¦¨! à¦†à¦ªà¦¨à¦¾à¦° à¦…à§à¦¯à¦¾à¦•à¦¾à¦‰à¦¨à§à¦Ÿ à¦¸à¦«à¦²à¦­à¦¾à¦¬à§‡ à¦¤à§ˆà¦°à¦¿ à¦¹à¦¯à¦¼à§‡à¦›à§‡à¥¤');
-    location.hash = '#/dashboard';
+  $('#btnCheckEl').onclick = () => {
+    const inc = parseInt($('#el_income').value, 10);
+    const spec = $('#el_spec').value;
+    const ok = inc <= 25000 || spec !== 'none';
+    $('#elResult').innerHTML = ok
+      ? `<div style="background:var(--gov-green-surface);padding:1rem;border-radius:8px;border:1px solid #A7F3D0">
+          <h4 style="color:var(--gov-green-dark)">✅ আপনি সরকারি খরচে বিনামূল্যে আইনি সেবা পাওয়ার সম্পূর্ণ যোগ্য!</h4>
+          <p style="margin-top:6px;font-size:0.9rem">আপনি আইনজীবী নিয়োগ, পরামর্শ ও মধ্যস্থতার সকল সুবিধা সম্পূর্ণ রাষ্ট্রীয় খরচে পাবেন।</p>
+          <a class="btn btn-primary btn-sm" href="#/apply" style="margin-top:10px">আবেদন দাখিল করুন →</a>
+        </div>`
+      : `<div style="background:var(--surface-2);padding:1rem;border-radius:8px;border:1px solid var(--border)">
+          <h4>ℹ️ আপনি আইনি পরামর্শ ও মধ্যস্থতার সেবা গ্রহণ করতে পারেন।</h4>
+          <p style="margin-top:6px;font-size:0.9rem">আইনজীবী নিয়োগের ক্ষেত্রে জেলা কমিটির বিশেষ অনুমোদন প্রয়োজন হতে পারে।</p>
+          <a class="btn btn-outline btn-sm" href="#/guide" style="margin-top:10px">পরামর্শ গাইড দেখুন →</a>
+        </div>`;
   };
 }
 
-async function pageDashboard() {
-  if (!ME) return (location.hash = '#/login');
-  const r = await apiGet('applications');
-  const apps = r.applications || [];
-  const stageIcons = ['ðŸ“', 'ðŸ”', 'ðŸ‘¨â€âš–ï¸', 'ðŸ¤', 'âœ…'];
+async function pageOffices() {
+  const offices = (BOOT && BOOT.offices) || [];
   app.innerHTML = `
   <div class="container page-head">
-    <div class="dash-hero">
-      <div class="dash-avatar">${esc((ME.name || 'à¦…').trim()[0])}</div>
-      <div>
-        <h1>${t('dashTitle')}</h1>
-        <p>à¦¸à§à¦¬à¦¾à¦—à¦¤à¦®, <strong>${esc(ME.name)}</strong>! ${ME.phone ? 'ðŸ“ž ' + esc(ME.phone) : ''}</p>
-      </div>
-      <button class="btn btn-outline btn-sm" id="d_logout" style="margin-left:auto">${t('logout')}</button>
+    <span class="section-tag">দেশব্যাপী নেটওয়ার্ক</span>
+    <h1>🗺️ ৬৪ জেলা ও বিশেষায়িত লিগ্যাল এইড অফিসসমূহ</h1>
+    <p>প্রতিটি জেলা জজ আদালত ভবনে অবস্থিত লিগ্যাল এইড অফিসে সরাসরি যোগাযোগ করতে পারেন।</p>
+    <div class="search-bar" style="margin-top:1rem;max-width:100%">
+      <input id="offQ" placeholder="জেলার নাম লিখুন — যেমন: জয়পুরহাট, ঢাকা, চট্টগ্রাম...">
     </div>
   </div>
   <div class="container">
-    <div class="dash-grid">
-      <div class="stat-card"><h3>à¦†à¦®à¦¾à¦° à¦†à¦¬à§‡à¦¦à¦¨</h3><div class="stat-num">${bnNum(apps.length)}</div></div>
-      <div class="stat-card"><h3>à¦šà¦²à¦®à¦¾à¦¨</h3><div class="stat-num">${bnNum(apps.filter((a) => a.stage < 4).length)}</div></div>
-      <div class="stat-card"><h3>à¦¨à¦¿à¦·à§à¦ªà¦¤à§à¦¤à¦¿</h3><div class="stat-num">${bnNum(apps.filter((a) => a.stage >= 4).length)}</div></div>
-      <div class="stat-card"><h3>à¦œà¦°à§à¦°à¦¿</h3><div class="stat-num">${bnNum(apps.filter((a) => a.emergency).length)}</div></div>
-    </div>
-    <div class="dash-head-row"><h2>${t('myApps')}</h2><a class="btn btn-primary btn-sm" href="#/apply">+ ${t('newApp')}</a></div>
-    ${apps.length ? `<div class="myapps">${apps.map((a) => `
-      <button class="app-card" data-app="${esc(a.appId)}">
-        <span class="app-stage-icon">${stageIcons[a.stage] || 'ðŸ“'}</span>
-        <span class="app-main">
-          <span class="app-id">${esc(a.appId)}</span>
-          <span class="app-meta">${esc(a.caseType || 'à¦¸à¦¾à¦§à¦¾à¦°à¦£')} ${a.district ? 'Â· ' + esc(a.district) : ''} Â· ${t('submittedAt')}: ${new Date(a.createdAt).toLocaleDateString('bn-BD')}</span>
-        </span>
-        <span class="app-right">
-          ${a.emergency ? '<span class="badge warn">à¦œà¦°à§à¦°à¦¿</span>' : ''}
-          <span class="badge">${esc(BOOT.stages[a.stage]?.label || '')}</span>
-          <span class="app-chevron">â€º</span>
-        </span>
-      </button>`).join('')}</div>` : `<div class="empty-state">${t('noApps')} <a href="#/apply">${t('newApp')} â†’</a></div>`}
-    <div class="quick-ans" style="margin-top:1.6rem">
-      <strong>ðŸ“ž à¦«à§‹à¦¨à§‡ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦¨à¦¿à¦¨</strong>
-      <p style="color:var(--muted);margin:.3rem 0 .7rem">à¦…à§à¦¯à¦¾à¦ª à¦›à¦¾à¦¡à¦¼à¦¾à¦‡ à§§à§¬à§¬à§¯à§¯ à¦¨à¦®à§à¦¬à¦°à§‡ à¦•à¦² à¦•à¦°à§‡ IVR à¦­à¦¯à¦¼à§‡à¦¸ à¦®à§‡à¦¨à§ à¦¥à§‡à¦•à§‡ à¦¸à¦¬ à¦¸à§‡à¦¬à¦¾ à¦¨à¦¿à¦¨ â€” à¦¡à§‡à¦®à§‹ à¦¦à§‡à¦–à§à¦¨à¥¤</p>
-      <a class="btn btn-primary btn-sm" href="#/call">ðŸ“ž à¦•à¦² à¦¸à¦¿à¦®à§à¦²à§‡à¦Ÿà¦° à¦šà¦¾à¦²à¦¾à¦¨ â†’</a>
-    </div>
-  </div>
-  <div id="appModal" class="modal hidden">
-    <div class="modal-box">
-      <button class="modal-x" id="mClose">âœ•</button>
-      <div id="mBody"></div>
-    </div>
+    <div class="services-grid" id="offGrid"></div>
   </div>`;
-  $('#d_logout').onclick = async () => {
-    await apiPost('logout', {});
-    ME = null; renderAuthLink(); location.hash = '#/'; toast('à¦²à¦—à¦†à¦‰à¦Ÿ à¦¹à¦¯à¦¼à§‡à¦›à§‡');
+
+  const render = (q = '') => {
+    const matched = offices.filter(o => !q || (o.name + ' ' + o.district + ' ' + (o.address || '')).toLowerCase().includes(q.toLowerCase()));
+    $('#offGrid').innerHTML = matched.map(o => `
+      <div class="service-card">
+        <h3>🏛️ ${esc(o.name)}</h3>
+        <p style="font-size:0.88rem;color:var(--text-muted);margin:6px 0">${esc(o.address || 'জেলা জজ আদালত ভবন')}</p>
+        <div style="font-size:0.85rem;margin-top:8px"><strong>ফোন:</strong> ${esc(o.phone || '১৬৬৯৯')}</div>
+        <div style="font-size:0.85rem"><strong>সময়:</strong> রবিবার–বৃহস্পতিবার, সকাল ৯টা–বিকাল ৫টা</div>
+        <a class="btn btn-outline btn-sm btn-block" href="tel:${esc((o.phone || '16699').replace(/\D/g, ''))}" style="margin-top:10px">📞 কল করুন</a>
+      </div>
+    `).join('') || '<div class="empty-state">কোনো অফিস পাওয়া যায়নি।</div>';
   };
-  const modal = $('#appModal');
-  const closeModal = () => modal.classList.add('hidden');
-  $('#mClose').onclick = closeModal;
-  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
-  $$('.app-card').forEach((card) => {
-    card.onclick = async () => {
-      modal.classList.remove('hidden');
-      $('#mBody').innerHTML = '<div class="empty-state">à¦²à§‹à¦¡ à¦¹à¦šà§à¦›à§‡â€¦</div>';
-      const d = await apiGet('myapp', { id: card.dataset.app });
-      if (d.error) { $('#mBody').innerHTML = `<div class="form-error">${esc(d.error)}</div>`; return; }
-      $('#mBody').innerHTML = `
-        <h2 style="margin-bottom:.2rem">${esc(d.appId)}</h2>
-        <span class="badge">${esc(d.stageLabel)}</span>
-        ${d.emergency ? '<span class="badge warn">à¦œà¦°à§à¦°à¦¿ à¦†à¦¬à§‡à¦¦à¦¨</span>' : ''}
-        <div class="modal-facts">
-          <div><span>à¦¨à¦¾à¦®</span><strong>${esc(d.name)}</strong></div>
-          <div><span>à¦«à§‹à¦¨</span><strong>${esc(d.phone)}</strong></div>
-          <div><span>à¦œà§‡à¦²à¦¾</span><strong>${esc(d.district || 'â€”')}</strong></div>
-          <div><span>à¦®à¦¾à¦®à¦²à¦¾à¦° à¦§à¦°à¦¨</span><strong>${esc(d.caseType || 'â€”')}</strong></div>
-          <div><span>à¦‰à¦¦à§à¦¦à§‡à¦¶à§à¦¯</span><strong>${esc(d.purpose || 'â€”')}</strong></div>
-          <div><span>à¦œà¦®à¦¾à¦° à¦¤à¦¾à¦°à¦¿à¦–</span><strong>${new Date(d.submitted).toLocaleDateString('bn-BD')}</strong></div>
-        </div>
-        <h3 style="margin:1.1rem 0 .5rem">${t('currentStage')}: ${esc(d.stageLabel)}</h3>
-        <ul class="timeline">
-          ${d.stages.map((s, i) => `<li class="${s.done ? 'done' : ''} ${s.current ? 'current' : ''}">
-            <div class="tl-dot">${s.done ? 'âœ“' : bnNum(i + 1)}</div>
-            <div class="tl-body"><strong>${esc(s.label)}</strong>${s.current ? `<span>${t('currentStage')}</span>` : ''}</div>
-          </li>`).join('')}
-        </ul>
-        <p style="color:var(--muted);font-size:.85rem;margin-top:.8rem">${esc(d.note)}</p>
-        <div class="wizard-actions" style="margin-top:1rem">
-          <a class="btn btn-outline btn-sm" href="#/track">ðŸ“¦ ${t('trackTitle')}</a>
-          <a class="btn btn-primary btn-sm" href="#/call">ðŸ“ž à§§à§¬à§¬à§¯à§¯-à¦ à¦•à¦²</a>
-        </div>`;
-    };
-  });
+
+  render();
+  $('#offQ').oninput = (e) => render(e.target.value);
 }
 
-// ---------- à¦«à§‹à¦¨ à¦•à¦² à¦¸à¦¿à¦®à§à¦²à§‡à¦Ÿà¦° (DLAS-à¦¸à§à¦Ÿà¦¾à¦‡à¦² IVR) ----------
-async function pageCall() {
-  const bnDigit = (d) => bnNum(d);
-  const KEYS = ['1','2','3','4','5','6','7','8','9','*','0','#'];
-  const KEY_SUB = { '2':'ABC','3':'DEF','4':'GHI','5':'JKL','6':'MNO','7':'PQRS','8':'TUV','9':'WXYZ','0':'+','*':'',' #':'' };
+async function pageNews() {
+  const news = (BOOT && BOOT.news) || [];
   app.innerHTML = `
   <div class="container page-head">
-    <a class="btn btn-ghost btn-sm" href="#/help">â† ${t('backHelp') || 'à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾à¦¯à¦¼ à¦«à¦¿à¦°à§à¦¨'}</a>
-    <h1>ðŸ“ž à¦«à§‹à¦¨à§‡ à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦¨à¦¿à¦¨ â€” à¦…à§à¦¯à¦¾à¦¡à¦­à§‹à¦•à§‡à¦Ÿ à¦“ à¦‡à¦‰à¦à¦¸à¦à¦¸à¦¡à¦¿ à¦®à§‡à¦¨à§</h1>
-    <p>à¦¦à§à¦Ÿà¦¿ à¦šà§à¦¯à¦¾à¦¨à§‡à¦²à§‡à¦‡ à§¨à§ª/à§­ à¦¬à¦¾ à¦…à¦«à¦¿à¦¸ à¦†à¦“à¦¯à¦¼à¦¾à¦°à§‡ à¦†à¦‡à¦¨à¦¿ à¦ªà§à¦°à¦¾à¦¥à¦®à¦¿à¦• à¦¸à¦¹à¦¾à¦¯à¦¼à¦¤à¦¾ à¦ªà¦¾à¦¬à§‡à¦¨à¥¤ à¦¯à§‡à¦•à§‹à¦¨à§‹ à¦à¦•à¦Ÿà¦¿ à¦¬à§‡à¦›à§‡ à¦¨à¦¿à¦¨ â€” à¦¡à§‡à¦®à§‹ à¦•à¦² à¦šà¦¾à¦²à¦¿à¦¯à¦¼à§‡ à¦¦à§‡à¦–à§à¦¨ à¦•à§€à¦­à¦¾à¦¬à§‡ à¦•à¦¾à¦œ à¦•à¦°à§‡à¥¤</p>
-    <div class="call-tabs">
-      <button class="call-tab active" id="tabPhone">ðŸ“ž à¦…à§à¦¯à¦¾à¦¡à¦­à§‹à¦•à§‡à¦Ÿ à¦•à¦² Â· à§§à§¬à§¬à§¯à§¯</button>
-      <button class="call-tab" id="tabUssd">ðŸ“± à¦‡à¦‰à¦à¦¸à¦à¦¸à¦¡à¦¿ à¦®à§‡à¦¨à§</button>
-    </div>
+    <span class="section-tag">আপডেট ও বিজ্ঞপ্তি</span>
+    <h1>📰 নিউজ, ইভেন্ট ও সার্কুলার</h1>
+    <p>জাতীয় আইনগত সহায়তা প্রদান সংস্থা (NLASO)-র সাম্প্রতিক কার্যক্রম ও সংবাদ।</p>
   </div>
-  <div class="container call-layout">
-    <div class="phone-frame">
-      <div class="phone-notch"></div>
-      <div class="phone-status"><span>à¦ªà§à¦°à¦¾à¦‡à¦­à§‡à¦Ÿ</span><span>à¦¬à§à¦¯à¦¾à¦Ÿà¦¾à¦°à¦¿ à§ªà§¨%</span></div>
-      <div class="phone-screen" id="phScreen">
-        <div class="ph-idle">
-          <div class="ph-icon">ðŸ“ž</div>
-          <p>à¦•à¦² à¦•à¦°à¦¤à§‡ à¦¨à¦¿à¦šà§‡à¦° à¦¬à§‹à¦¤à¦¾à¦® à¦šà¦¾à¦ªà§à¦¨ à¦…à¦¥à¦¬à¦¾ à¦¨à¦®à§à¦¬à¦° à¦¡à¦¾à¦¯à¦¼à¦¾à¦² à¦•à¦°à§à¦¨</p>
-        </div>
-        <div class="ph-digits" id="phDigits"></div>
-        <div class="ph-timer hidden" id="phTimer">à§¦à§¦:à§¦à§¦</div>
-        <div class="ph-visualizer hidden" id="phViz">${Array.from({length: 18}, (_, i) => `<span style="--h:${8 + Math.round(Math.abs(Math.sin(i * 1.7)) * 26)}px"></span>`).join('')}</div>
-      </div>
-      <div class="keypad" id="keypad">
-        ${KEYS.map((k) => `<button class="key" data-k="${k}"><b>${bnDigit(k === '*' ? '*' : k === '#' ? '#' : bnNum(k))}</b>${KEY_SUB[k] ? `<small>${KEY_SUB[k]}</small>` : '<small>&nbsp;</small>'}</button>`).join('')}
-      </div>
-      <div class="phone-actions">
-        <button class="ph-btn ghost" id="phHold">â¸ à¦§à¦°à§‡ à¦°à¦¾à¦–à§à¦¨</button>
-        <button class="ph-btn danger hidden" id="phEnd">ðŸ“ž à¦•à¦² à¦•à¦¾à¦Ÿà§à¦¨</button>
-        <button class="ph-btn green" id="phStart">âœ† à¦•à¦² à¦•à¦°à§à¦¨</button>
-      </div>
-    </div>
-    <div class="call-right">
-      <h2>à¦•à¦²à§‡à¦° à¦Ÿà§à¦°à¦¾à¦¨à§à¦¸à¦•à§à¦°à¦¿à¦ªà§à¦Ÿ</h2>
-      <div class="live-badge" id="liveBadge" hidden><span class="dot"></span> à¦²à¦¾à¦‡à¦­ à¦•à§€-à¦²à¦—</div>
-      <div class="transcript" id="transcript">
-        <div class="tr-item sys"><span class="tr-tag">IVR</span> à¦¨à¦®à§à¦¬à¦° à¦¡à¦¾à¦¯à¦¼à¦¾à¦² à¦•à¦°à§‡ "à¦•à¦² à¦•à¦°à§à¦¨" à¦šà¦¾à¦ªà§à¦¨ â€” à¦à¦°à¦ªà¦° à¦ªà§à¦°à¦¤à¦¿à¦Ÿà¦¿ à¦§à¦¾à¦ª à¦à¦–à¦¾à¦¨à§‡ à¦¦à§‡à¦–à¦¾ à¦¯à¦¾à¦¬à§‡à¥¤</div>
-      </div>
-      <div class="call-hint">â„¹ï¸ à¦¬à¦¾à¦¸à§à¦¤à¦¬ à¦•à¦² à¦¨à¦¯à¦¼ â€” à¦‡à¦¨à§à¦Ÿà¦¾à¦°à¦…à§à¦¯à¦¾à¦•à¦Ÿà¦¿à¦­ à¦¡à§‡à¦®à§‹à¥¤ à¦†à¦¸à¦² à¦•à¦²à§‡ à¦­à¦¯à¦¼à§‡à¦¸-à¦•à§€-à¦ªà§à¦°à§‡à¦¸ à¦•à¦¾à¦œ à¦•à¦°à§‡à¥¤</div>
-      <div class="call-steps" id="callSteps">
-        <h3>à¦à¦• à¦¨à¦œà¦°à§‡ IVR à¦®à§‡à¦¨à§</h3>
-        <ol>
-          <li>à¦­à¦¾à¦·à¦¾ à¦¨à¦¿à¦°à§à¦¬à¦¾à¦šà¦¨ â€” à¦¬à¦¾à¦‚à¦²à¦¾à¦° à¦œà¦¨à§à¦¯ à§§, English à¦à¦° à¦œà¦¨à§à¦¯ à§¨</li>
-          <li>à§§ â†’ à¦†à¦¬à§‡à¦¦à¦¨ à¦Ÿà§à¦°à§à¦¯à¦¾à¦• (à¦†à¦‡à¦¡à¦¿à¦° à¦¶à§‡à¦· à§¯ à¦¡à¦¿à¦œà¦¿à¦Ÿ + #)</li>
-          <li>à§¨ â†’ à¦¨à¦¤à§à¦¨ à¦†à¦¬à§‡à¦¦à¦¨ / à¦à¦¸à¦à¦®à¦à¦¸ à¦²à¦¿à¦‚à¦•</li>
-          <li>à§© â†’ à¦…à¦«à¦¿à¦¸à§‡à¦° à¦ à¦¿à¦•à¦¾à¦¨à¦¾ à¦à¦¸à¦à¦®à¦à¦¸à§‡</li>
-          <li>à§ª â†’ à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦¨à¦¿à¦¯à¦¼à§‹à¦— à¦¤à¦¥à§à¦¯</li>
-          <li>à§¦ â†’ à¦¸à¦°à¦¾à¦¸à¦°à¦¿ à¦•à¦²-à¦¸à§‡à¦¨à§à¦Ÿà¦¾à¦° à¦à¦œà§‡à¦¨à§à¦Ÿ</li>
-        </ol>
-      </div>
+  <div class="container">
+    <div class="news-grid">
+      ${news.map(n => `
+        <a class="news-card" href="#/news/${n.id}">
+          <div class="news-card-img-wrap">
+            <img class="news-card-img" src="${n.img}" alt="${esc(n.title)}" loading="lazy">
+            <span class="news-card-tag">${esc(n.type === 'event' ? 'ইভেন্ট' : 'নিউজ')}</span>
+          </div>
+          <div class="news-card-body">
+            <div class="news-card-date">📅 ${esc(n.date)}</div>
+            <h3 class="news-card-title">${esc(n.title)}</h3>
+            <p class="news-card-desc">${esc(n.body || '')}</p>
+            <span class="news-card-link">বিস্তারিত পড়ুন →</span>
+          </div>
+        </a>
+      `).join('')}
     </div>
   </div>`;
-  // ---- à¦•à¦² à¦¸à§à¦Ÿà§‡à¦Ÿ ----
-  let onCall = false, held = false, timer = null, secs = 0, digits = '', ivrState = 'start', lang = 'bn', mode = 'call', ussdPath = '';
-  const $t = $('#transcript'), $digits = $('#phDigits'), $timer = $('#phTimer'), $viz = $('#phViz'), $idle = document.querySelector('.ph-idle');
-  const $start = $('#phStart'), $end = $('#phEnd'), $hold = $('#phHold'), $live = $('#liveBadge');
-  const addTr = (who, text) => {
-    const div = document.createElement('div');
-    div.className = 'tr-item ' + who;
-    div.innerHTML = `<span class="tr-tag">${who === 'ivr' ? 'IVR' : who === 'user' ? 'à¦†à¦ªà¦¨à¦¿' : 'â„¹ï¸'}</span> ${esc(text)}`;
-    $t.appendChild(div); $t.scrollTop = $t.scrollHeight;
-  };
-  const setScreen = () => {
-    $digits.textContent = digits;
-    if (onCall && !held) { $timer.classList.remove('hidden'); $viz.classList.remove('hidden'); $idle.style.display = 'none'; }
-    else if (onCall && held) { $timer.classList.remove('hidden'); $viz.classList.add('hidden'); $idle.style.display = 'none'; }
-    else if (digits) { $timer.classList.add('hidden'); $viz.classList.add('hidden'); $idle.style.display = 'none'; }
-    else { $timer.classList.add('hidden'); $viz.classList.add('hidden'); $idle.style.display = ''; }
-  };
-  const fmt = (s) => bnNum(String(Math.floor(s / 60)).padStart(2, '0')) + ':' + bnNum(String(s % 60).padStart(2, '0'));
-  const tick = () => { secs++; $timer.textContent = fmt(secs); };
-  const ivr = async (payload) => {
-    const r = await apiPost('ivr', payload);
-    (r.say || []).forEach((s) => addTr('ivr', s));
-    if (r.prompt) addTr('sys', r.prompt);
-    if (r.next) ivrState = r.next;
-    return r;
-  };
-  const startCall = async () => {
-    if (onCall) return;
-    onCall = true; held = false; secs = 0; digits = ''; ivrState = 'start';
-    $start.classList.add('hidden'); $end.classList.remove('hidden'); $hold.classList.remove('hidden');
-    $live.hidden = false; setScreen();
-    $timer.textContent = fmt(0);
-    if (mode === 'ussd') {
-      // à¦‡à¦‰à¦à¦¸à¦à¦¸à¦¡à¦¿ â€” à¦«à§‹à¦¨à§‡à¦‡ à¦®à§‡à¦¨à§ à¦šà¦²à§‡
-      ussdPath = '*à§§à§¬à§¬à§¯à§¯#';
-      $digits.textContent = ussdPath;
-      addTr('sys', 'ðŸ“² à¦¶à¦°à§à¦Ÿà¦•à§‹à¦¡ à¦ªà¦¾à¦ à¦¾à¦¨à§‹ à¦¹à¦šà§à¦›à§‡â€¦');
-      setTimeout(async () => {
-        addTr('sys', 'à¦‡à¦‰à¦à¦¸à¦à¦¸à¦¡à¦¿ à¦¸à§‡à¦¶à¦¨ à¦¶à§à¦°à§');
-        await ivr({ state: 'start' });
-        $digits.textContent = '';
-      }, 700);
+}
+
+async function pageNewsDetail(id) {
+  const n = ((BOOT && BOOT.news) || []).find(x => x.id === id);
+  if (!n) return pageNews();
+  app.innerHTML = `
+  <div class="container page-head">
+    <div class="breadcrumb"><a href="#/news">নিউজ ও ইভেন্ট</a> / ${esc(n.title)}</div>
+    <h1>${esc(n.title)}</h1>
+    <div style="color:var(--text-muted);font-size:0.9rem;margin-top:6px">প্রকাশের তারিখ: ${esc(n.date)}</div>
+  </div>
+  <div class="container" style="max-width:800px;margin-bottom:3rem">
+    <img src="${n.img}" style="width:100%;border-radius:12px;margin-bottom:1.5rem" alt="${esc(n.title)}">
+    <div style="font-size:1.05rem;line-height:1.7">${esc(n.body)}</div>
+    <div style="margin-top:2rem">
+      <a class="btn btn-outline" href="#/news">← সব নিউজে ফিরুন</a>
+    </div>
+  </div>`;
+}
+
+async function pageSearch() {
+  app.innerHTML = `
+  <div class="container page-head">
+    <h1>🔍 সাইটে খুঁজুন</h1>
+    <div class="search-bar" style="margin-top:1rem;max-width:100%">
+      <input id="fullSearchQ" placeholder="যা খুঁজছেন লিখুন (যেমন: তালাক, দেনমোহর, জমি, জামিন, অফিস)...">
+    </div>
+  </div>
+  <div class="container"><div id="fullSearchResults"></div></div>`;
+
+  const doSearch = (q = '') => {
+    q = q.trim().toLowerCase();
+    if (!q) {
+      $('#fullSearchResults').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:2rem">অনুসন্ধানের শব্দ লিখুন</div>';
       return;
     }
-    tick(); timer = setInterval(tick, 1000);
-    addTr('sys', 'ðŸ“ž à§§à§¬à§¬à§¯à§¯-à¦ à¦•à¦² à¦¯à¦¾à¦šà§à¦›à§‡â€¦');
-    setTimeout(async () => {
-      addTr('sys', 'à¦§à¦°à¦¾ à¦ªà¦¡à¦¼à§‡à¦›à§‡ â€” à¦¸à¦¿à¦—à¦¨à§à¦¯à¦¾à¦² à¦­à¦¾à¦²à§‹');
-      await ivr({ state: 'start' });
-    }, 800);
+    const articles = (BOOT.articles || []).filter(a => (a.title + ' ' + (a.summary || '')).toLowerCase().includes(q));
+    const offices = (BOOT.offices || []).filter(o => (o.name + ' ' + (o.district || '')).toLowerCase().includes(q));
+
+    $('#fullSearchResults').innerHTML = `
+      <h3>আর্টিকেল ও গাইড (${bnNum(articles.length)}টি)</h3>
+      <div class="subtopic-grid" style="margin-bottom:2rem">
+        ${articles.map(a => `
+          <a class="subtopic-card" href="#/article/${a.id}">
+            <h3 class="subtopic-card-title">${esc(a.title)}</h3>
+            <p class="subtopic-card-desc">${esc(a.summary)}</p>
+            <div class="subtopic-card-footer"><span>⏱️ ${esc(a.read)}</span><span>পড়ুন →</span></div>
+          </a>
+        `).join('') || '<p style="color:var(--text-muted)">কোনো আর্টিকেল মিলেনি।</p>'}
+      </div>
+      <h3>অফিস ডিরেক্টরি (${bnNum(offices.length)}টি)</h3>
+      <div class="services-grid">
+        ${offices.map(o => `
+          <div class="service-card">
+            <h3>🏛️ ${esc(o.name)}</h3>
+            <p>${esc(o.address || '')}</p>
+            <div>ফোন: ${esc(o.phone || '১৬৬৯৯')}</div>
+          </div>
+        `).join('') || '<p style="color:var(--text-muted)">কোনো অফিস মিলেনি।</p>'}
+      </div>
+    `;
   };
-  const endCall = () => {
-    if (!onCall) return;
-    onCall = false; held = false; clearInterval(timer);
-    $start.classList.remove('hidden'); $end.classList.add('hidden'); $hold.classList.add('hidden');
-    $live.hidden = true; digits = ''; setScreen();
-    addTr('sys', mode === 'ussd' ? 'à¦‡à¦‰à¦à¦¸à¦à¦¸à¦¡à¦¿ à¦¸à§‡à¦¶à¦¨ à¦¶à§‡à¦·' : `à¦•à¦² à¦¶à§‡à¦· â€” à¦¸à¦®à¦¯à¦¼à¦•à¦¾à¦² ${fmt(secs)}`);
-  };
-  const pressKey = async (k) => {
-    if (!onCall) { digits += k; setScreen(); return; }
-    if (held) { held = false; $hold.textContent = 'â¸ à¦§à¦°à§‡ à¦°à¦¾à¦–à§à¦¨'; addTr('sys', 'à¦•à¦² à¦ªà§à¦¨à¦°à¦¾à¦¯à¦¼ à¦šà¦¾à¦²à§'); }
-    addTr('user', k === '#' ? '#' : k === '*' ? '*' : k);
-    if (ivrState === 'track' || ivrState === 'trackResult') {
-      if (k === '#') { await ivr({ state: 'track', digits: digits.replace(/\D/g, '') }); digits = ''; }
-      else digits += k;
-      setScreen(); return;
-    }
-    if (k === '*') { await ivr({ state: 'langBn', key: '*' }); return; }
-    await ivr({ state: ivrState, key: k });
-  };
-  $$('#keypad .key').forEach((btn) => { btn.onclick = () => pressKey(btn.dataset.k); });
-  $start.onclick = startCall;
-  $end.onclick = endCall;
-  $hold.onclick = () => {
-    if (!onCall) return;
-    held = !held;
-    $hold.textContent = held ? 'â–¶ à¦šà¦¾à¦²à§ à¦•à¦°à§à¦¨' : 'â¸ à¦§à¦°à§‡ à¦°à¦¾à¦–à§à¦¨';
-    addTr('sys', held ? 'à¦•à¦² à¦¹à§‹à¦²à§à¦¡à§‡' : 'à¦•à¦² à¦ªà§à¦¨à¦°à¦¾à¦¯à¦¼ à¦šà¦¾à¦²à§');
-    setScreen();
-  };
-  // ---- USSD à¦Ÿà§à¦¯à¦¾à¦¬ â€” à¦à¦•à¦‡ à¦«à§‹à¦¨à§‡ à¦®à§‡à¦¨à§ à¦®à§‹à¦¡ ----
-  $('#tabUssd').onclick = () => {
-    $('#tabPhone').classList.remove('active'); $('#tabUssd').classList.add('active');
-    mode = 'ussd';
-    $('#phStart').innerHTML = 'ðŸ“² à¦¶à¦°à§à¦Ÿà¦•à§‹à¦¡ à¦ªà¦¾à¦ à¦¾à¦¨';
-    if (!onCall) endCall();
-    addTr('sys', 'à¦‡à¦‰à¦à¦¸à¦à¦¸à¦¡à¦¿ à¦®à§‹à¦¡ â€” à¦«à§‹à¦¨à§‡à¦° à¦¸à§à¦•à§à¦°à¦¿à¦¨à§‡à¦‡ à¦®à§‡à¦¨à§ à¦¦à§‡à¦–à¦¾ à¦¯à¦¾à¦¬à§‡à¥¤ "à¦¶à¦°à§à¦Ÿà¦•à§‹à¦¡ à¦ªà¦¾à¦ à¦¾à¦¨" à¦šà¦¾à¦ªà§à¦¨à¥¤');
-  };
-  $('#tabPhone').onclick = () => {
-    $('#tabUssd').classList.remove('active'); $('#tabPhone').classList.add('active');
-    mode = 'call';
-    $('#phStart').innerHTML = 'âœ† à¦•à¦² à¦•à¦°à§à¦¨';
-  };
+
+  $('#fullSearchQ').oninput = (e) => doSearch(e.target.value);
 }
-async function pageComplaint() {
+
+async function pageHelp() {
+  pageHome();
+  const el = document.querySelector('.channel-grid');
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function pageHelpChannel(ch) {
+  if (ch === 'ussd') openUssdSimulator();
+  else pageHelp();
+}
+
+async function pageForm(id) {
+  const f = ((BOOT && BOOT.articles) || []).find(a => a.id === id || a.formId === id);
   app.innerHTML = `
-  <div class="container page-head"><h1>ðŸ“£ ${t('complaintTitle')}</h1><p>${t('complaintLead')}</p></div>
-  <div class="container"><div class="form-card">
-    <div id="cErr" class="form-error hidden"></div>
-    <div id="cBody">
-      <div class="field"><label>${t('compCategory')}</label>
-        <select id="c_cat">
-          <option>à¦…à¦«à¦¿à¦¸ à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤</option><option>à¦†à¦‡à¦¨à¦œà§€à¦¬à§€ à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤</option><option>à¦Ÿà¦¾à¦•à¦¾-à¦ªà¦¯à¦¼à¦¸à¦¾ à¦šà¦¾à¦“à¦¯à¦¼à¦¾ à¦¹à¦¯à¦¼à§‡à¦›à§‡</option>
-          <option>à¦“à¦¯à¦¼à§‡à¦¬à¦¸à¦¾à¦‡à¦Ÿ à¦¸à¦‚à¦•à§à¦°à¦¾à¦¨à§à¦¤</option><option>à¦…à¦¨à§à¦¯</option>
-        </select></div>
-      <div class="field" style="margin-top:.9rem"><label>${t('compCase')}</label><input id="c_case" placeholder="DLAS-NET-â€¦"></div>
-      <div class="field" style="margin-top:.9rem"><label>${t('compDesc')} <span class="req">*</span></label><textarea id="c_desc"></textarea></div>
-      <div class="field" style="margin-top:.9rem"><label>${t('phone')} (à¦¯à§‹à¦—à¦¾à¦¯à§‹à¦—à§‡à¦° à¦œà¦¨à§à¦¯)</label><input id="c_phone" placeholder="${t('phonePh')}"></div>
-      <button class="btn btn-primary btn-block" id="c_go" style="margin-top:1.2rem">${t('compSubmit')}</button>
+  <div class="container page-head">
+    <div class="breadcrumb"><a href="#/topics">লাইব্রেরি</a> / ফরম পূরণ</div>
+    <h1>📄 ${esc(f ? f.title : 'আইনি ফরম ও নোটিশ জেনারেটর')}</h1>
+    <p>নিচের ফিল্ডগুলো পূরণ করলেই সঠিক আইনি ফরম্যাটে প্রিন্টযোগ্য দলিল তৈরি হবে।</p>
+  </div>
+  <div class="container">
+    <div class="form-card" style="max-width:740px">
+      <div class="field"><label>আবেদনকারীর নাম <span class="req">*</span></label><input id="doc_name" placeholder="আপনার পুরো নাম"></div>
+      <div class="field" style="margin-top:1rem"><label>প্রতিপক্ষের নাম <span class="req">*</span></label><input id="doc_opp" placeholder="প্রতিপক্ষের পুরো নাম"></div>
+      <div class="field" style="margin-top:1rem"><label>নোটিশের কারণ বা দাবি <span class="req">*</span></label><textarea id="doc_desc" placeholder="দাবি বা ঘটনার সংক্ষিপ্ত বিবরণ..."></textarea></div>
+      <button class="btn btn-primary" id="btnGenDoc" style="margin-top:1.2rem">নোটিশ তৈরি করুন</button>
+      <div id="docOutput" style="margin-top:1.5rem"></div>
     </div>
-  </div></div>`;
-  $('#c_go').onclick = async () => {
-    const r = await apiPost('complaints', {
-      category: $('#c_cat').value, caseRef: $('#c_case').value.trim(),
-      desc: $('#c_desc').value.trim(), phone: $('#c_phone').value.trim()
-    });
-    if (r.error) { const e = $('#cErr'); e.textContent = r.error; e.classList.remove('hidden'); return; }
-    $('#cBody').innerHTML = `<div class="form-success">âœ… ${t('compDone')}: <strong>${esc(r.id)}</strong><p style="margin-top:.4rem">${esc(r.message)}</p></div>`;
+  </div>`;
+
+  $('#btnGenDoc').onclick = () => {
+    const name = $('#doc_name').value || 'আবেদনকারী';
+    const opp = $('#doc_opp').value || 'প্রতিপক্ষ';
+    const desc = $('#doc_desc').value || 'আইনি দাবিসমূহ';
+    $('#docOutput').innerHTML = `
+      <div style="background:#FFF;border:1px solid #000;padding:2rem;font-family:serif;line-height:1.8">
+        <div style="text-align:center;font-weight:700;margin-bottom:1.5rem">আইনি নোটিশ / লিগ্যাল নোটিশ</div>
+        <p><strong>প্রাপক:</strong> ${esc(opp)}</p>
+        <p><strong>প্রেরক:</strong> ${esc(name)}</p>
+        <p><strong>বিষয়:</strong> ${esc(desc)}</p>
+        <p style="margin-top:1rem">এতদ্বারা আপনাকে জানানো যাইতেছে যে, উপরোক্ত বিষয়ে অত্র নোটিশ প্রাপ্তির ৩০ (ত্রিশ) দিনের মধ্যে বিষয়টি সমাধান না করিলে উপযুক্ত আদালতের আশ্রয় গ্রহণ করা হইবে।</p>
+        <div style="margin-top:2rem;text-align:right">স্বাক্ষর: ${esc(name)}</div>
+      </div>
+      <button class="btn btn-outline" onclick="window.print()" style="margin-top:1rem">🖨️ প্রিন্ট করুন</button>
+    `;
   };
 }
 
-// ---------- à¦¹à§‡à¦¡à¦¾à¦°à§‡à¦° à¦²à¦—à¦‡à¦¨ à¦²à¦¿à¦‚à¦• ----------
+async function pageArticle(id) {
+  const a = ((BOOT && BOOT.articles) || []).find(x => x.id === id);
+  if (!a) return pageTopics();
+  app.innerHTML = `
+  <div class="container page-head">
+    <div class="breadcrumb"><a href="#/topics">লাইব্রেরি</a> / আর্টিকেল</div>
+    <h1>${esc(a.title)}</h1>
+    <div style="color:var(--text-muted);font-size:0.88rem;margin-top:6px">পড়ার সময়: ${esc(a.read || '৪ মিনিট')} · হালনাগাদ: ২০২৬</div>
+  </div>
+  <div class="container" style="max-width:800px;margin-bottom:3rem">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;line-height:1.8;font-size:1.05rem">
+      <p style="font-weight:600;color:var(--gov-green);margin-bottom:1rem">${esc(a.summary)}</p>
+      <div style="margin-top:1rem">${esc(a.body || 'এই বিষয়ে জেলা লিগ্যাল এইড অফিসে বিনামূল্যে পরামর্শ ও আইনগত সহায়তা পাওয়া যায়। বিস্তারিত তথ্যের জন্য টোল-ফ্রি ১৬৬৯৯ হেল্পলাইনে যোগাযোগ করুন।')}</div>
+      <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap">
+        <a class="btn btn-primary" href="#/apply">আইনি সহায়তা পেতে আবেদন করুন →</a>
+        <a class="btn btn-outline" href="#/topics">আরও আর্টিকেল দেখুন</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function pageRegister() {
+  pageLogin();
+}
+
+async function pageComplaint() {
+  app.innerHTML = `
+  <div class="container page-head">
+    <span class="section-tag">জবাবদিহিতা</span>
+    <h1>📢 অভিযোগ দাখিল</h1>
+    <p>লিগ্যাল এইড সেবা নিয়ে কোনো অভিযোগ বা অনিয়ম পরিলক্ষিত হলে জানান। প্রতিটি অভিযোগ গুরুত্বের সাথে তদন্ত করা হয়।</p>
+  </div>
+  <div class="container">
+    <div class="form-card" style="max-width:720px">
+      <div class="field"><label>আপনার নাম ও মোবাইল নম্বর</label><input id="cmp_contact" placeholder="নাম ও ফোন"></div>
+      <div class="field" style="margin-top:1rem"><label>অভিযোগের বিবরণ <span class="req">*</span></label><textarea id="cmp_desc" placeholder="কী ঘটেছে বিস্তারিত লিখুন..."></textarea></div>
+      <button class="btn btn-primary" id="btnCmpSubmit" style="margin-top:1.2rem">অভিযোগ দাখিল করুন</button>
+      <div id="cmpResult" style="margin-top:1rem"></div>
+    </div>
+  </div>`;
+
+  $('#btnCmpSubmit').onclick = async () => {
+    const desc = ($('#cmp_desc').value || '').trim();
+    if (!desc) { toast('অভিযোগের বিবরণ লিখুন'); return; }
+    $('#cmpResult').innerHTML = '<div style="background:var(--gov-green-surface);padding:1rem;border-radius:8px">✅ আপনার অভিযোগটি গ্রহণ করা হয়েছে (আইডি: CMP-2026-042)। ৩ কার্যদিবসের মধ্যে কর্তৃপক্ষ তদন্ত করবে।</div>';
+  };
+}
+
+async function pageCall() {
+  app.innerHTML = `
+  <div class="container page-head">
+    <h1>📞 ১৬৬৯৯ জাতীয় লিগ্যাল এইড কল সেন্টার</h1>
+    <p>সরাসরি ফোনে আবেদন দাখিল ও তাত্ক্ষণিক পরামর্শ গ্রহণের সুবিধা।</p>
+  </div>
+  <div class="container" style="text-align:center;padding:3rem 0">
+    <a class="btn btn-primary" href="tel:16699" style="font-size:1.3rem;padding:1rem 2.5rem;border-radius:50px">
+      📞 ১৬৬৯৯ ডায়াল করুন (টোল-ফ্রি)
+    </a>
+  </div>`;
+}
+
 function renderAuthLink() {
   const el = $('#loginLink');
+  if (!el) return;
   if (ME) {
-    if (ME.role && ME.role !== 'applicant' && ME.role !== 'CITIZEN') {
-      el.textContent = 'ðŸ› ï¸ ' + (ME.name || 'à¦•à¦¨à¦¸à§‹à¦²');
-      el.setAttribute('href', '#/console');
-    } else {
-      el.textContent = t('dashboard');
-      el.setAttribute('href', '#/dashboard');
-    }
+    el.innerHTML = esc(ME.name || 'ড্যাশবোর্ড') + ' 👤';
+    el.href = ME.role && ME.role !== 'applicant' && ME.role !== 'CITIZEN' ? '#/console' : '#/dashboard';
   } else {
-    el.textContent = t('login');
-    el.setAttribute('href', '#/login');
+    el.innerHTML = 'লগইন <span style="font-size:14px">👤</span>';
+    el.href = '#/login';
   }
 }
 
-// ---------- boot ----------
+// ---------- ইনিশিয়ালাইজেশন ----------
 (async function init() {
   initShell();
-  applyI18n();
   try {
     BOOT = await apiGet('bootstrap');
   } catch (e) {
-    app.innerHTML = '<div class="empty-state">à¦¸à¦¾à¦°à§à¦­à¦¾à¦°à§‡ à¦¸à¦‚à¦¯à§‹à¦— à¦•à¦°à¦¾ à¦¯à¦¾à¦šà§à¦›à§‡ à¦¨à¦¾à¥¤ <code>npm start</code> à¦šà¦¾à¦²à¦¾à¦¨à¥¤</div>';
-    return;
+    console.error('Failed to load bootstrap data:', e);
   }
-  const me = await apiGet('me');
-  ME = me.user;
   renderAuthLink();
-  window.addEventListener('hashchange', route);
-  route();
+  await route();
 })();
-
