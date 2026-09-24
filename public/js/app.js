@@ -47,17 +47,13 @@ function initShell() {
     dateEl.textContent = `${days[now.getDay()]}, ${bnNum(now.getDate())} ${months[now.getMonth()]}, ${bnNum(now.getFullYear())}`;
   }
 
-  // থিম
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-  else if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
-  $('#themeToggle').textContent = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
-  $('#themeToggle').onclick = () => {
-    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem('theme', next);
-    $('#themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
-  };
+  // Force light theme – dark mode disabled
+  document.documentElement.dataset.theme = 'light';
+  // Hide theme toggle button if present
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.style.display = 'none';
+  }
 
   // ভাষা
   const savedLang = localStorage.getItem('lang');
