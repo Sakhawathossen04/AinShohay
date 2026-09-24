@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="bn" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ডিজিটাল আইনি সেবা (DLAS) — বাংলাদেশ লিগ্যাল এইড পোর্টাল | Five Doors, One Record</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#00543E">
+  <meta name="description" content="গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত ডিজিটাল আইনগত সহায়তা পোর্টাল (DLAS) — Five Doors, One Record. সম্পূর্ণ সরকারি খরচে বিনামূল্যে আইনি পরামর্শ, মধ্যস্থতা ও আইনজীবী নিয়োগ।">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="/css/styles.css?v=5">
+</head>
+<body>
+
+  <!-- ============ সরকারি অফিশিয়াল টপ বার ============ -->
+  <div class="gov-topbar">
+    <div class="container gov-topbar-inner">
+      <div class="gov-brand">
+        <svg class="bd-seal" viewBox="0 0 100 100" width="18" height="18" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="#D32F2F" stroke="#E5A93B" stroke-width="3"/>
+          <circle cx="50" cy="28" r="28" fill="#00543E"/>
+          <path d="M50 26 L52 38 L64 38 L54 45 L58 57 L50 50 L42 57 L46 45 L36 38 L48 38 Z" fill="#E5A93B"/>
+        </svg>
+        <span class="gov-text">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার / Government of the People's Republic of Bangladesh.</span>
+      </div>
+      <div class="gov-helpline">
+        <span id="govLiveDate" class="gov-date">বৃহস্পতিবার, ২৪ সেপ্টেম্বর, ২০২৬</span>
+        <span class="sep">|</span>
+        <a href="tel:16699" class="gov-phone" title="টোল-ফ্রি জাতীয় আইনি সহায়তা হেল্পলাইন">📞 ১৬৬৯৯</a>
+        <span class="sep">|</span>
+        <a href="tel:999" class="gov-phone" title="জাতীয় জরুরি সেবা">জরুরি: ৯৯৯</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ প্রধান সাইট হেডার ============ -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#/">
+        <span class="brand-icon" aria-hidden="true">
+          <!-- Scales of Justice SVG -->
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v18M7 21h10M12 6l7 2M12 6L5 8M19 8l-2.5 6a3.5 3.5 0 0 1-5 0L19 8zM5 8l2.5 6a3.5 3.5 0 0 0 5 0L5 8z"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong data-i18n="brand">ডিজিটাল আইনি সেবা</strong>
+          <small data-i18n="brandSub">DLAS · গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</small>
+        </span>
+      </a>
+
+      <nav class="main-nav" id="mainNav" aria-label="প্রধান মেনু">
+        <a href="#/" data-i18n="navHome">হোম</a>
+        <a href="#/apply" data-i18n="navApply">আবেদন করুন</a>
+        <a href="#/track" data-i18n="navTrack">আবেদন ট্র্যাক করুন</a>
+        <a href="#/topics" data-i18n="navLibrary">আইনি তথ্য</a>
+        <a href="#/services" data-i18n="navServices">সেবাসমূহ</a>
+        <a href="#/offices" data-i18n="navOffices">অফিস খুঁজুন</a>
+        <a href="#/console" class="nav-console" title="কর্মকর্তা ও প্রোভাইডার কনসোল">🛠️ কনসোল</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="lang-switch-btn" id="langToggle" title="English" aria-label="ভাষা পরিবর্তন">文A English</button>
+        <a class="btn-ref-tel" href="tel:16699" id="callBtn" title="১৬৬৯৯ কল করুন">📞 ১৬৬৯৯</a>
+        <button class="icon-btn" id="themeToggle" title="ডার্ক/লাইট থিম" aria-label="থিম পরিবর্তন">🌙</button>
+        <button class="icon-btn" id="a11yToggle" title="প্রবেশগম্যতা বিকল্প" aria-label="প্রবেশগম্যতা">♿</button>
+        <a class="btn-ref-login" href="#/login" id="loginLink">লগইন <span style="font-size:14px">👤</span></a>
+        <a class="btn-ref-cta" href="#/apply">আইনি সহায়তা পান →</a>
+      </div>
+
+      <button class="icon-btn nav-burger" id="navBurger" aria-label="মোবাইল মেনু">☰</button>
+    </div>
+
+    <!-- প্রবেশগম্যতা (A11y) প্যানেল -->
+    <div class="a11y-panel hidden" id="a11yPanel">
+      <div class="container a11y-inner">
+        <span data-i18n="a11yTitle"><strong>♿ প্রবেশগম্যতা বিকল্প:</strong></span>
+        <button id="fsDec" class="btn btn-outline btn-sm">ফন্ট ছোট (A−)</button>
+        <button id="fsInc" class="btn btn-outline btn-sm">ফন্ট বড় (A+)</button>
+        <button id="contrastToggle" class="btn btn-outline btn-sm" data-i18n="contrast">হাই কনট্রাস্ট</button>
+        <button id="a11yReset" class="btn btn-ghost btn-sm" data-i18n="reset">রিসেট</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ মূল কনটেন্ট (SPA Outlet) ============ -->
+  <main id="app" class="app-main"></main>
+
+  <!-- ============ ফুটার ============ -->
+  <footer class="site-footer">
+    <!-- পার্টনার লোগো স্ট্রিপ -->
+    <div class="footer-partners-bar">
+      <div class="container partners-inner">
+        <div class="partner-badge">
+          <div class="partner-logo-box eu-logo">
+            <span style="font-size:20px">🇪🇺</span>
+            <small>Funded by the<br>European Union</small>
+          </div>
+        </div>
+        <div class="partner-badge">
+          <div class="partner-logo-box nlaso-logo">
+            <svg viewBox="0 0 100 100" width="36" height="36" aria-hidden="true">
+              <circle cx="50" cy="50" r="46" fill="#00543E" stroke="#E5A93B" stroke-width="3"/>
+              <path d="M50 20 L53 36 L68 36 L56 46 L60 62 L50 52 L40 62 L44 46 L32 36 L47 36 Z" fill="#E5A93B"/>
+              <text x="50" y="80" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700">NLASO</text>
+            </svg>
+            <div style="text-align:left">
+              <strong>জাতীয় আইনগত সহায়তা</strong>
+              <small style="display:block;opacity:0.8">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</small>
+            </div>
+          </div>
+        </div>
+        <div class="partner-badge">
+          <div class="partner-logo-box undp-logo">
+            <span style="font-size:22px;font-weight:900;color:#00543E;letter-spacing:1px">UNDP</span>
+            <small>Empowered lives.<br>Resilient nations.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- হরাইজন্টাল সার্ভিস লিংক বার -->
+    <div class="footer-links-bar">
+      <div class="container" style="display:flex;justify-content:center;gap:18px;flex-wrap:wrap;font-size:0.92rem">
+        <a href="#/apply">আইনি সহায়তা পান</a>
+        <span class="sep">·</span>
+        <a href="#/track">আবেদন ট্র্যাক করুন</a>
+        <span class="sep">·</span>
+        <a href="#/topics">আইনি তথ্য</a>
+        <span class="sep">·</span>
+        <a href="#/guide">তথ্য অধিকার (RTI)</a>
+        <span class="sep">·</span>
+        <a href="#/privacy">গোপনীয়তা নোটিশ</a>
+        <span class="sep">·</span>
+        <a href="#/help">ইউজার ম্যানুয়াল</a>
+        <span class="sep">·</span>
+        <a href="#/a11y">প্রবেশগম্যতা বিবৃতি</a>
+      </div>
+    </div>
+
+    <div class="container footer-grid" style="padding-top:2rem">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v18M7 21h10M12 6l7 2M12 6L5 8M19 8l-2.5 6a3.5 3.5 0 0 1-5 0L19 8zM5 8l2.5 6a3.5 3.5 0 0 0 5 0L5 8z"/>
+          </svg>
+          <strong style="font-size:1.15rem;color:#FFF">ডিজিটাল আইনি সেবা (DLAS)</strong>
+        </div>
+        <p data-i18n="footerAbout" style="font-size:0.88rem;line-height:1.6">
+          জাতীয় আইনগত সহায়তা প্রদান সংস্থা (NLASO)-র তত্ত্বাবধানে পরিচালিত সমন্বিত ডিজিটাল আইনি সহায়তা ব্যবস্থা। দরিদ্র, অসহায় ও সুবিধা-বঞ্চিত নাগরিকদের জন্য সরকারি খরচে সম্পূর্ণ বিনামূল্যে আইনি সেবা ও প্রতিনিধিত্ব নিশ্চিতকরণে প্রতিশ্রুত।
+        </p>
+      </div>
+      <div>
+        <h4 data-i18n="footerQuick">দ্রুত সেবা লিংক</h4>
+        <a href="#/apply" data-i18n="ctaApply">নতুন আইনি আবেদন</a>
+        <a href="#/track" data-i18n="ctaTrack">আবেদন ট্র্যাকিং</a>
+        <a href="#/eligibility">যোগ্যতা যাচাই ক্যালকুলেটর</a>
+        <a href="#/services">সেবাসমূহ ও সুবিধা</a>
+        <a href="#/offices" data-i18n="navOffices">৬৪ জেলা অফিস ডিরেক্টরি</a>
+        <a href="#/console" style="color:#FDE68A;font-weight:700">🛠️ প্রোভাইডার কনসোল</a>
+      </div>
+      <div>
+        <h4 data-i18n="footerTopics">আইনি সহায়তার ক্ষেত্র</h4>
+        <a href="#/topic/family">পারিবারিক ও দেনমোহর বিরোধ</a>
+        <a href="#/topic/land">ভূমি ও খতিয়ান অধিকার</a>
+        <a href="#/topic/elder">পিতা-মাতার ভরণপোষণ আইন</a>
+        <a href="#/topic/civil">দেওয়ানি ও মধ্যস্থতা (ADR)</a>
+        <a href="#/topics" data-i18n="footerAllTopics">সব রিসোর্স লাইব্রেরি →</a>
+      </div>
+      <div>
+        <h4 data-i18n="footerContact">জরুরি হেল্পলাইন</h4>
+        <a href="tel:16699" style="font-weight:700;color:#FDE68A;font-size:1.05rem">📞 ১৬৬৯৯ (টোল-ফ্রি ২৪/৭)</a>
+        <a href="tel:109">🛡️ ১০৯ (নারী ও শিশু হেল্পলাইন)</a>
+        <a href="tel:999">🚨 ৯৯৯ (জাতীয় জরুরি সেবা)</a>
+        <a href="tel:333">🏢 ৩৩৩ (জাতীয় সেবা বাতায়ন)</a>
+        <span style="font-size:0.82rem;color:rgba(255,255,255,0.7);display:block;margin-top:6px">বিদেশ থেকে কল: +৮৮০ ৯৬১২ ৩৯ ১৬৬৯৯</span>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <span data-i18n="footerLine">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার · আইন, বিচার ও সংসদ বিষয়ক মন্ত্রণালয় · জাতীয় আইনগত সহায়তা প্রদান সংস্থা (NLASO)</span>
+        <span>© ডিজিটাল লিগ্যাল এইড সিস্টেম (DLAS) ২০২৬ · সর্বস্বত্ব সংরক্ষিত</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ ভাসমান অ্যাকশন বাটন (Floating FABs) ============ -->
+  <div class="floating-fab-group">
+    <button id="chatFab" class="floating-fab fab-chat" aria-label="AI আইনি সহকারী খুলুন" title="AI আইনি সহকারী">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </button>
+    <button id="floatingA11yBtn" class="floating-fab fab-a11y" aria-label="প্রবেশগম্যতা বিকল্প" title="প্রবেশগম্যতা">
+      <span style="font-size:18px">♿</span>
+    </button>
+  </div>
+
+  <!-- AI চ্যাট উইজেট -->
+  <div id="chatWidget" class="chat-widget hidden" role="dialog" aria-label="AI আইনি সহায়ক">
+    <div class="chat-head">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:1.3rem">🤖</span>
+        <div>
+          <strong data-i18n="aiTitle">ডিজিটাল আইনি সহকারী</strong>
+          <small style="display:block;font-size:0.72rem;opacity:0.85">DLAS AI · তাৎক্ষণিক তথ্য ও দিকনির্দেশনা</small>
+        </div>
+      </div>
+      <button id="chatClose" class="icon-btn" aria-label="বন্ধ করুন" style="color:#fff;border-color:rgba(255,255,255,0.3)">✕</button>
+    </div>
+    <div class="chat-body" id="chatBody">
+      <div class="msg bot" data-i18n="aiHello">
+        আসসালামু আলাইকুম! আমি ডিজিটাল আইনি সহকারী। সরকারি খরচে বিনামূল্যে আইনি সেবা প্রাপ্তি, আবেদন পদ্ধতি, যোগ্যতা বা আপনার আইনি সমস্যা সম্পর্কে যেকোনো প্রশ্ন করুন।
+      </div>
+    </div>
+    <form class="chat-input" id="chatForm">
+      <input id="chatText" type="text" data-i18n-ph="aiInputPh" placeholder="আপনার আইনি প্রশ্ন লিখুন…" autocomplete="off">
+      <button class="btn btn-primary btn-sm" type="submit" data-i18n="send">পাঠান</button>
+    </form>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/js/i18n.js?v=4"></script>
+  <script src="/js/console.js?v=4"></script>
+  <script src="/js/app.js?v=4"></script>
+</body>
+</html>
