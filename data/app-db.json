@@ -153,7 +153,7 @@
   "d33ac6ddfd2c6e8bae49a243cc46554c44052e755c59b7ebcf1bbfe4cedbfa33": {
    "userId": "cmubkqu420000lv57ub36bfkf",
    "name": "রহিমা খাতুন",
-   "role": "agent16699",
+   "role": "dlao",
    "office": "জেলা আইনি সহায়তা কার্যালয়, জয়পুরহাট",
    "createdAt": 1790245800247,
    "expiresAt": 1790850600247
@@ -893,7 +893,7 @@
    "problem": "Deno-mohor problem",
    "office": "জেলা আইনি সহায়তা কার্যালয়, ঢাকা",
    "sensitive": false,
-   "stage": 0,
+   "stage": 2,
    "history": [
     {
      "at": "2026-09-24T11:42:23.696Z",
@@ -917,6 +917,29 @@
      "action": "application-created",
      "detail": "সরাসরি জমা",
      "provenance": "applicant-confirmed"
+    },
+    {
+     "at": "2026-09-24T13:58:47.068Z",
+     "actor": {
+      "id": "cmubkqu420000lv57ub36bfkf",
+      "name": "রহিমা খাতুন",
+      "role": "dlao"
+     },
+     "role": "dlao",
+     "action": "acceptance",
+     "detail": "যোগ্যতা যাচাইকৃত",
+     "provenance": "staff-entered",
+     "humanDecision": true
+    },
+    {
+     "at": "2026-09-24T13:58:47.068Z",
+     "actor": {
+      "role": "system"
+     },
+     "role": "system",
+     "action": "case-created",
+     "detail": "Case ID তৈরি হয়েছে",
+     "provenance": "staff-entered"
     }
    ],
    "provenance": {
@@ -927,7 +950,83 @@
     "income": "applicant-confirmed"
    },
    "channel": "web",
-   "createdAt": "2026-09-24T11:42:23.696Z"
+   "createdAt": "2026-09-24T11:42:23.696Z",
+   "caseId": "DLAS-CASE-2026-00903"
+  },
+  {
+   "appId": "DLAS-NET-2026-04433",
+   "userId": "cmubkqu420000lv57ub36bfkf",
+   "name": "Test User",
+   "phone": "01711223344",
+   "nid": "",
+   "district": "ঢাকা",
+   "caseType": "family",
+   "purpose": "new",
+   "emergency": false,
+   "income": null,
+   "deps": null,
+   "problem": "Land dispute problem description test",
+   "office": "জেলা আইনি সহায়তা কার্যালয়, ঢাকা",
+   "sensitive": false,
+   "stage": 2,
+   "history": [
+    {
+     "at": "2026-09-24T14:36:25.585Z",
+     "label": "আবেদন জমা হয়েছে"
+    }
+   ],
+   "tasks": [],
+   "documents": [],
+   "representation": null,
+   "safeContact": null,
+   "failedContacts": [],
+   "audit": [
+    {
+     "at": "2026-09-24T14:36:25.585Z",
+     "actor": {
+      "id": "cmubkqu420000lv57ub36bfkf",
+      "name": "রহিমা খাতুন",
+      "role": "dlao"
+     },
+     "role": "dlao",
+     "action": "application-created",
+     "detail": "সরাসরি জমা",
+     "provenance": "applicant-confirmed"
+    },
+    {
+     "at": "2026-09-24T14:46:16.331Z",
+     "actor": {
+      "id": "cmubkqu420000lv57ub36bfkf",
+      "name": "রহিমা খাতুন",
+      "role": "dlao"
+     },
+     "role": "dlao",
+     "action": "acceptance",
+     "detail": "যোগ্যতা যাচাইকৃত",
+     "provenance": "staff-entered",
+     "humanDecision": true
+    },
+    {
+     "at": "2026-09-24T14:46:16.331Z",
+     "actor": {
+      "role": "system"
+     },
+     "role": "system",
+     "action": "case-created",
+     "detail": "Case ID তৈরি হয়েছে",
+     "provenance": "staff-entered"
+    }
+   ],
+   "provenance": {
+    "name": "applicant-confirmed",
+    "phone": "applicant-confirmed",
+    "nid": "applicant-confirmed",
+    "problem": "applicant-confirmed",
+    "income": "applicant-confirmed"
+   },
+   "channel": "web",
+   "createdAt": "2026-09-24T14:36:25.585Z",
+   "caseId": "DLAS-CASE-2026-00904"
   }
  ],
  "complaints": [],
@@ -1116,14 +1215,19 @@
    "q": "হ্যালো",
    "at": "2026-09-24T10:57:23.440Z",
    "matched": "greeting"
+  },
+  {
+   "q": "Hello",
+   "at": "2026-09-24T14:08:50.012Z",
+   "matched": "greeting"
   }
  ],
  "otps": {},
  "counters": {
-  "application": 4432,
+  "application": 4433,
   "complaint": 100,
   "user": 10,
-  "case": 902
+  "case": 904
  },
  "syncLog": [
   {
