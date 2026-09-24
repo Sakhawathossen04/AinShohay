@@ -86,6 +86,8 @@ html {
   font-size: calc(16px * var(--fscale));
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 body {
@@ -97,6 +99,9 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  position: relative;
 }
 
 .app-main { flex: 1; }
@@ -2246,7 +2251,7 @@ img, svg { vertical-align: middle; }
 .map-popup strong { display: block; font-size: 0.95rem; margin-bottom: 3px; }
 .map-popup span { font-size: 0.82rem; color: #475569; }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
 
   /* Topbar: clean, centered, elegant */
   .gov-topbar-inner {
@@ -2272,6 +2277,8 @@ img, svg { vertical-align: middle; }
   .header-inner {
     padding: 8px 12px;
     gap: 8px;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   /* Brand adjustments */
@@ -2305,10 +2312,14 @@ img, svg { vertical-align: middle; }
     margin-left: auto;
     flex-shrink: 0;
   }
+  .desk-only,
+  .header-actions .desk-only,
   .header-actions .header-login-btn,
   .header-actions .header-cta-btn,
-  .header-actions .header-a11y-btn {
-    display: none;
+  .header-actions .header-a11y-btn,
+  .header-actions #loginLink,
+  .header-actions #a11yToggle {
+    display: none !important;
   }
   .lang-switch-btn {
     font-size: 0.8rem;
