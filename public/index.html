@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <link rel="stylesheet" href="/css/styles.css?v=8">
+  <link rel="stylesheet" href="/css/styles.css?v=10">
 </head>
 <body>
 
@@ -61,15 +61,21 @@
         <a href="#/topics" data-i18n="navLibrary">আইনি তথ্য</a>
         <a href="#/services" data-i18n="navServices">সেবাসমূহ</a>
         <a href="#/offices" data-i18n="navOffices">অফিস খুঁজুন</a>
+
+        <div class="mobile-nav-actions">
+          <a class="btn-ref-login mobile-login-btn" href="#/login" id="mobileLoginLink">👤 লগইন করুন</a>
+          <a class="btn-ref-cta mobile-cta-btn" href="#/apply">আইনি সহায়তা পান →</a>
+          <a class="btn-ref-tel mobile-tel-btn" href="tel:16699">📞 হেল্পলাইন ১৬৬৯৯ (টোল-ফ্রি)</a>
+        </div>
       </nav>
 
       <div class="header-actions">
         <button class="lang-switch-btn" id="langToggle" title="English" aria-label="ভাষা পরিবর্তন">文A English</button>
-        <a class="btn-ref-tel" href="tel:16699" id="callBtn" title="১৬৬৯৯ কল করুন">📞 ১৬৬৯৯</a>
+        <a class="btn-ref-tel" href="tel:16699" id="callBtn" title="১৬৬৯৯ কল করুন">📞 <span class="tel-text">১৬৬৯৯</span></a>
 
-        <button class="icon-btn" id="a11yToggle" title="প্রবেশগম্যতা বিকল্প" aria-label="প্রবেশগম্যতা">♿</button>
-        <a class="btn-ref-login" href="#/login" id="loginLink">লগইন <span style="font-size:14px">👤</span></a>
-        <a class="btn-ref-cta" href="#/apply">আইনি সহায়তা পান →</a>
+        <button class="icon-btn header-a11y-btn" id="a11yToggle" title="প্রবেশগম্যতা বিকল্প" aria-label="প্রবেশগম্যতা">♿</button>
+        <a class="btn-ref-login header-login-btn" href="#/login" id="loginLink">লগইন <span style="font-size:14px">👤</span></a>
+        <a class="btn-ref-cta header-cta-btn" href="#/apply">আইনি সহায়তা পান →</a>
       </div>
 
       <button class="icon-btn nav-burger" id="navBurger" aria-label="মোবাইল মেনু">☰</button>
@@ -269,6 +275,6 @@
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="/js/i18n.js?v=8"></script>
   <script src="/js/console.js?v=8"></script>
-  <script src="/js/app.js?v=8"></script>
+  <script src="/js/app.js?v=10"></script>
 </body>
 </html>

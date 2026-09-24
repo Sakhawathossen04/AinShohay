@@ -99,8 +99,26 @@ function initShell() {
 
   // মোবাইল মেনু
   const navBurger = $('#navBurger');
-  if (navBurger) {
-    navBurger.onclick = () => $('#mainNav').classList.toggle('open');
+  const mainNav = $('#mainNav');
+  if (navBurger && mainNav) {
+    navBurger.onclick = (e) => {
+      e.stopPropagation();
+      const isOpen = mainNav.classList.toggle('open');
+      navBurger.setAttribute('aria-expanded', isOpen);
+      navBurger.textContent = isOpen ? '✕' : '☰';
+    };
+    mainNav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mainNav.classList.remove('open');
+        navBurger.textContent = '☰';
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!mainNav.contains(e.target) && !navBurger.contains(e.target)) {
+        mainNav.classList.remove('open');
+        navBurger.textContent = '☰';
+      }
+    });
   }
 
   // চ্যাট উইজেট
