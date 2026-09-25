@@ -128,10 +128,26 @@ function handleApplications(req, res, pathParts, query, body, ctx) {
     let whereClause = '1=1';
     const params = [];
 
-    // Role-based privacy (G9): CITIZEN / REPRESENTATIVE see only their bound application
+    // Role-based privacy (G9): CITIZEN / REPRESENTATIVE see only their own
+    // applications — bound session, or matched by verified phone/NID.
     if (ctx && (ctx.role === 'CITIZEN' || ctx.role === 'REPRESENTATIVE')) {
-      whereClause += ' AND a.id = ?';
-      params.push(ctx.citizenApplicationId || '__none__');
+      if (ctx.citizenApplicationId) {
+        whereClause += ' AND (a.id = ? OR ap.primaryPhone = (SELECT primaryPhone FROM Applicant WHERE id = (SELECT applicantId FROM Application WHERE id = ?)))';
+        params.push(ctx.citizenApplicationId, ctx.citizenApplicationId);
+      } else if (ctx.userId) {
+        // Citizen reached dashboard without an application-bound session —
+        // show records whose registered phone matches the account phone.
+        const me = db.get('SELECT phone FROM User WHERE id = ?', [ctx.userId]);
+        const myPhone = (me && me.phone || '').replace(/\D/g, '').slice(-10);
+        if (myPhone.length === 10) {
+          whereClause += " AND REPLACE(ap.primaryPhone, '-', '') LIKE ?";
+          params.push('%' + myPhone);
+        } else {
+          whereClause += ' AND 1=0';
+        }
+      } else {
+        whereClause += ' AND 1=0';
+      }
     }
 
     if (query.status) {
@@ -159,27 +175,77 @@ function handleApplications(req, res, pathParts, query, body, ctx) {
   }
 
   // POST /api/applications (New Application Submission)
+  // Accepts BOTH the strict API shape (narrative/applicantName/…) and the
+  // public web-form shape (name/phone/problem/…) so the 6-step citizen form
+  // can never fail with "missing/readonly" errors after a full walkthrough.
   if (req.method === 'POST') {
+    const b = body || {};
+
+    const applicantName = (b.applicantName || b.name || '').trim() || 'নাম উল্লেখ নেই';
+    const applicantPhone = (b.applicantPhone || b.phone || '').trim() || null;
+    const applicantNidRef = (b.applicantNidRef || b.nid || '').trim() || null;
+    const narrative = (b.narrative || b.problem || b.factsSummary || '').trim() || 'বিবরণ সরবরাহ করা হয়নি';
+    const district = (b.district || '').trim() || 'ঢাকা';
+    let caseType = (b.caseType || b.legalIssueCategory || 'OTHER').trim();
+    let channel = (b.channel || 'WEB').trim().toUpperCase();
+    let provenance = (b.provenance || '').trim().toUpperCase();
+
+    // Map friendly UI case-type ids to the published CASE_TYPE ids
+    const CASE_TYPE_ALIASES = {
+      family: ['family', 'women', 'MAINTENANCE', 'DOMESTIC_VIOLENCE', 'DOWRY'],
+      safety: ['safety', 'DOMESTIC_VIOLENCE'],
+      land: ['land', 'LAND_DISPUTE'],
+      money: ['money', 'FRAUD'],
+      labour: ['labour', 'LABOUR_WAGES'],
+      cyber: ['cyber', 'CYBER_HARASSMENT'],
+      crime: ['crime', 'OTHER'],
+      civil: ['civil', 'OTHER'],
+      govt: ['govt', 'OTHER'],
+      women: ['women', 'DOWRY'],
+    };
+    if (!CASE_TYPE_IDS.includes(caseType)) {
+      let mapped = 'OTHER';
+      for (const [uiId, allowed] of Object.entries(CASE_TYPE_ALIASES)) {
+        if (caseType === uiId) { mapped = allowed[1] || 'OTHER'; break; }
+      }
+      caseType = mapped;
+    }
+
+    const CHANNEL_ALIASES = {
+      WEB: 'WEB', 'WEB_FORM': 'WEB', ONLINE: 'WEB',
+      'VOICE_IVR': 'VOICE_IVR', IVR: 'VOICE_IVR', VOICE: 'VOICE_IVR',
+      'USSD_SMS': 'USSD_SMS', USSD: 'USSD_SMS', SMS: 'USSD_SMS',
+      'ASSISTED_UDC': 'ASSISTED_UDC', UDC: 'ASSISTED_UDC', ASSISTED: 'ASSISTED_UDC',
+      HELPLINE: 'HELPLINE', PHONE: 'HELPLINE',
+      'DLAO_WALKIN': 'DLAO_WALKIN', WALKIN: 'DLAO_WALKIN',
+    };
+    channel = CHANNEL_ALIASES[channel] || 'WEB';
+
+    const PROVENANCE_ALIASES = {
+      'APPLICANT_CONFIRMED': 'APPLICANT_CONFIRMED', APPLICANT: 'APPLICANT_CONFIRMED',
+      'REPRESENTATIVE_REPORTED': 'REPRESENTATIVE_REPORTED', REPRESENTATIVE: 'REPRESENTATIVE_REPORTED', REP: 'REPRESENTATIVE_REPORTED',
+      'INTERMEDIARY_TRANSLATED': 'INTERMEDIARY_TRANSLATED', INTERMEDIARY: 'INTERMEDIARY_TRANSLATED',
+      'STAFF_ENTERED': 'STAFF_ENTERED', STAFF: 'STAFF_ENTERED',
+      'AI_INFERRED': 'AI_INFERRED', AI: 'AI_INFERRED',
+    };
+    if (!provenance || !PROVENANCE_LIST.includes(provenance)) {
+      provenance = b.isRep || b.representation ? 'REPRESENTATIVE_REPORTED'
+        : (b.assistedBy || channel === 'ASSISTED_UDC') ? 'INTERMEDIARY_TRANSLATED'
+        : 'APPLICANT_CONFIRMED';
+    }
+
+    const urgencyFlag = !!(b.urgencyFlag || b.emergency || b.urgent);
+    const sensitiveFlag = !!(b.sensitiveFlag || b.sensitive);
     const {
-      channel = "WEB",
-      caseType,
-      narrative,
-      district,
-      applicantName,
-      applicantPhone,
-      applicantNidRef,
       upazila,
-      urgencyFlag = false,
-      sensitiveFlag = false,
-      provenance = "APPLICANT_CONFIRMED",
       tempUuid,
       assistedByUserId,
       consentScope,
       contactNote,
-    } = body;
+    } = b;
 
-    if (!channel || !caseType || !narrative || !district || !applicantName || !provenance) {
-      return { status: 400, data: { error: "Missing required fields: channel, caseType, narrative, district, applicantName, provenance" } };
+    if (!applicantName || !narrative || !district) {
+      return { status: 400, data: { error: 'নাম, জেলা ও সমস্যার বিবরণ আবশ্যক' } };
     }
 
     if (!CHANNEL_LIST.includes(channel)) return { status: 400, data: { error: `INVALID_CHANNEL: ${channel}` } };
@@ -249,8 +315,9 @@ function handleApplications(req, res, pathParts, query, body, ctx) {
         `, [
           consentId, applicationId, consentScope || "FULL_INTAKE",
           "ইউডিসি উদ্যোক্তার সহায়তায় আবেদন প্রস্তুত ও দাখিল", "ACTIVE",
-          applicantId, assistedByUserId || null, representativeName || "UDC উদ্যোক্তা",
-          "REPRESENTATIVE", channel, now
+          applicantId, assistedByUserId || null,
+          (b.representation && b.representation.repName) || b.repName || "UDC উদ্যোক্তা",
+          (b.representation && b.representation.relation) || b.repRelation || "REPRESENTATIVE", channel, now
         ]);
       }
 

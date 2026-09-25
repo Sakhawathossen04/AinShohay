@@ -14,6 +14,34 @@ let BOOT = null;           // /api/bootstrap থেকে আসা ডেটা
 let ME = null;             // লগইন করা ইউজার
 const bnNum = (s) => String(s).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[d]);
 
+// SQLite API-র case-type আইডি → বাংলা লেবেল (dashboard/track দেখানোর জন্য)
+const SQL_CASE_TYPE_BN = {
+  MAINTENANCE: 'ভরণপোষণ', DOMESTIC_VIOLENCE: 'পারিবারিক সহিংসতা', DOWRY: 'যৌতুক',
+  LAND_DISPUTE: 'ভূমি বিরোধ', LABOUR_WAGES: 'শ্রম ও মজুরি', CYBER_HARASSMENT: 'অনলাইন হয়রানি',
+  FRAUD: 'প্রতারণা', OTHER: 'অন্যান্য'
+};
+function ctLabel(id) {
+  if (!id) return 'সাধারণ';
+  if (SQL_CASE_TYPE_BN[id]) return SQL_CASE_TYPE_BN[id];
+  const c = ((BOOT && BOOT.caseTypes) || []).find((x) => x.id === id);
+  return (c && c.label) || id;
+}
+// Application status → dashboard stage (0-4)
+function stageFromStatus(status, caseStatus) {
+  switch (status) {
+    case 'SUBMITTED': return 0;
+    case 'UNDER_REVIEW': case 'MORE_INFO_NEEDED': return 1;
+    case 'ACCEPTED': return 2;
+    case 'CONVERTED_TO_CASE': {
+      if (caseStatus === 'CLOSED') return 4;
+      if (caseStatus === 'LAWYER_ASSIGNED' || caseStatus === 'IN_SERVICE') return 3;
+      return 2;
+    }
+    case 'REJECTED': return 4;
+    default: return 0;
+  }
+}
+
 async function apiGet(name, params = {}) {
   const q = new URLSearchParams(params).toString();
   const r = await fetch('/api/' + name + (q ? '?' + q : ''));
@@ -556,8 +584,8 @@ async function pageHome() {
       </div>
       <div class="hero-demo-chips">
         <span>${t('demoTrackTest')}</span>
-        <button type="button" class="chip-ref-demo" id="hDemo1">APP-2026-0001 (ময়ূরী / ৩৩৪৪)</button>
-        <button type="button" class="chip-ref-demo" id="hDemo2">DLAS-NET-2026-04420 (৩৩৪৪)</button>
+        <button type="button" class="chip-ref-demo" id="hDemo1">DLAS-NET-2026-04420 (ময়ূরী / ০০০১)</button>
+        <button type="button" class="chip-ref-demo" id="hDemo2">APP-2026-0001 (ময়ূরী / ৩৩৪৪)</button>
       </div>
     </div>
   </section>
@@ -720,13 +748,13 @@ async function pageHome() {
   const hDemo1 = $('#hDemo1');
   if (hDemo1) {
     hDemo1.onclick = () => {
-      location.hash = '#/track?id=APP-2026-0001&last4=3344';
+      location.hash = '#/track?id=DLAS-NET-2026-04420&last4=0001';
     };
   }
   const hDemo2 = $('#hDemo2');
   if (hDemo2) {
     hDemo2.onclick = () => {
-      location.hash = '#/track?id=DLAS-NET-2026-04420&last4=3344';
+      location.hash = '#/track?id=APP-2026-0001&last4=3344';
     };
   }
   const btnOpenUssd = $('#btnOpenUssd');
@@ -1076,8 +1104,8 @@ async function pageTrack(queryStr) {
 
       <div style="margin-top:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:0.84rem;color:var(--text-muted)">
         <span>ডেমো রেকর্ড:</span>
-        <button type="button" class="chip-demo" id="t_demo1" data-id="APP-2026-0001" data-last4="3344">APP-2026-0001 (ময়ূরী / ৩৩৪৪)</button>
-        <button type="button" class="chip-demo" id="t_demo2" data-id="DLAS-NET-2026-04420" data-last4="3344">DLAS-NET-2026-04420 (৩৩৪৪)</button>
+        <button type="button" class="chip-demo" id="t_demo1" data-id="DLAS-NET-2026-04420" data-last4="0001">DLAS-NET-2026-04420 (ময়ূরী / ০০০১)</button>
+        <button type="button" class="chip-demo" id="t_demo2" data-id="APP-2026-0001" data-last4="3344">APP-2026-0001 (৩৩৪৪)</button>
       </div>
 
       <div class="wizard-actions">
@@ -1181,13 +1209,13 @@ async function pageTrack(queryStr) {
   $('#t_go').onclick = doTrack;
 
   $('#t_demo1').onclick = () => {
-    $('#t_id').value = 'APP-2026-0001';
-    $('#t_last4').value = '3344';
+    $('#t_id').value = 'DLAS-NET-2026-04420';
+    $('#t_last4').value = '0001';
     doTrack();
   };
 
   $('#t_demo2').onclick = () => {
-    $('#t_id').value = 'DLAS-NET-2026-04420';
+    $('#t_id').value = 'APP-2026-0001';
     $('#t_last4').value = '3344';
     doTrack();
   };
@@ -1610,11 +1638,12 @@ async function pageApply(queryStr) {
       const stored = JSON.parse(localStorage.getItem('dlas_my_apps') || '[]');
       stored.unshift({
         appId: finalAppId,
-        caseType: d.caseType,
+        caseType: ctLabel(d.caseType),
         district: d.district,
         submittedAt: new Date().toISOString(),
         status: 'অপেক্ষমাণ (UNDER_REVIEW)',
-        stage: 0
+        stage: d.emergency ? 1 : 0,
+        last4: (d.phone || '').replace(/\D/g, '').slice(-4) || '3344'
       });
       localStorage.setItem('dlas_my_apps', JSON.stringify(stored.slice(0, 30)));
     } catch (e) {}
@@ -1673,7 +1702,35 @@ async function pageDashboard() {
 
   // Merge unique by appId
   const combinedMap = new Map();
-  serverApps.forEach(a => combinedMap.set(a.appId, a));
+  // JSON application store (DLAS-NET-*) app for the logged-in citizen's phone
+  if (ME && ME.citizenApplicationId && /^DLAS-NET-/.test(String(ME.citizenApplicationId))) {
+    try {
+      const tr = await apiPost('track', { appId: ME.citizenApplicationId, last4: '' });
+      if (!tr.error && tr.appId) {
+        combinedMap.set(tr.appId, {
+          appId: tr.appId,
+          caseType: tr.caseType || 'সাধারণ',
+          district: tr.district || '',
+          submittedAt: tr.submitted || tr.createdAt || null,
+          stage: (typeof tr.stage === 'number') ? tr.stage : 0,
+          emergency: !!tr.emergency,
+          last4: ((ME.phoneDigits || '') + '').replace(/\D/g, '').slice(-4) || '0001'
+        });
+      }
+    } catch (e) {}
+  }
+  // Normalize server (SQLite) rows into the dashboard shape
+  serverApps.forEach(a => {
+    combinedMap.set(a.appId || a.id, {
+      appId: a.appId || a.id,
+      caseType: ctLabel(a.caseType),
+      district: a.district || a.applicantDistrict || '',
+      submittedAt: a.submittedAt || a.createdAt,
+      stage: stageFromStatus(a.status, a.caseStatus),
+      emergency: !!(a.emergency || a.urgencyFlag),
+      last4: ((a.phone || a.primaryPhone || '') + '').replace(/\D/g, '').slice(-4) || '3344'
+    });
+  });
   localApps.forEach(a => {
     if (!combinedMap.has(a.appId)) combinedMap.set(a.appId, a);
   });
@@ -1720,7 +1777,7 @@ async function pageDashboard() {
     ${apps.length ? `
       <div class="myapps">
         ${apps.map(a => `
-          <a class="app-card" href="#/track?id=${encodeURIComponent(a.appId)}&last4=3344" style="text-decoration:none;color:inherit">
+          <a class="app-card" href="#/track?id=${encodeURIComponent(a.appId)}&last4=${encodeURIComponent(a.last4 || '3344')}" style="text-decoration:none;color:inherit">
             <span class="app-stage-icon">${stageIcons[a.stage || 0] || '📝'}</span>
             <span class="app-main">
               <span class="app-id">${esc(a.appId)}</span>
@@ -1798,12 +1855,12 @@ async function pageLogin() {
         <div id="loginCitizenForm" class="${activeTab === 'citizen' ? '' : 'hidden'}">
           <div class="field">
             <label>মোবাইল নম্বর বা আবেদন আইডি <span class="req">*</span></label>
-            <input id="c_id" placeholder="যেমন: 01711223344 বা APP-2026-0001" value="01711223344">
+            <input id="c_id" placeholder="যেমন: 01700000001 বা DLAS-NET-2026-04420" value="01700000001">
           </div>
           <div class="field" style="margin-top:1rem">
             <label>৪-সংখ্যার পিন (PIN) <span class="req">*</span></label>
-            <input id="c_pin" type="password" maxlength="6" value="3344" placeholder="••••">
-            <div class="hint">ডেমো পিন: 3344 (ময়ূরী আক্তার)</div>
+            <input id="c_pin" type="password" maxlength="6" value="0001" placeholder="••••">
+            <div class="hint">ডেমো: ময়ূরী আক্তার — ফোন ০১৭০০০০০০০১ / আবেদন DLAS-NET-2026-04420, পিন/শেষ ৪ অঙ্ক: ০০০১</div>
           </div>
           <button class="btn btn-primary btn-block" id="btnCitizenSubmit" style="margin-top:1.4rem">
             👤 নাগরিক অ্যাকাউন্টে প্রবেশ করুন →
@@ -1882,7 +1939,8 @@ async function pageLogin() {
 
         const r = await apiPost('auth', { mode: 'citizen', phone: id, pin });
         if (r.error) return showErr(r.error);
-        ME = r.user || { name: 'নাগরিক', role: 'CITIZEN' };
+        ME = (r.session || r.user || { name: 'নাগরিক', role: 'CITIZEN' });
+        ME.phoneDigits = id.replace(/\D/g, '');
         renderAuthLink();
         location.hash = '#/dashboard';
         toast('সফলভাবে লগইন হয়েছে');
@@ -1899,7 +1957,7 @@ async function pageLogin() {
 
         const r = await apiPost('auth', { mode: 'staff', username, pin });
         if (r.error) return showErr(r.error);
-        ME = r.user || { name: username, role: 'OFFICER' };
+        ME = (r.session || r.user || { name: username, role: 'OFFICER' });
         renderAuthLink();
         location.hash = '#/console';
         toast('কর্মকর্তা কনসোলে প্রবেশ সম্পন্ন');
@@ -1913,9 +1971,10 @@ async function pageLogin() {
         const code = $('#d_code').value.trim();
         const r = await apiPost('auth', { mode: 'staff', username: code, pin: '1234' });
         if (r.error) return showErr(r.error);
-        ME = r.user || { name: code, role: 'UDC' };
+        ME = (r.session || r.user || { name: code, role: 'UDC' });
         renderAuthLink();
         location.hash = '#/console';
+        toast('এক্সেস অনুমোদিত');
       };
     }
   }
@@ -1976,34 +2035,129 @@ async function pageEligibility() {
 
 async function pageOffices() {
   const offices = (BOOT && BOOT.offices) || [];
+  const districtOffices = offices.filter(o => o.type === 'district');
+  const divisionList = [...new Set(districtOffices.map(o => o.division))];
+
   app.innerHTML = `
   <div class="container page-head">
     <span class="section-tag">দেশব্যাপী নেটওয়ার্ক</span>
     <h1>🗺️ ৬৪ জেলা ও বিশেষায়িত লিগ্যাল এইড অফিসসমূহ</h1>
-    <p>প্রতিটি জেলা জজ আদালত ভবনে অবস্থিত লিগ্যাল এইড অফিসে সরাসরি যোগাযোগ করতে পারেন।</p>
-    <div class="search-bar" style="margin-top:1rem;max-width:100%">
-      <input id="offQ" placeholder="জেলার নাম লিখুন — যেমন: জয়পুরহাট, ঢাকা, চট্টগ্রাম...">
-    </div>
+    <p>বাম পাশের তালিকা থেকে জেলা নির্বাচন করুন — ডান পাশের মানচিত্রে অফিসের অবস্থান দেখাবে। মানচিত্রের নীল পয়েন্টে ক্লিক করলেও জেলার তথ্য দেখা যাবে।</p>
   </div>
   <div class="container">
-    <div class="services-grid" id="offGrid"></div>
+    <div class="office-explorer">
+      <!-- Left: scrollable 64-district list -->
+      <div class="office-list-panel">
+        <div class="search-bar" style="margin:0 0 10px">
+          <input id="offQ" placeholder="জেলা খুঁজুন — যেমন: জয়পুরহাট, ঢাকা...">
+        </div>
+        <div class="office-list-scroll" id="officeList"></div>
+      </div>
+      <!-- Right: interactive Leaflet map -->
+      <div class="office-map-panel">
+        <div id="officeMap"></div>
+        <div class="office-map-detail" id="officeDetail">
+          <span>👆 তালিকা বা মানচিত্র থেকে একটি জেলা নির্বাচন করুন</span>
+        </div>
+      </div>
+    </div>
   </div>`;
 
-  const render = (q = '') => {
-    const matched = offices.filter(o => !q || (o.name + ' ' + o.district + ' ' + (o.address || '')).toLowerCase().includes(q.toLowerCase()));
-    $('#offGrid').innerHTML = matched.map(o => `
-      <div class="service-card">
-        <h3>🏛️ ${esc(o.name)}</h3>
-        <p style="font-size:0.88rem;color:var(--text-muted);margin:6px 0">${esc(o.address || 'জেলা জজ আদালত ভবন')}</p>
-        <div style="font-size:0.85rem;margin-top:8px"><strong>ফোন:</strong> ${esc(o.phone || '১৬৬৯৯')}</div>
-        <div style="font-size:0.85rem"><strong>সময়:</strong> রবিবার–বৃহস্পতিবার, সকাল ৯টা–বিকাল ৫টা</div>
-        <a class="btn btn-outline btn-sm btn-block" href="tel:${esc((o.phone || '16699').replace(/\D/g, ''))}" style="margin-top:10px">📞 কল করুন</a>
-      </div>
-    `).join('') || '<div class="empty-state">কোনো অফিস পাওয়া যায়নি।</div>';
+  // ---------- map init (Leaflet already loaded via index.html) ----------
+  let map = null;
+  const markers = [];
+  if (typeof L !== 'undefined' && $('#officeMap')) {
+    map = L.map('officeMap', { scrollWheelZoom: true }).setView([23.7, 90.35], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    offices.forEach(o => {
+      if (o.lat == null || o.lng == null) return;
+      const m = L.circleMarker([o.lat, o.lng], {
+        radius: 6,
+        color: '#FFF',
+        weight: 1.5,
+        fillColor: '#05513A',
+        fillOpacity: 0.9
+      }).addTo(map);
+      m.bindTooltip(o.district, { direction: 'top' });
+      m.on('click', () => selectOffice(o.id, { fromMap: true }));
+      markers.push({ id: o.id, marker: m });
+    });
+  }
+
+  const focusOnMap = (o) => {
+    if (!map || o.lat == null) return;
+    map.flyTo([o.lat, o.lng], 11, { duration: 0.6 });
+    const hit = markers.find(x => x.id === o.id);
+    if (hit) {
+      markers.forEach(x => x.marker.setStyle({ fillColor: '#05513A', radius: 6 }));
+      hit.marker.setStyle({ fillColor: '#D97706', radius: 10 });
+    }
   };
 
-  render();
-  $('#offQ').oninput = (e) => render(e.target.value);
+  const showDetail = (o) => {
+    const box = $('#officeDetail');
+    if (!box) return;
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <h3 style="margin:0 0 4px">🏛️ ${esc(o.name)}</h3>
+          <div style="font-size:0.85rem;color:var(--text-muted)">${esc(o.address || 'জেলা জজ আদালত ভবন')}</div>
+          <div style="font-size:0.85rem;margin-top:6px"><strong>ফোন:</strong> ${esc(o.phone || '১৬৬৯৯')} · <strong>সময়:</strong> ${esc(o.hours || 'রবি–বৃহস্পতি, সকাল ৯টা–বিকাল ৫টা')}</div>
+        </div>
+        <a class="btn btn-primary btn-sm" href="tel:${esc((o.phone || '16699').replace(/\D/g, ''))}">📞 কল করুন</a>
+      </div>`;
+  };
+
+  const selectOffice = (id, opts = {}) => {
+    const o = offices.find(x => x.id === id);
+    if (!o) return;
+    showDetail(o);
+    focusOnMap(o);
+    if (!opts.fromMap) {
+      // highlight + scroll the list row into view
+      $$('.office-row').forEach(r => r.classList.remove('active'));
+      const row = $(`.office-row[data-id="${id}"]`);
+      if (row) {
+        row.classList.add('active');
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    } else {
+      $$('.office-row').forEach(r => r.classList.toggle('active', r.dataset.id === id));
+    }
+  };
+
+  // ---------- left list ----------
+  const renderList = (q = '') => {
+    const ql = q.trim().toLowerCase();
+    const matched = districtOffices.filter(o => !ql || (o.name + ' ' + o.district + ' ' + (o.division || '')).toLowerCase().includes(ql));
+    let html = '';
+    divisionList.forEach(div => {
+      const items = matched.filter(o => o.division === div);
+      if (!items.length) return;
+      html += `<div class="office-div-label">${esc(div)} বিভাগ</div>`;
+      html += items.map(o => `
+        <button type="button" class="office-row" data-id="${o.id}">
+          <span class="office-row-no">${bnNum(districtOffices.indexOf(o) + 1)}</span>
+          <span class="office-row-name">
+            <strong>${esc(o.district)}</strong>
+            <small>${esc(o.division || '')} বিভাগ</small>
+          </span>
+          <span class="office-row-arrow">›</span>
+        </button>
+      `).join('');
+    });
+    $('#officeList').innerHTML = html || '<div class="empty-state">কোনো জেলা পাওয়া যায়নি।</div>';
+    $$('.office-row').forEach(btn => {
+      btn.onclick = () => selectOffice(btn.dataset.id);
+    });
+  };
+
+  renderList();
+  $('#offQ').oninput = (e) => renderList(e.target.value);
 }
 
 async function pageNews() {
@@ -2226,6 +2380,11 @@ function renderAuthLink() {
   } catch (e) {
     console.error('Failed to load bootstrap data:', e);
   }
+  // Cookie session restore — লগইন পেজ রিলোডেও টিকে থাকে
+  try {
+    const s = await apiGet('auth');
+    if (s && s.session && s.session.role) ME = s.session;
+  } catch (e) {}
   renderAuthLink();
   await route();
 })();

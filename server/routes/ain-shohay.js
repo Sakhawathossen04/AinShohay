@@ -498,7 +498,7 @@ api.applications_POST = (b, req) => {
   };
 };
 
-api.track = (b) => {
+api.track = (b, req) => {
   const d = db.load();
   const id = (b.appId || b.reference || '').trim().toUpperCase();
   const last4 = (b.last4 || b.contactLast4 || '').trim();
@@ -612,7 +612,18 @@ api.track = (b) => {
   const phoneDigits = (app.phone || '').replace(/\D/g, '');
   const nidDigits = (app.nid || '').replace(/\D/g, '');
   if (!last4 || (!phoneDigits.endsWith(last4) && !nidDigits.endsWith(last4))) {
-    return { error: 'ফোন নম্বর বা এনআইডির শেষ ৪ ডিজিট মিলেনি' };
+    // Allow when the request carries the citizen's own session bound to this
+    // application (dashboard merge uses this after phone/appId login).
+    let sessionAllowed = false;
+    try {
+      const ck = String((req && req.headers && req.headers.cookie) || '');
+      const tm = ck.match(/(?:^|;\s*)dlas_session=([a-f0-9]{16,})/);
+      if (tm && sqliteDb) {
+        const sess = sqliteDb.get('SELECT citizenApplicationId FROM Session WHERE token = ? AND expiresAt > ?', [tm[1], new Date().toISOString()]);
+        if (sess && String(sess.citizenApplicationId || '').toUpperCase() === id) sessionAllowed = true;
+      }
+    } catch (e) {}
+    if (!sessionAllowed) return { error: 'ফোন নম্বর বা এনআইডির শেষ ৪ ডিজিট মিলেনি' };
   }
   const nextLabel = app.stage < seed.APPLICATION_STAGES.length - 1 ? seed.APPLICATION_STAGES[app.stage + 1].label : null;
   const headsUp = [];
@@ -628,7 +639,7 @@ api.track = (b) => {
     nextStep: nextLabel,
     headsUp,
     stages: seed.APPLICATION_STAGES.map((s, i) => ({ ...s, done: i <= app.stage, current: i === app.stage })),
-    office: app.office, caseType: app.caseType, emergency: app.emergency,
+    office: app.office, district: app.district, caseType: app.caseType, emergency: app.emergency,
     submitted: app.createdAt, history: app.history,
     note: 'সম্পূর্ণ বিবরণের জন্য নিকটবর্তী লিগ্যাল এইড অফিসে যোগাযোগ করুন।'
   };

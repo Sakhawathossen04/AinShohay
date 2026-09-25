@@ -1076,6 +1076,202 @@
    },
    "channel": "assisted",
    "createdAt": "2026-09-24T16:31:47.543Z"
+  },
+  {
+   "appId": "DLAS-NET-2026-04435",
+   "userId": null,
+   "name": "Test User",
+   "phone": "01711223344",
+   "nid": "",
+   "district": "ঢাকা",
+   "caseType": "family",
+   "purpose": "new",
+   "emergency": false,
+   "income": null,
+   "deps": null,
+   "problem": "জমি বিরোধ পরীক্ষা",
+   "office": "জেলা আইনি সহায়তা কার্যালয়, ঢাকা",
+   "sensitive": false,
+   "stage": 0,
+   "history": [
+    {
+     "at": "2026-09-25T06:07:52.193Z",
+     "label": "আবেদন জমা হয়েছে"
+    }
+   ],
+   "tasks": [],
+   "documents": [],
+   "representation": null,
+   "safeContact": null,
+   "failedContacts": [],
+   "audit": [
+    {
+     "at": "2026-09-25T06:07:52.193Z",
+     "actor": {
+      "role": "applicant"
+     },
+     "role": "applicant",
+     "action": "application-created",
+     "detail": "সরাসরি জমা",
+     "provenance": "applicant-confirmed"
+    }
+   ],
+   "provenance": {
+    "name": "applicant-confirmed",
+    "phone": "applicant-confirmed",
+    "nid": "applicant-confirmed",
+    "problem": "applicant-confirmed",
+    "income": "applicant-confirmed"
+   },
+   "channel": "assisted",
+   "createdAt": "2026-09-25T06:07:52.193Z"
+  },
+  {
+   "appId": "DLAS-NET-2026-04436",
+   "userId": null,
+   "name": "পরীক্ষা ব্যবহারকারী",
+   "phone": "01711223344",
+   "nid": "1234567890",
+   "district": "ঢাকা",
+   "caseType": "land",
+   "purpose": "new",
+   "emergency": false,
+   "income": "below_15k",
+   "deps": null,
+   "problem": "পরীক্ষামূলক জমি বিরোধের আবেদন",
+   "office": "জেলা আইনি সহায়তা কার্যালয়, ঢাকা",
+   "sensitive": false,
+   "stage": 0,
+   "history": [
+    {
+     "at": "2026-09-25T06:44:34.016Z",
+     "label": "আবেদন জমা হয়েছে"
+    }
+   ],
+   "tasks": [],
+   "documents": [],
+   "representation": null,
+   "safeContact": null,
+   "failedContacts": [],
+   "audit": [
+    {
+     "at": "2026-09-25T06:44:34.016Z",
+     "actor": {
+      "role": "applicant"
+     },
+     "role": "applicant",
+     "action": "application-created",
+     "detail": "সরাসরি জমা",
+     "provenance": "applicant-confirmed"
+    }
+   ],
+   "provenance": {
+    "name": "applicant-confirmed",
+    "phone": "applicant-confirmed",
+    "nid": "applicant-confirmed",
+    "problem": "applicant-confirmed",
+    "income": "applicant-confirmed"
+   },
+   "channel": "assisted",
+   "createdAt": "2026-09-25T06:44:34.016Z"
+  },
+  {
+   "appId": "DLAS-NET-2026-04437",
+   "userId": null,
+   "name": "পরীক্ষা ব্যবহারকারী",
+   "phone": "01711223344",
+   "nid": "1234567890",
+   "district": "ঢাকা",
+   "caseType": "land",
+   "purpose": "new",
+   "emergency": false,
+   "income": "below_15k",
+   "deps": null,
+   "problem": "পরীক্ষামূলক জমি বিরোধের আবেদন",
+   "office": "জেলা আইনি সহায়তা কার্যালয়, ঢাকা",
+   "sensitive": false,
+   "stage": 0,
+   "history": [
+    {
+     "at": "2026-09-25T06:48:42.698Z",
+     "label": "আবেদন জমা হয়েছে"
+    }
+   ],
+   "tasks": [],
+   "documents": [],
+   "representation": null,
+   "safeContact": null,
+   "failedContacts": [],
+   "audit": [
+    {
+     "at": "2026-09-25T06:48:42.698Z",
+     "actor": {
+      "role": "applicant"
+     },
+     "role": "applicant",
+     "action": "application-created",
+     "detail": "সরাসরি জমা",
+     "provenance": "applicant-confirmed"
+    }
+   ],
+   "provenance": {
+    "name": "applicant-confirmed",
+    "phone": "applicant-confirmed",
+    "nid": "applicant-confirmed",
+    "problem": "applicant-confirmed",
+    "income": "applicant-confirmed"
+   },
+   "channel": "assisted",
+   "createdAt": "2026-09-25T06:48:42.698Z"
+  },
+  {
+   "appId": "DLAS-NET-2026-04438",
+   "userId": null,
+   "name": "ময়ূরী আক্তার",
+   "phone": "01700000001",
+   "nid": "1234567890",
+   "district": "জয়পুরহাট",
+   "caseType": "family",
+   "purpose": "new",
+   "emergency": false,
+   "income": "below_15k",
+   "deps": null,
+   "problem": "ব্রাউজার টেস্ট: স্বামী ভরণপোষণ দেন না, ফোন নিয়ন্ত্রণ করে।",
+   "office": "জেলা আইনি সহায়তা কার্যালয়, জয়পুরহাট",
+   "sensitive": false,
+   "stage": 0,
+   "history": [
+    {
+     "at": "2026-09-25T10:20:37.890Z",
+     "label": "আবেদন জমা হয়েছে"
+    }
+   ],
+   "tasks": [],
+   "documents": [],
+   "representation": null,
+   "safeContact": null,
+   "failedContacts": [],
+   "audit": [
+    {
+     "at": "2026-09-25T10:20:37.890Z",
+     "actor": {
+      "role": "applicant"
+     },
+     "role": "applicant",
+     "action": "application-created",
+     "detail": "সরাসরি জমা",
+     "provenance": "applicant-confirmed"
+    }
+   ],
+   "provenance": {
+    "name": "applicant-confirmed",
+    "phone": "applicant-confirmed",
+    "nid": "applicant-confirmed",
+    "problem": "applicant-confirmed",
+    "income": "applicant-confirmed"
+   },
+   "channel": "assisted",
+   "createdAt": "2026-09-25T10:20:37.890Z"
   }
  ],
  "complaints": [],
@@ -1293,7 +1489,7 @@
  ],
  "otps": {},
  "counters": {
-  "application": 4434,
+  "application": 4438,
   "complaint": 100,
   "user": 10,
   "case": 904
