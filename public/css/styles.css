@@ -355,6 +355,37 @@ img, svg { vertical-align: middle; }
   white-space: nowrap;
   letter-spacing: 0.1px;
 }
+
+/* সেবা কার্ডের CTA — সবসময় কার্ডের নিচে সমান উচ্চতায়, প্রফেশনাল bordered শেপ */
+.svc-cta-btn {
+  margin-top: auto;
+  width: 100%;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+.svc-cta-btn.btn-outline {
+  border: 1.5px solid #05513A;
+  color: #05513A;
+  background: #FFFFFF;
+}
+.svc-cta-btn.btn-outline:hover {
+  background: #05513A;
+  color: #FFFFFF;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(5, 81, 58, 0.22);
+}
+.svc-cta-btn.btn-primary {
+  background: linear-gradient(135deg, #0A6B4A 0%, #05513A 60%, #04402D 100%);
+  color: #FFFFFF;
+  border: 1.5px solid #04402D;
+}
+.svc-cta-btn.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(5, 81, 58, 0.3);
+}
 .btn:active {
   transform: translateY(1px) scale(0.99);
 }
@@ -3110,4 +3141,198 @@ img, svg { vertical-align: middle; }
   #officeMap {
     min-height: 320px;
   }
+}
+
+/* ==========================================================================
+   হোম সার্ভিস কার্ড (.ref-svc-card) — প্রফেশনাল bordered শেপ + CTA বাটন
+   ========================================================================== */
+.ref-svc-card {
+  background: #F8FAF9;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 26px 22px;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+.ref-svc-card:hover {
+  border-color: #05513A;
+  background: #FFFFFF;
+  box-shadow: 0 10px 24px -4px rgba(5, 81, 58, 0.12);
+  transform: translateY(-3px);
+}
+.ref-svc-icon-box {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #E8F5EF;
+  font-size: 1.5rem;
+  margin-bottom: 16px;
+}
+.ref-svc-card h3 {
+  font-family: 'Hind Siliguri', sans-serif;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+.ref-svc-card p {
+  font-size: 0.88rem;
+  color: #64748B;
+  line-height: 1.55;
+  margin-bottom: 18px;
+}
+
+/* ==========================================================================
+   কর্নার ড্যাশবোর্ড বাটন — ডেস্কটপ হেডার ও মোবাইল মেনুতে সবসময় দৃশ্যমান
+   ========================================================================== */
+.header-dash-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #05513A;
+  background: #FFFFFF;
+  color: #05513A;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  transition: all 0.18s ease;
+}
+.header-dash-btn:hover {
+  background: #05513A;
+  color: #FFFFFF;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(5, 81, 58, 0.25);
+}
+
+/* হেডার বাটনগুলো এক লাইনে — নতুন ড্যাশবোর্ড বাটনের সাথে ব্যালান্স */
+.btn-ref-login,
+.btn-ref-cta {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-ref-login {
+  padding: 7px 12px;
+}
+.btn-ref-cta {
+  padding: 7px 14px;
+}
+.header-actions {
+  gap: 6px;
+}
+@media (max-width: 1440px) {
+  .btn-ref-tel .tel-text { display: none; }
+  .btn-ref-tel { padding: 5px 9px; border-radius: 50%; width: 34px; height: 34px; justify-content: center; }
+}
+@media (max-width: 1320px) {
+  .header-cta-btn { display: none !important; }
+  .lang-switch-btn { padding: 6px 5px; }
+}
+.ref-services-grid { grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+
+/* ==========================================================================
+   নাগরিক ড্যাশবোর্ড — হিরো, স্ট্যাট কার্ড, আবেদন তালিকা (প্রফেশনাল রিডিজাইন)
+   ========================================================================== */
+.dash-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: linear-gradient(135deg, #05513A 0%, #04402D 100%);
+  color: #FFFFFF;
+  border-radius: 16px;
+  padding: 26px 28px;
+  box-shadow: 0 10px 26px -8px rgba(5, 81, 58, 0.45);
+}
+.dash-hero h1 { color: #FFFFFF; margin: 0 0 4px; font-size: 1.55rem; }
+.dash-hero p { color: #C9E5D8; margin: 0; font-size: 0.98rem; }
+.dash-avatar {
+  width: 58px; height: 58px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  font-size: 1.7rem;
+}
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+.stat-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  transition: all 0.18s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -6px rgba(5, 81, 58, 0.18);
+  border-color: #A7F3D0;
+}
+.stat-card h3 {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #64748B;
+}
+.stat-num {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #05513A;
+  line-height: 1.1;
+}
+.myapps { display: flex; flex-direction: column; gap: 12px; }
+.app-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: all 0.18s ease;
+}
+.app-card:hover {
+  border-color: #05513A;
+  box-shadow: 0 8px 20px -6px rgba(5, 81, 58, 0.2);
+  transform: translateY(-2px);
+}
+.app-stage-icon {
+  width: 44px; height: 44px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #E8F5EF;
+  border-radius: 10px;
+  font-size: 1.3rem;
+}
+.app-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.app-id {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 1.02rem;
+  color: #05513A;
+}
+.app-meta { font-size: 0.86rem; color: #64748B; }
+.app-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.app-chevron { font-size: 1.4rem; color: #94A3B8; }
+@media (max-width: 640px) {
+  .app-card { flex-wrap: wrap; }
+  .app-right { margin-left: 60px; }
 }

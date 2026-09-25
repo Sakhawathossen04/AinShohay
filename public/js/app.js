@@ -18,7 +18,11 @@ const bnNum = (s) => String(s).replace(/[0-9]/g, (d) => '০১২৩৪৫৬�
 const SQL_CASE_TYPE_BN = {
   MAINTENANCE: 'ভরণপোষণ', DOMESTIC_VIOLENCE: 'পারিবারিক সহিংসতা', DOWRY: 'যৌতুক',
   LAND_DISPUTE: 'ভূমি বিরোধ', LABOUR_WAGES: 'শ্রম ও মজুরি', CYBER_HARASSMENT: 'অনলাইন হয়রানি',
-  FRAUD: 'প্রতারণা', OTHER: 'অন্যান্য'
+  FRAUD: 'প্রতারণা', OTHER: 'অন্যান্য',
+  // পাবলিক ফরমের ছোট হাতের আইডি
+  family: 'পারিবারিক', safety: 'নিরাপত্তা ও সুরক্ষা', land: 'ভূমি ও সম্পত্তি',
+  money: 'অর্থ ও চেক', labour: 'শ্রমিক অধিকার', cyber: 'সাইবার হয়রানি',
+  crime: 'ফৌজদারি ও জামিন', civil: 'দেওয়ানি', govt: 'সরকারি সেবা', women: 'নারী নির্যাতন'
 };
 function ctLabel(id) {
   if (!id) return 'সাধারণ';
@@ -609,21 +613,21 @@ async function pageHome() {
           <div class="ref-svc-icon-box">💬</div>
           <h3>${t('freeConsultTitle')}</h3>
           <p>${t('freeConsultDesc')}</p>
-          <a class="ref-svc-link" href="#/guide">${t('freeConsultBtn')}</a>
+          <a class="btn svc-cta-btn btn-outline" href="#/guide">${t('freeConsultBtn')}</a>
         </div>
 
         <div class="ref-svc-card">
           <div class="ref-svc-icon-box">⚖️</div>
           <h3>${t('lawyerAppTitle')}</h3>
           <p>${t('lawyerAppDesc')}</p>
-          <a class="ref-svc-link" href="#/apply">${t('lawyerAppBtn')}</a>
+          <a class="btn svc-cta-btn btn-primary" href="#/apply">${t('lawyerAppBtn')}</a>
         </div>
 
         <div class="ref-svc-card">
           <div class="ref-svc-icon-box">🤝</div>
           <h3>${t('adrServiceTitle')}</h3>
           <p>${t('adrServiceDesc')}</p>
-          <a class="ref-svc-link" href="#/apply?purpose=mediation">${t('adrServiceBtn')}</a>
+          <a class="btn svc-cta-btn btn-outline" href="#/apply?purpose=mediation">${t('adrServiceBtn')}</a>
         </div>
       </div>
     </div>
@@ -1598,6 +1602,11 @@ async function pageApply(queryStr) {
 
   async function submit() {
     const d = state.data;
+    // বাংলা case-type লেবেল সার্ভারে পাঠাই — ট্র্যাক/ড্যাশবোর্ডে মানব-পাঠযোগ্য দেখায়
+    const caseSel = document.getElementById('f_caseType');
+    if (caseSel && caseSel.selectedOptions && caseSel.selectedOptions[0]) {
+      d.caseTypeLabel = caseSel.selectedOptions[0].text.trim();
+    }
     if (d.safeNumber || d.window) {
       d.safeContact = {
         safeNumber: d.safeNumber || d.phone,
@@ -1702,21 +1711,21 @@ async function pageDashboard() {
 
   // Merge unique by appId
   const combinedMap = new Map();
-  // JSON application store (DLAS-NET-*) app for the logged-in citizen's phone
-  if (ME && ME.citizenApplicationId && /^DLAS-NET-/.test(String(ME.citizenApplicationId))) {
+  // JSON application store (DLAS-NET-*) — লগইন করা নাগরিকের সব আবেদন
+  if (ME && (!ME.userId || /^DLAS-NET-/.test(String(ME.citizenApplicationId || '')))) {
     try {
-      const tr = await apiPost('track', { appId: ME.citizenApplicationId, last4: '' });
-      if (!tr.error && tr.appId) {
-        combinedMap.set(tr.appId, {
-          appId: tr.appId,
-          caseType: tr.caseType || 'সাধারণ',
-          district: tr.district || '',
-          submittedAt: tr.submitted || tr.createdAt || null,
-          stage: (typeof tr.stage === 'number') ? tr.stage : 0,
-          emergency: !!tr.emergency,
-          last4: ((ME.phoneDigits || '') + '').replace(/\D/g, '').slice(-4) || '0001'
+      const mine = await apiGet('my_applications');
+      (mine.applications || []).forEach(a => {
+        combinedMap.set(a.appId, {
+          appId: a.appId,
+          caseType: ctLabel(a.caseType),
+          district: a.district || '',
+          submittedAt: a.createdAt || null,
+          stage: (typeof a.stage === 'number') ? a.stage : 0,
+          emergency: !!a.emergency,
+          last4: ((ME.phoneDigits || a.phone || '') + '').replace(/\D/g, '').slice(-4) || '0001'
         });
-      }
+      });
     } catch (e) {}
   }
   // Normalize server (SQLite) rows into the dashboard shape

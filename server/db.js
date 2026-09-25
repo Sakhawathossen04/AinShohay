@@ -21,12 +21,22 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Open SQLite database
-const sqlite = new DatabaseSync(DB_PATH);
+// Open SQLite database. On read-only or locked filesystems (e.g. serverless
+// deploys like AWS Lambda /var/task) fall back to an in-memory database so
+// every db.get/query/run call keeps working and login never breaks.
+let sqlite;
+try {
+  sqlite = new DatabaseSync(DB_PATH);
+} catch (err) {
+  console.warn('[DB] Cannot open ' + DB_PATH + ' (' + err.message + ') — using in-memory database.');
+  sqlite = new DatabaseSync(':memory:');
+}
 
 // Enable WAL mode and foreign keys for high performance & integrity
-sqlite.exec('PRAGMA journal_mode = WAL;');
-sqlite.exec('PRAGMA foreign_keys = ON;');
+try {
+  sqlite.exec('PRAGMA journal_mode = WAL;');
+  sqlite.exec('PRAGMA foreign_keys = ON;');
+} catch (e) { /* in-memory db: pragmas not needed */ }
 
 const db = {
   raw: sqlite,

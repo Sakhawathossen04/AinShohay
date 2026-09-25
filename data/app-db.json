@@ -1272,6 +1272,104 @@
    },
    "channel": "assisted",
    "createdAt": "2026-09-25T10:20:37.890Z"
+  },
+  {
+   "appId": "DLAS-NET-2026-04439",
+   "userId": null,
+   "name": "ময়ূরী আক্তার",
+   "phone": "01700000001",
+   "nid": "1234567890",
+   "district": "জয়পুরহাট",
+   "caseType": "land",
+   "purpose": "new",
+   "emergency": false,
+   "income": "below_15k",
+   "deps": null,
+   "problem": "শেষ টেস্ট: ড্যাশবোর্ড যাচাইয়ের আবেদন।",
+   "office": "জেলা আইনি সহায়তা কার্যালয়, জয়পুরহাট",
+   "sensitive": false,
+   "stage": 0,
+   "history": [
+    {
+     "at": "2026-09-25T11:24:06.584Z",
+     "label": "আবেদন জমা হয়েছে"
+    }
+   ],
+   "tasks": [],
+   "documents": [],
+   "representation": null,
+   "safeContact": null,
+   "failedContacts": [],
+   "audit": [
+    {
+     "at": "2026-09-25T11:24:06.584Z",
+     "actor": {
+      "role": "applicant"
+     },
+     "role": "applicant",
+     "action": "application-created",
+     "detail": "সরাসরি জমা",
+     "provenance": "applicant-confirmed"
+    }
+   ],
+   "provenance": {
+    "name": "applicant-confirmed",
+    "phone": "applicant-confirmed",
+    "nid": "applicant-confirmed",
+    "problem": "applicant-confirmed",
+    "income": "applicant-confirmed"
+   },
+   "channel": "assisted",
+   "createdAt": "2026-09-25T11:24:06.584Z"
+  },
+  {
+   "appId": "DLAS-NET-2026-04440",
+   "userId": null,
+   "name": "?????",
+   "phone": "01700000001",
+   "nid": "",
+   "district": "????",
+   "caseType": "",
+   "purpose": "new",
+   "emergency": false,
+   "income": null,
+   "deps": null,
+   "problem": "api test",
+   "office": "জেলা আইনি সহায়তা কার্যালয়, ????",
+   "sensitive": false,
+   "stage": 0,
+   "history": [
+    {
+     "at": "2026-09-25T11:49:00.374Z",
+     "label": "আবেদন জমা হয়েছে"
+    }
+   ],
+   "tasks": [],
+   "documents": [],
+   "representation": null,
+   "safeContact": null,
+   "failedContacts": [],
+   "audit": [
+    {
+     "at": "2026-09-25T11:49:00.374Z",
+     "actor": {
+      "role": "applicant"
+     },
+     "role": "applicant",
+     "action": "application-created",
+     "detail": "সরাসরি জমা",
+     "provenance": "applicant-confirmed"
+    }
+   ],
+   "provenance": {
+    "name": "applicant-confirmed",
+    "phone": "applicant-confirmed",
+    "nid": "applicant-confirmed",
+    "problem": "applicant-confirmed",
+    "income": "applicant-confirmed"
+   },
+   "channel": "assisted",
+   "createdAt": "2026-09-25T11:49:00.374Z"
   }
  ],
  "complaints": [],
@@ -1489,7 +1587,7 @@
  ],
  "otps": {},
  "counters": {
-  "application": 4438,
+  "application": 4440,
   "complaint": 100,
   "user": 10,
   "case": 904

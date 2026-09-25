@@ -418,6 +418,50 @@ api.myapp = (q, req) => {
   };
 };
 
+// লগইন করা নাগরিকের নিজের সব আবেদন (JSON store, ফোন/আইডি ম্যাচ) —
+// ড্যাশবোর্ড "আমার সব আবেদন" ভিউয়ের জন্য। সেশন না থাকলে খালি তালিকা।
+api.my_applications = (b, req) => {
+  try {
+    const ck = String((req && req.headers && req.headers.cookie) || '');
+    const tm = ck.match(/(?:^|;\s*)dlas_session=([a-f0-9]{16,})/);
+    if (!tm) return { applications: [] };
+    let sess = null;
+    if (sqliteDb) {
+      try {
+        sess = sqliteDb.get('SELECT userId, citizenApplicationId FROM Session WHERE token = ? AND expiresAt > ?', [tm[1], new Date().toISOString()]);
+      } catch (e) {}
+    }
+    if (!sess) return { applications: [] };
+    const d = db.load();
+    const all = d.applications || [];
+    const bound = String(sess.citizenApplicationId || '').toUpperCase();
+    // Bound আবেদনের ফোন দিয়েই নাগরিকের সব আবেদন শনাক্ত করি
+    let boundPhone = '';
+    if (bound) {
+      const boundApp = all.find((a) => String(a.appId || '').toUpperCase() === bound);
+      if (boundApp && boundApp.phone) boundPhone = String(boundApp.phone).replace(/\D/g, '').slice(-10);
+    }
+    const mine = all.filter((a) => {
+      if (bound && String(a.appId || '').toUpperCase() === bound) return true;
+      if (sess.userId && a.userId && a.userId === sess.userId) return true;
+      if (boundPhone && a.phone && String(a.phone).replace(/\D/g, '').endsWith(boundPhone)) return true;
+      return false;
+    });
+    return { applications: mine.slice(0, 50).map((a) => ({
+      appId: a.appId,
+      name: a.name,
+      district: a.district || '',
+      caseType: a.caseType || 'সাধারণ',
+      stage: typeof a.stage === 'number' ? a.stage : 0,
+      emergency: !!a.emergency,
+      createdAt: a.createdAt,
+      phone: a.phone || ''
+    })) };
+  } catch (e) {
+    return { applications: [] };
+  }
+};
+
 api.applications_POST = (b, req) => {
   const d = db.load();
   const user = currentUser(req);
@@ -435,7 +479,7 @@ api.applications_POST = (b, req) => {
     appId,
     userId: user ? user.id : null,
     name: applicantName, phone: applicantPhone, nid: b.nid || b.applicantNidRef || '',
-    district: b.district || '', caseType: b.caseType || b.legalIssueCategory || '',
+    district: b.district || '', caseType: b.caseTypeLabel || b.caseType || b.legalIssueCategory || '',
     purpose: b.purpose || 'new', emergency: !!(b.emergency || b.urgencyFlag),
     income: b.income || b.monthlyHouseholdIncome || null, deps: b.deps || null,
     problem: problemNarrative, office: b.office || `জেলা আইনি সহায়তা কার্যালয়, ${b.district || 'সংশ্লিষ্ট জেলা'}`,
