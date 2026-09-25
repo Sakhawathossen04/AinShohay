@@ -386,8 +386,13 @@ function initChatBot() {
   }
 }
 
-// ---------- USSD শর্টকোড ফোন সিমুলেটর (*১৬৬৯৯#) ----------
+// ---------- USSD সেকশন (openUssdSimulator) এখন পূর্ণ পেজে সরানো হয়েছে → pageUssd ----------
+// পুরনো মডাল সিমুলেটর আর ব্যবহার হয় না; নিচের pageUssd ও pageVoice দেখুন।
 function openUssdSimulator() {
+  location.hash = '#/ussd';
+}
+
+function openUssdSimulatorOld() {
   const existing = $('#ussdSimulatorModal');
   if (existing) existing.remove();
 
@@ -497,6 +502,562 @@ function openUssdSimulator() {
 }
 
 window.openUssdSimulator = openUssdSimulator;
+window.openUssdSimulatorOld = openUssdSimulatorOld;
+
+// ============================================================================
+// ভয়েস AI সহকারী পূর্ণ পেজ (pageVoice) — #/voice
+// উপরে নির্দেশিকা + সাধারণ প্রশ্ন; নিচে ভয়েস-ফোন (হালকা ডার্ক ডিজাইন)।
+// মাইক বাটনে ক্লিক করলে Web Speech API দিয়ে যা বলা হয় তা লাইভ টেক্সটে ওঠে
+// (ব্রাউজার সাপোর্ট না থাকলে ডেমো লাইন প্রদর্শন হয়)। তারপর "আবেদন জমা দিন"
+// চাপলে বিদ্যমান /api/applications দিয়ে জমা হয়ে ড্যাশবোর্ডে চলে যায়।
+// ============================================================================
+async function pageVoice() {
+  const sampleQuestions = [
+    { icon: '👨‍👩‍👧', q: 'স্বামী ভরণপোষণ দেয় না, কী করবো?' },
+    { icon: '📜', q: 'জমির দলিল ভুয়া করে দখল নিয়েছে' },
+    { icon: '👷', q: 'কারখানা ৩ মাসের বেতন দেয়নি' },
+    { icon: '🛡️', q: 'পারিবারিক নির্যাতনের শিকার, সাহায্য চাই' },
+    { icon: '⚖️', q: 'কারাবন্দি ভাইয়ের জামিনের জন্য কী করবো' },
+    { icon: '💰', q: 'ঋণখেলাপি হয়ে জেল খাটছি, পরামর্শ দিন' }
+  ];
+
+  const V = { transcript: '', recording: false, recog: null, answered: false };
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const srSupported = !!SR;
+
+  app.innerHTML = `
+  <div class="container page-head">
+    <div class="breadcrumb"><a href="#/">হোম</a> / সহায়তা চ্যানেল / ভয়েস সহকারী</div>
+    <span class="section-tag">কথা বলুন — আমরা লিখে আবেদন করে দেবো</span>
+    <h1>🎤 ভয়েস AI সহকারী — বলে আবেদন করুন</h1>
+    <p>লিখতে না পারলেও সমস্যা নেই — মাইকে বাংলায় যা বলবেন, তা-ই লেখা হয়ে আবেদন হয়ে যাবে। বাংলা, ইংরেজি ও আঞ্চলিক ভাষায় বোঝে।</p>
+  </div>
+
+  <!-- উপরের নোটিশ + গাইড প্রশ্ন -->
+  <div class="container">
+    <div class="voice-top-grid">
+      <div class="voice-notice-card">
+        <div class="voice-notice-head"><span class="voice-notice-ic">🎙️</span> <strong>কীভাবে কাজ করে?</strong></div>
+        <ol class="voice-howto">
+          <li><strong>প্রশ্ন বাছুন বা সরাসরি বলুন</strong> — নিচের যেকোনো প্রশ্নে ক্লিক করলে সেটি ডেমো-লাইনে বসে যাবে।</li>
+          <li><strong>মাইক বাটন চাপুন</strong> — কথা বলা শুরু করুন, যা বলছেন তা-ই টেক্সটে উঠতে থাকবে।</li>
+          <li><strong>আবেদন জমা দিন</strong> — টেক্সট ঠিক থাকলে নিচের সবুজ বাটনে ক্লিক করুন — ড্যাশবোর্ডে সেভ হবে।</li>
+        </ol>
+        <div class="voice-notice-pills">
+          <span class="ussd-notice-pill">🔒 ভয়েস সেভ হয় না</span>
+          <span class="ussd-notice-pill">🗣️ বাংলা সাপোর্টেড</span>
+          <span class="ussd-notice-pill">🆓 সম্পূর্ণ ফ্রি</span>
+        </div>
+      </div>
+      <div class="voice-questions-card">
+        <div class="voice-questions-head">❓ সাধারণ প্রশ্ন — যেকোনোটায় ক্লিক করুন</div>
+        <div class="voice-q-grid">
+          ${sampleQuestions.map((x, i) => `<button type="button" class="voice-q-chip" data-q="${esc(x.q)}"><span>${x.icon}</span> ${esc(x.q)}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- মেইন: ভয়েস ফোন (বাম) + ট্রান্সক্রিপ্ট/আবেদন (ডান) -->
+  <div class="container ussd-main-grid voice-main-grid">
+    <div class="voice-phone-wrap">
+      <div class="vph-phone">
+        <div class="vph-topline"></div>
+        <div class="vph-statusbar"><span>● ● ●</span><span class="vph-clock" id="vphClock">১০:৩০</span><span>📶 🔋</span></div>
+        <div class="vph-appbar">🤖 CoU JusticeLab <small>ভয়েস সহকারী</small></div>
+        <div class="vph-wave-stage">
+          <div class="vph-orb ${srSupported ? '' : 'vph-orb-demo'}" id="vphOrb">
+            <button class="vph-mic" id="vphMicBtn" title="মাইক চাপুন ও বলুন">🎤</button>
+          </div>
+          <div class="vph-wave" id="vphWave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="vph-status" id="vphStatus">${srSupported ? 'মাইকে ট্যাপ করে বাংলায় বলুন…' : 'ডেমো মোড — নিচের প্রশ্নে ক্লিক করে লাইন ভরুন'}</div>
+        </div>
+        <div class="vph-continue-btns">
+          <button class="vph-btn vph-btn-ghost" id="vphClear">🗑️ মুছুন</button>
+          <button class="vph-btn vph-btn-primary" id="vphSubmit">✅ আবেদন জমা দিন</button>
+        </div>
+        <div class="vph-qrow" id="vphQrow">
+          ${sampleQuestions.slice(0, 3).map((x) => `<button type="button" class="vph-qchip" data-q="${esc(x.q)}">${esc(x.q.length > 26 ? x.q.slice(0, 24) + '…' : x.q)}</button>`).join('')}
+        </div>
+      </div>
+      <div class="usd-hint vph-hint">🎤 মাইক ছাড়াও ফোনের ভেতরের প্রশ্ন-চিপ বা ডান পাশের প্রশ্নে ক্লিক করা যায়</div>
+    </div>
+
+    <div class="voice-output-panel">
+      <div class="voice-output-head">
+        <span>📝 আপনার কথা → লেখা (লাইভ)</span>
+        <span class="voice-output-badge" id="vphStateBadge">অপেক্ষমাণ</span>
+      </div>
+      <div class="voice-transcript-box" id="vphTranscriptBox">
+        <span class="voice-transcript-empty" id="vphEmpty">এখনো কিছু বলা হয়নি… মাইক চেপে বাংলায় বলুন বা উপরের প্রশ্নে ক্লিক করুন।</span>
+        <span id="vphTranscript"></span><span class="voice-caret" id="vphCaret"></span>
+      </div>
+      <div class="voice-meta-row" id="vphMeta" style="display:none">
+        <label class="voice-meta-field"><span>নাম</span><input id="v_name" placeholder="আপনার নাম"></label>
+        <label class="voice-meta-field"><span>মোবাইল</span><input id="v_phone" inputmode="numeric" placeholder="01XXXXXXXXX"></label>
+        <label class="voice-meta-field"><span>জেলা</span>
+          <select id="v_district"><option>ঢাকা</option><option>জয়পুরহাট</option><option>চট্টগ্রাম</option><option>রাজশাহী</option><option>খুলনা</option><option>বরিশাল</option><option>সিলেট</option><option>রংপুর</option><option>ময়মনসিংহ</option></select>
+        </label>
+      </div>
+      <div class="voice-result" id="vphResult"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:0 0 3rem">
+      <a class="btn btn-ghost" href="#/help">← সহায়তা চ্যানেলে ফিরুন</a>
+      <a class="btn btn-outline" href="#/ussd">📱 USSD (*১৬৬৯৯#) সেবা →</a>
+    </div>
+  </div>`;
+
+  // ---- ঘড়ি ----
+  const VOICE_BN = { '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯' };
+  const bnDigitsV = (s) => String(s).replace(/[0-9]/g, (d) => VOICE_BN[d]);
+  const vclock = $('#vphClock');
+  const vtick = () => { if (vclock) vclock.textContent = bnDigitsV(new Date().toTimeString().slice(0, 5)); };
+  vtick();
+  const vTimer = setInterval(vtick, 30000);
+
+  const transcriptEl = $('#vphTranscript');
+  const emptyEl = $('#vphEmpty');
+  const caretEl = $('#vphCaret');
+  const statusEl = $('#vphStatus');
+  const badgeEl = $('#vphStateBadge');
+  const orbEl = $('#vphOrb');
+  const waveEl = $('#vphWave');
+
+  const setTranscript = (txt) => {
+    V.transcript = txt;
+    transcriptEl.textContent = txt;
+    emptyEl.style.display = txt ? 'none' : '';
+    caretEl.style.display = txt || V.recording ? '' : 'none';
+  };
+
+  const setRecording = (on) => {
+    V.recording = on;
+    orbEl.classList.toggle('vph-orb-live', on);
+    waveEl.classList.toggle('vph-wave-live', on);
+    badgeEl.textContent = on ? 'শুনছি…' : (V.transcript ? 'টেক্সট প্রস্তুত' : 'অপেক্ষমাণ');
+    statusEl.textContent = on ? '🔴 শুনছি — বাংলায় বলুন…' : (srSupported ? 'মাইকে ট্যাপ করে বাংলায় বলুন…' : 'ডেমো মোড — প্রশ্নে ক্লিক করে লাইন ভরুন');
+  };
+
+  // ---- Web Speech API ----
+  let recog = null;
+  if (srSupported) {
+    recog = new SR();
+    recog.lang = 'bn-BD';
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.onresult = (e) => {
+      let finalTxt = '', interim = '';
+      for (let i = 0; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalTxt += t + ' ';
+        else interim += t;
+      }
+      setTranscript((finalTxt + interim).trim());
+      V.answered = true;
+    };
+    recog.onend = () => { if (V.recording) setRecording(false); };
+    recog.onerror = () => { setRecording(false); statusEl.textContent = '⚠️ মাইক পাওয়া যায়নি — ডেমো লাইন ব্যবহার করুন'; };
+  }
+
+  $('#vphMicBtn').onclick = () => {
+    if (!srSupported) {
+      // ডেমো ফলব্যাক — স্যাম্পল কথা টেক্সটে ওঠে (ধাপে ধাপে)
+      const demo = 'আমার স্বামী দীর্ঘ ছয় মাস যাবৎ ভরণপোষণ দিচ্ছেন না। দুই সন্তান নিয়ে অসহায় আছি। আইনি সহায়তা চাই।';
+      setRecording(true);
+      let i = 0;
+      const tw = setInterval(() => {
+        i += 2;
+        setTranscript(demo.slice(0, i));
+        if (i >= demo.length) { clearInterval(tw); setRecording(false); V.answered = true; }
+      }, 45);
+      return;
+    }
+    if (V.recording) { recog.stop(); setRecording(false); return; }
+    try { recog.start(); setRecording(true); } catch (e) { setRecording(false); }
+  };
+
+  // ---- প্রশ্ন চিপ ----
+  const fillFromQ = (q) => {
+    setRecording(true);
+    let i = 0;
+    const tw = setInterval(() => {
+      i += 2;
+      setTranscript(q.slice(0, i));
+      if (i >= q.length) { clearInterval(tw); setRecording(false); V.answered = true; }
+    }, 30);
+  };
+  $$('.voice-q-chip').forEach((b) => { b.onclick = () => fillFromQ(b.dataset.q); });
+  $$('.vph-qchip').forEach((b) => { b.onclick = () => fillFromQ(b.dataset.q); });
+
+  $('#vphClear').onclick = () => { setTranscript(''); V.answered = false; badgeEl.textContent = 'অপেক্ষমাণ'; $('#vphResult').innerHTML = ''; $('#vphMeta').style.display = 'none'; };
+
+  // ---- আবেদন জমা (বিদ্যমান applications API) ----
+  $('#vphSubmit').onclick = async () => {
+    if (!V.transcript.trim()) { toast('আগে কথা বলুন বা প্রশ্নে ক্লিক করুন'); return; }
+    const meta = $('#vphMeta');
+    // প্রথম চাপে: মেটা ফরম দেখাই, দ্বিতীয় চাপে জমা
+    if (meta.style.display === 'none') {
+      meta.style.display = 'grid';
+      $('#vphResult').innerHTML = '<div class="voice-result-info">✍️ নাম-মোবাইল-জেলা দিন, তারপর আবার <strong>আবেদন জমা দিন</strong> চাপুন।</div>';
+      $('#v_name').focus();
+      return;
+    }
+    const name = $('#v_name').value.trim();
+    const phone = $('#v_phone').value.trim();
+    if (!name) { toast('আপনার নাম লিখুন'); return; }
+    if (!/^01\d{9}$/.test(phone)) { toast('সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন'); return; }
+
+    const btn = $('#vphSubmit');
+    btn.disabled = true; btn.textContent = '⏳ জমা হচ্ছে…';
+    const r = await apiPost('applications', {
+      applicantName: name,
+      channel: 'VOICE_AI',
+      phone,
+      district: $('#v_district').value,
+      caseType: 'family',
+      caseTypeLabel: 'ভয়েস আবেদন',
+      problem: '[ভয়েস AI আবেদন] ' + V.transcript.trim(),
+      purpose: 'new',
+      emergency: false
+    });
+    btn.disabled = false; btn.textContent = '✅ আবেদন জমা দিন';
+    const appId = (r && (r.appId || r.applicationId)) || ('DLAS-VOICE-2026-' + String(Math.floor(10000 + Math.random() * 90000)));
+    try {
+      const stored = JSON.parse(localStorage.getItem('dlas_my_apps') || '[]');
+      stored.unshift({ appId, caseType: 'ভয়েস আবেদন', district: $('#v_district').value, submittedAt: new Date().toISOString(), stage: 0, last4: phone.slice(-4) });
+      localStorage.setItem('dlas_my_apps', JSON.stringify(stored.slice(0, 30)));
+    } catch (e) {}
+    $('#vphResult').innerHTML = `
+      <div class="voice-result-success">
+        <h4>🎉 আবেদন সফলভাবে জমা হয়েছে!</h4>
+        <div class="voice-result-appid">${esc(appId)}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+          <a class="btn btn-primary btn-sm" href="#/dashboard">📊 ড্যাশবোর্ডে দেখুন</a>
+          <a class="btn btn-outline btn-sm" href="#/track?id=${encodeURIComponent(appId)}&last4=${esc(phone.slice(-4))}">🔍 ট্র্যাক করুন</a>
+        </div>
+      </div>`;
+    toast('🎤 ভয়েস আবেদন জমা হয়েছে — ড্যাশবোর্ড দেখুন');
+  };
+}
+
+// ============================================================================
+// USSD সেবা পূর্ণ পেজ (pageUssd) — #/ussd
+// উপরে নোটিশ → ইউজার ম্যানুয়াল → বাম দিকে ইন্টারঅ্যাকটিভ বাটন-ফোন (শুধু ক্লিক,
+// টাইপিং নেই), ডান দিকে লাইভ আউটপুট। মেনু থেকে আবেদন করা যায়, জমা হলে
+// বিদ্যমান /api/applications দিয়ে সেভ হয়ে নাগরিক ড্যাশবোর্ডে চলে আসে।
+// ============================================================================
+async function pageUssd() {
+  // ---- ফোন স্টেট ----
+  const USSD = {
+    screen: 'idle',        // idle | dialing | lang | menu | apply_name | apply_phone | apply_problem | apply_district | done | track_id | track_result | office_info | calling
+    lang: 'bn',
+    dialBuffer: '',
+    log: [],               // { type: 'sys'|'user'|'net', text }
+    draft: { name: '', phone: '', problem: '', district: '' }
+  };
+  const BN_DIGITS = { '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯' };
+  const bnDigits = (s) => String(s).replace(/[0-9]/g, (d) => BN_DIGITS[d]);
+
+  const SCREENS = {
+    idle: { title: 'ডায়ালার', body: '*১৬৬৯৯# ডায়াল করতে নিচের সবুজ কল বাটন চাপুন। কোনো ইন্টারনেট বা স্মার্টফোন লাগবে না — যেকোনো বাটন ফোনেই সেবা।' },
+    dialing: { title: 'ডায়াল হচ্ছে…', body: '*১৬৬৯৯# → কল → অপেক্ষা করুন। ২-৩ সেকেন্ডের মধ্যে ফ্রি-তে মেনু ভেসে উঠবে।' },
+    lang: { title: '*১৬৬৯৯# — NLASO', body: 'আপনার পছন্দের ভাষা বাছুন:\n১. বাংলা\n২. English\n\nঅথবা সরাসরি ১ / ২ বাটন চাপুন।' },
+    menu: { title: 'প্রধান মেনু', body: 'সেবা বেছে নিন:\n১. নতুন আবেদন দাখিল\n২. আবেদনের অবস্থা যাচাই\n৩. জেলা অফিসের তথ্য\n৪. জরুরি হেল্পলাইনে কল\n০. ভাষা পরিবর্তন' },
+    apply_name: { title: 'আবেদন — ধাপ ১/৩', body: 'আপনার পুরো নাম লিখে কী-প্যাড থেকে # চাপুন।\n(ডেমোতে # = জমা)' },
+    apply_phone: { title: 'আবেদন — ধাপ ২/৩', body: 'যোগাযোগের মোবাইল নম্বর দিন, তারপর # চাপুন।\nযেমন: ০১৭১২৩৪৫৬৭৮' },
+    apply_problem: { title: 'আবেদন — ধাপ ৩/৩', body: 'সমস্যার ধরন বাছুন:\n১. পারিবারিক/ভরণপোষণ\n২. জমি ও সম্পত্তি\n৩. চাকরি/মজুরি\n৪. নিরাপত্তা\n৫. অন্যান্য' },
+    apply_district: { title: 'জেলা নির্বাচন', body: 'আপনার জেলা বাছুন:\n১. ঢাকা\n২. জয়পুরহাট\n৩. চট্টগ্রাম\n৪. রাজশাহী\n৫. খুলনা\n৬. সিলেট\n৭. রংপুর\n৮. ময়মনসিংহ' },
+    done: { title: 'আবেদন গৃহীত ✓', body: 'অভিনন্দন! আপনার আবেদন সফলভাবে জমা হয়েছে।\nআবেদন আইডি নিচের আউটপুট প্যানেলে দেখুন — ড্যাশবোর্ডেও যোগ হয়েছে।' },
+    track_id: { title: 'ট্র্যাকিং', body: 'আবেদন আইডির শেষ ৪ ডিজিট লিখে # চাপুন।\nযেমন: ০০০১' },
+    track_result: { title: 'ট্র্যাকিং ফলাফল', body: 'স্ট্যাটাস: চলমান (UNDER REVIEW)\nকর্মকর্তা পর্যালোচনা করছেন।\nবিস্তারিত ড্যাশবোর্ড/ট্র্যাক পেজে দেখুন।' },
+    office_info: { title: 'জেলা অফিস', body: 'প্রতিটি জেলা জজ আদালত ভবনে জেলা লিগ্যাল এইড অফিস আছে।\nসময়: রবি–বৃহস্পতি, সকাল ৯টা–বিকাল ৫টা।\nঅফিস ডিরেক্টরি পেজে ৬৩টি অফিসের ম্যাপ আছে।' },
+    calling: { title: 'কল হচ্ছে…', body: '📞 টোল-ফ্রি ১৬৬৯৯ নম্বরে সরাসরি কল যাচ্ছে…\n(ডেমো: ফোনে হলে ডায়ালার খুলত)' },
+    invalid: { title: 'ভুল ইনপুট', body: 'বোঝা যায়নি। মেনু অনুযায়ী সংখ্যা বাটন চাপুন।' }
+  };
+
+  const keys = ['১','২','৩','৪','৫','৬','৭','৮','৯','*','০','#'];
+
+  app.innerHTML = `
+  <div class="container page-head">
+    <div class="breadcrumb"><a href="#/">হোম</a> / সহায়তা চ্যানেল / USSD সেবা</div>
+    <span class="section-tag">ইন্টারনেট ছাড়াই সেবা</span>
+    <h1>📱 USSD শর্টকোড সেবা — <span class="ussd-code-chip">*১৬৬৯৯#</span></h1>
+    <p>যেকোনো বাটন ফোন থেকে, ইন্টারনেট ছাড়াই টোল-ফ্রিতে আইনি সহায়তার আবেদন করুন — ঠিক সেভাবেই যেভাবে মোবাইলে রিচার্জ করেন।</p>
+  </div>
+
+  <!-- নোটিশ ব্যানার -->
+  <div class="container">
+    <div class="ussd-notice-banner">
+      <div class="ussd-notice-icon">📢</div>
+      <div class="ussd-notice-body">
+        <strong>নোটিশ:</strong> এটি একটি <strong>লাইভ ইন্টারঅ্যাকটিভ ডেমো</strong> — নিচের ফোনে বাটন ক্লিক করেই আসল USSD সেশনের অভিজ্ঞতা নিন।
+        ফোনের কোনো কী-প্যাডে টাইপ করার দরকার নেই; শুধু বাটনে ক্লিক করুন আর ডান পাশে আউটপুট দেখুন।
+        <span class="ussd-notice-pill">🆓 সম্পূর্ণ টোল-ফ্রি</span>
+        <span class="ussd-notice-pill">📶 ইন্টারনেট লাগে না</span>
+        <span class="ussd-notice-pill">⏱️ ২ মিনিটে আবেদন</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ইউজার ম্যানুয়াল -->
+  <div class="container">
+    <div class="ussd-manual-card">
+      <div class="ussd-manual-head">
+        <span class="ussd-manual-badge">📘 ব্যবহার নির্দেশিকা</span>
+        <span class="ussd-manual-sub">৩ ধাপে সেবা নিন — প্রতিটি ধাপের বোতাম নিচের ফোনে ক্লিকযোগ্য</span>
+      </div>
+      <div class="ussd-manual-steps">
+        <div class="ussd-manual-step">
+          <span class="ums-num">১</span>
+          <div><strong>ডায়াল করুন</strong><p>ফোনের কল-বাটনে ক্লিক করুন — *১৬৬৯৯# ডায়াল হয়ে ভাষা মেনু আসবে।</p></div>
+        </div>
+        <div class="ussd-manual-step">
+          <span class="ums-num">২</span>
+          <div><strong>ভাষা ও সেবা বাছুন</strong><p>১/২ চেপে ভাষা, তারপর মেনু থেকে সেবা (আবেদন / ট্র্যাক / অফিস / কল) বাছুন।</p></div>
+        </div>
+        <div class="ussd-manual-step">
+          <span class="ums-num">৩</span>
+          <div><strong>তথ্য দিয়ে জমা দিন</strong><p>নাম → ফোন → সমস্যার ধরন → জেলা বাছাই করলেই আবেদন আইডি পাবেন, ড্যাশবোর্ডে সেভ হবে।</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- মেইন: ফোন (বাম) + আউটপুট (ডান) -->
+  <div class="container ussd-main-grid">
+    <!-- বাম: ইন্টারঅ্যাকটিভ বাটন-ফোন (নতুন ডিজাইন — সবুজ-সাদা, বাটন-বার) -->
+    <div class="ussd-phone-live-wrap">
+      <div class="usd-phone">
+        <div class="usd-phone-notch"></div>
+        <div class="usd-phone-statusbar">
+          <span>🅾️ GP</span>
+          <span class="usd-phone-clock" id="usdClock">১০:৩০</span>
+          <span>📶 🔋</span>
+        </div>
+        <div class="usd-phone-brandline">জাতীয় আইনি সহায়তা · বাংলাদেশ</div>
+        <div class="usd-screen-green" id="usdScreen">
+          <div class="usd-screen-title" id="usdScreenTitle">ডায়ালার</div>
+          <div class="usd-screen-body" id="usdScreenBody">*১৬৬৯৯# ডায়াল করতে নিচের সবুজ কল বাটন চাপুন।</div>
+        </div>
+        <div class="usd-actionbar">
+          <button class="usd-softkey usd-softkey-left" id="usdSoftLeft">☰ মেনু</button>
+          <button class="usd-callbtn" id="usdCallBtn" title="*১৬৬৯৯# ডায়াল করুন">
+            <span class="usd-callbtn-icon">📞</span>
+            <span class="usd-callbtn-label">কল দিন</span>
+          </button>
+          <button class="usd-softkey usd-softkey-right" id="usdSoftRight">✖ বাতিল</button>
+        </div>
+        <div class="usd-keypad">
+          ${keys.map(k => `<button class="usd-key-chip ${k === '#' || k === '*' ? 'usd-key-accent' : ''}" data-k="${k}">${k}</button>`).join('')}
+        </div>
+      </div>
+      <div class="usd-hint">👆 ফোনের বাটনগুলো ক্লিক করলেই সেশন এগোবে — টাইপ করার দরকার নেই</div>
+    </div>
+
+    <!-- ডান: লাইভ আউটপুট -->
+    <div class="ussd-output-panel">
+      <div class="ussd-output-head">
+        <span>🖥️ কলের লাইভ আউটপুট</span>
+        <span class="ussd-output-badge" id="usdStateBadge">প্রস্তুত</span>
+      </div>
+      <div class="ussd-output-log" id="usdLog">
+        <div class="ussd-log-sys">সিস্টেম: ডেমো সেশন প্রস্তুত। বাম দিকের ফোনে 📞 <strong>কল দিন</strong> বাটনে ক্লিক করে শুরু করুন।</div>
+      </div>
+      <div class="ussd-output-actions" id="usdOutActions"></div>
+    </div>
+  </div>
+
+  <!-- নিচের ব্যাখ্যা কার্ড -->
+  <div class="container">
+    <div class="ussd-footer-notes">
+      <div class="ussd-note-box">
+        <h3>🔔 আবেদনের পরে কী হবে?</h3>
+        <p>জমা হওয়ার সাথে সাথে আবেদন আইডি তৈরি হবে এবং এটি আপনার নাগরিক ড্যাশবোর্ডে চলে যাবে — ট্র্যাক পেজে অগ্রগতিও দেখতে পারবেন।</p>
+      </div>
+      <div class="ussd-note-box">
+        <h3>📶 কোন ফোনে কাজ করে?</h3>
+        <p>সিম্পল বাটন (ফিচার) ফোন, স্মার্টফোন — সব অপারেটরে (GP, Robi, Banglalink, Teletalk) USSD কোড সাপোর্টেড।</p>
+      </div>
+      <div class="ussd-note-box">
+        <h3>🔒 নিরাপত্তা</h3>
+        <p>আপনার তথ্য "ব্যক্তিগত উপাত্ত সুরক্ষা আইন ২০২৬" অনুযায়ী সুরক্ষিত। NLASO কখনো টাকা চায় না — সেবা সম্পূর্ণ বিনামূল্যে।</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:0 0 3rem">
+      <a class="btn btn-ghost" href="#/help">← সহায়তা চ্যানেলে ফিরুন</a>
+      <a class="btn btn-outline" href="#/voice">🎤 ভয়েসে আবেদন করুন →</a>
+    </div>
+  </div>`;
+
+  // ---- ঘড়ি ----
+  const clock = $('#usdClock');
+  const tick = () => { if (clock) clock.textContent = bnDigits(new Date().toTimeString().slice(0, 5)); };
+  tick();
+  const clockTimer = setInterval(tick, 30000);
+
+  // ---- লগ ও স্ক্রিন ----
+  const logBox = $('#usdLog');
+  const addLog = (type, text) => {
+    USSD.log.push({ type, text });
+    const div = document.createElement('div');
+    div.className = 'ussd-log-' + type;
+    if (type === 'user') div.textContent = '🧑 ইউজার: ' + text;
+    else if (type === 'net') div.textContent = '📱 USSD রেসপন্স: ' + text;
+    else div.textContent = text;
+    logBox.appendChild(div);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+
+  const showScreen = (key, extraNote) => {
+    const s = SCREENS[key] || SCREENS.invalid;
+    $('#usdScreenTitle').textContent = s.title;
+    $('#usdScreenBody').textContent = s.body;
+    const badges = { idle: 'প্রস্তুত', dialing: 'ডায়াল হচ্ছে…', menu: 'মেনু', done: 'সফল ✓', calling: 'কল হচ্ছে…' };
+    $('#usdStateBadge').textContent = badges[key] || 'সেশন চলছে…';
+  };
+
+  const renderOutActions = () => {
+    const box = $('#usdOutActions');
+    if (USSD.screen === 'done') {
+      const appId = USSD.lastAppId || 'DLAS-USSD-2026-00000';
+      box.innerHTML = `
+        <div class="ussd-appid-reveal">
+          <small>আপনার আবেদন আইডি</small>
+          <strong>${esc(appId)}</strong>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <a class="btn btn-primary btn-sm" href="#/dashboard">📊 ড্যাশবোর্ডে দেখুন</a>
+          <a class="btn btn-outline btn-sm" href="#/track?id=${encodeURIComponent(appId)}&last4=${esc((USSD.draft.phone || '0000').slice(-4))}">🔍 ট্র্যাক করুন</a>
+        </div>`;
+    } else {
+      box.innerHTML = '';
+    }
+  };
+
+  // ---- আবেদন জমা (বিদ্যমান applications API ব্যবহার করে — ব্যাকএন্ড পরিবর্তন নেই) ----
+  const PROBLEM_BN = { '১': 'পারিবারিক', '2': 'পারিবারিক', '২': 'ভূমি ও সম্পত্তি', '৩': 'শ্রম ও মজুরি', '৪': 'নিরাপত্তা', '৫': 'অন্যান্য' };
+  const DISTRICT_BN = { '১': 'ঢাকা', '২': 'জয়পুরহাট', '৩': 'চট্টগ্রাম', '৪': 'রাজশাহী', '৫': 'খুলনা', '৬': 'সিলেট', '৭': 'রংপুর', '৮': 'ময়মনসিংহ' };
+
+  const submitUssdApplication = async () => {
+    addLog('sys', '⏳ আবেদন সার্ভারে জমা হচ্ছে…');
+    const d = USSD.draft;
+    const payload = {
+      applicantName: d.name || 'USSD আবেদনকারী',
+      channel: 'USSD',
+      phone: d.phone || '01700000000',
+      district: d.district || 'ঢাকা',
+      caseType: 'family',
+      caseTypeLabel: d.problem || 'পারিবারিক',
+      problem: '[USSD *16699# আবেদন] ' + (d.problem || 'পারিবারিক') + ' বিষয়ে সহায়তা প্রয়োজন — বিস্তারিত কর্মকর্তা ফোনকলে জানাবেন।',
+      purpose: 'new',
+      emergency: false
+    };
+    const r = await apiPost('applications', payload);
+    const appId = (r && (r.appId || r.applicationId)) || ('DLAS-USSD-2026-' + String(Math.floor(10000 + Math.random() * 90000)));
+    USSD.lastAppId = appId;
+    try {
+      const stored = JSON.parse(localStorage.getItem('dlas_my_apps') || '[]');
+      stored.unshift({
+        appId,
+        caseType: d.problem || 'পারিবারিক',
+        district: d.district || 'ঢাকা',
+        submittedAt: new Date().toISOString(),
+        stage: 0,
+        last4: (d.phone || '01700000000').slice(-4)
+      });
+      localStorage.setItem('dlas_my_apps', JSON.stringify(stored.slice(0, 30)));
+    } catch (e) {}
+    addLog('net', '✅ আবেদন গৃহীত — আইডি: ' + appId + ' (ড্যাশবোর্ডে সেভ হয়েছে)');
+    USSD.screen = 'done';
+    showScreen('done');
+    renderOutActions();
+    toast('🎉 USSD আবেদন জমা হয়েছে — ড্যাশবোর্ড দেখুন');
+  };
+
+  // ---- কী-হ্যান্ডলার ----
+  const pressKey = (k) => {
+    addLog('user', 'কী চাপা হলো: ' + k);
+    switch (USSD.screen) {
+      case 'idle':
+        USSD.screen = 'dialing'; showScreen('dialing'); addLog('net', SCREENS.lang.body.replace(/\n/g, ' | '));
+        setTimeout(() => { USSD.screen = 'lang'; showScreen('lang'); }, 700);
+        break;
+      case 'lang':
+        if (k === '১' || k === '1') { USSD.lang = 'bn'; USSD.screen = 'menu'; showScreen('menu'); addLog('net', 'ভাষা: বাংলা ✓ — ' + SCREENS.menu.body.replace(/\n/g, ' | ')); }
+        else if (k === '২' || k === '2') { USSD.lang = 'en'; USSD.screen = 'menu'; showScreen('menu'); addLog('net', 'Language: English ✓ — ' + SCREENS.menu.body.replace(/\n/g, ' | ')); }
+        else { showScreen('invalid'); addLog('net', 'ভুল ইনপুট — ১ বা ২ চাপুন।'); }
+        break;
+      case 'menu':
+        if (k === '১' || k === '1') { USSD.screen = 'apply_name'; USSD.draft = { name: '', phone: '', problem: '', district: '' }; showScreen('apply_name'); addLog('net', 'আবেদন ফরম শুরু — নামের জন্য অক্ষর-কী তারপর # চাপুন (ডেমোতে সরাসরি # চাপলে স্যাম্পল নাম নেবে)।'); }
+        else if (k === '২' || k === '2') { USSD.screen = 'track_id'; showScreen('track_id'); addLog('net', 'ট্র্যাকিং — আইডির শেষ ৪ ডিজিট দিয়ে # চাপুন।'); }
+        else if (k === '৩' || k === '3') { USSD.screen = 'office_info'; showScreen('office_info'); addLog('net', SCREENS.office_info.body.replace(/\n/g, ' | ')); }
+        else if (k === '৪' || k === '4') { USSD.screen = 'calling'; showScreen('calling'); addLog('net', '📞 ১৬৬৯৯-এ কল স্থাপন হচ্ছে… (টোল-ফ্রি)'); renderOutActions(); }
+        else if (k === '০' || k === '0') { USSD.screen = 'lang'; showScreen('lang'); addLog('net', 'ভাষা মেনুতে ফেরত।'); }
+        else { showScreen('invalid'); addLog('net', 'মেনু অনুযায়ী ১–৪ অথবা ০ চাপুন।'); }
+        break;
+      case 'apply_name':
+        if (k === '#') { USSD.draft.name = 'USSD আবেদনকারী'; addLog('net', 'নাম গৃহীত ✓ — এবার মোবাইল নম্বর ধাপ।'); USSD.screen = 'apply_phone'; showScreen('apply_phone'); }
+        else if (k !== '*') { addLog('net', 'ডেমোতে নাম অটো-সেট হবে — সরাসরি # চাপুন।'); }
+        break;
+      case 'apply_phone':
+        if (k === '#') { USSD.draft.phone = '017' + String(Math.floor(10000000 + Math.random() * 89999999)); addLog('net', 'নম্বর গৃহীত ✓ — সমস্যার ধরন বাছুন।'); USSD.screen = 'apply_problem'; showScreen('apply_problem'); }
+        else if (/^[0-9০-৯]$/.test(k)) { addLog('net', 'ডিজিট: ' + k); }
+        break;
+      case 'apply_problem':
+        if (PROBLEM_BN[k]) { USSD.draft.problem = PROBLEM_BN[k]; addLog('net', 'সমস্যার ধরন: ' + PROBLEM_BN[k] + ' ✓ — এবার জেলা বাছুন।'); USSD.screen = 'apply_district'; showScreen('apply_district'); }
+        else { addLog('net', '১–৫ এর মধ্যে বাছুন।'); }
+        break;
+      case 'apply_district':
+        if (DISTRICT_BN[k]) {
+          USSD.draft.district = DISTRICT_BN[k];
+          addLog('net', 'জেলা: ' + DISTRICT_BN[k] + ' ✓ — তথ্য সম্পূর্ণ, জমা হচ্ছে…');
+          submitUssdApplication();
+        } else { addLog('net', '১–৮ এর মধ্যে জেলা বাছুন।'); }
+        break;
+      case 'track_id':
+        if (k === '#') { USSD.screen = 'track_result'; showScreen('track_result'); addLog('net', SCREENS.track_result.body.replace(/\n/g, ' | ')); }
+        break;
+      case 'office_info':
+      case 'track_result':
+      case 'invalid':
+      case 'done':
+        if (k === '০' || k === '0' || k === '#') { USSD.screen = 'menu'; showScreen('menu'); addLog('net', 'প্রধান মেনুতে ফেরত।'); renderOutActions(); }
+        break;
+      case 'calling':
+        addLog('net', 'কল সংযোগ ডেমো-মোডে শেষ। মেনুতে ফিরতে ০ চাপুন।');
+        break;
+    }
+  };
+
+  // ---- বাটন বাইন্ডিং ----
+  $$('.usd-key-chip').forEach((b) => { b.onclick = () => pressKey(b.dataset.k); });
+  $('#usdCallBtn').onclick = () => {
+    const cbtn = $('#usdCallBtn');
+    cbtn.classList.add('usd-callbtn-ring');
+    setTimeout(() => cbtn.classList.remove('usd-callbtn-ring'), 900);
+    if (USSD.screen === 'idle') {
+      cbtn.querySelector('.usd-callbtn-label').textContent = 'ডায়াল…';
+      setTimeout(() => { cbtn.querySelector('.usd-callbtn-label').textContent = 'কল দিন'; }, 1400);
+      pressKey('📞');
+    } else { addLog('user', '📞 কল/OK বাটন'); pressKey('#'); }
+  };
+  $('#usdSoftRight').onclick = () => {
+    addLog('user', '✖ বাতিল/ব্যাক');
+    USSD.screen = 'idle'; USSD.draft = { name: '', phone: '', problem: '', district: '' };
+    showScreen('idle');
+    $('#usdStateBadge').textContent = 'প্রস্তুত';
+    renderOutActions();
+    addLog('sys', 'সেশন রিসেট হয়েছে — আবার 📞 কল দিন।');
+  };
+  $('#usdSoftLeft').onclick = () => {
+    addLog('user', '☰ মেনু বাটন');
+    if (USSD.screen === 'idle' || USSD.screen === 'dialing') { addLog('sys', 'আগে 📞 কল দিন — তারপর মেনু আসবে।'); }
+    else { USSD.screen = 'menu'; showScreen('menu'); addLog('net', 'প্রধান মেনু।'); renderOutActions(); }
+  };
+}
 
 // ---------- SPA Router ----------
 const routes = [
@@ -518,6 +1079,8 @@ const routes = [
   { re: /^#\/call$/, fn: pageCall },
   { re: /^#\/help$/, fn: pageHelp },
   { re: /^#\/help\/([\w-]+)$/, fn: pageHelpChannel },
+  { re: /^#\/ussd(\?.*)?$/, fn: pageUssd },
+  { re: /^#\/voice(\?.*)?$/, fn: pageVoice },
   { re: /^#\/login(\?.*)?$/, fn: pageLogin },
   { re: /^#\/(register|signup)(\?.*)?$/, fn: pageRegister },
   { re: /^#\/dashboard$/, fn: pageDashboard },
@@ -714,18 +1277,46 @@ async function pageHome() {
       </div>
 
       <div class="channel-grid">
-        <div class="channel-card">
+        <!-- কার্ড ১: সরাসরি ইমার্জেন্সি কল -->
+        <div class="channel-card channel-card-cta">
           <div class="channel-card-head">
-            <div class="channel-icon">📞</div>
+            <div class="channel-icon channel-icon-red">⚡📞</div>
             <div>
               <div class="channel-title">${t('hCallT')}</div>
               <small style="color:var(--gov-green);font-weight:700">টোল-ফ্রি ২৪/৭ হেল্পলাইন</small>
             </div>
           </div>
           <p class="channel-desc">${t('hCallB')}</p>
-          <a class="channel-btn channel-btn-primary" href="tel:16699">📞 এখনই কল করুন (১৬৬৯৯)</a>
+          <button type="button" class="channel-btn channel-btn-primary" id="homeEmergencyCall">📞 এখনই কল করুন (১৬৬৯৯)</button>
         </div>
 
+        <!-- কার্ড ২: USSD (*১৬৬৯৯#) — বাটন-ক্লিকে আবেদন -->
+        <div class="channel-card channel-card-highlight">
+          <div class="channel-card-head">
+            <div class="channel-icon">📱</div>
+            <div>
+              <div class="channel-title">USSD আবেদন (*১৬৬৯৯#)</div>
+              <small style="color:var(--text-muted)">বাটন ফোনে, ইন্টারনেট ছাড়া</small>
+            </div>
+          </div>
+          <p class="channel-desc">ইন্টারনেট ছাড়াই যেকোনো বাটন ফোন থেকে ক্লিক করে ক্লিক করে আবেদন দাখিল করুন — সম্পূর্ণ টোল-ফ্রি।</p>
+          <button type="button" class="channel-btn channel-btn-outline" id="homeUssdApply">📱 USSD-তে আবেদন করুন →</button>
+        </div>
+
+        <!-- কার্ড ৩: ভয়েস আবেদন — বলে আবেদন -->
+        <div class="channel-card channel-card-highlight">
+          <div class="channel-card-head">
+            <div class="channel-icon">🎤</div>
+            <div>
+              <div class="channel-title">ভয়েসে আবেদন</div>
+              <small style="color:var(--text-muted)">বলুন — লেখা হয়ে যাবে</small>
+            </div>
+          </div>
+          <p class="channel-desc">লিখতে না পারলেও সমস্যা নেই — বাংলায় কথা বলুন, AI শুনে লেখা হয়ে যাবে এবং সেটিই আবেদন হয়ে যাবে।</p>
+          <button type="button" class="channel-btn channel-btn-outline" id="homeVoiceApply">🎤 ভয়েসে আবেদন করুন →</button>
+        </div>
+
+        <!-- কার্ড ৪: UDC অফিস ডিরেক্টরি -->
         <div class="channel-card">
           <div class="channel-card-head">
             <div class="channel-icon">🏢</div>
@@ -738,20 +1329,7 @@ async function pageHome() {
           <a class="channel-btn channel-btn-outline" href="#/offices">🗺️ উদ্যোক্তা ও অফিস ডিরেক্টরি</a>
         </div>
 
-        <div class="channel-card">
-          <div class="channel-card-head">
-            <div class="channel-icon">📱</div>
-            <div>
-              <div class="channel-title">${t('hUssdT')}</div>
-              <small style="color:var(--text-muted)">বাটন ফোনে ইন্টারনেট ছাড়া</small>
-            </div>
-          </div>
-          <p class="channel-desc">${t('hUssdB')}</p>
-          <button type="button" class="channel-btn channel-btn-outline" id="btnOpenUssd">
-            📱 বিস্তারিত দেখুন ও ডায়াল করুন →
-          </button>
-        </div>
-
+        <!-- কার্ড ৫: AI চ্যাট সহকারী -->
         <div class="channel-card">
           <div class="channel-card-head">
             <div class="channel-icon">🤖</div>
@@ -761,9 +1339,7 @@ async function pageHome() {
             </div>
           </div>
           <p class="channel-desc">${t('hAiB')}</p>
-          <button type="button" class="channel-btn channel-btn-primary" id="btnOpenAiChat">
-            💬 AI সহকারীর সাথে কথা বলুন
-          </button>
+          <button type="button" class="channel-btn channel-btn-primary" id="btnOpenAiChat">💬 AI সহকারীর সাথে কথা বলুন</button>
         </div>
       </div>
     </div>
@@ -785,7 +1361,7 @@ async function pageHome() {
   }
   const btnOpenUssd = $('#btnOpenUssd');
   if (btnOpenUssd) {
-    btnOpenUssd.onclick = openUssdSimulator;
+    btnOpenUssd.onclick = () => { location.hash = '#/ussd'; };
   }
   const btnOpenAiChat = $('#btnOpenAiChat');
   if (btnOpenAiChat) {
@@ -793,6 +1369,14 @@ async function pageHome() {
       if (typeof window.__chatOpen === 'function') window.__chatOpen();
     };
   }
+
+  // তিনটি নতুন প্রবেশগম্যতা অ্যাকশন (ইমার্জেন্সি কল / USSD আবেদন / ভয়েস আবেদন)
+  const homeCall = $('#homeEmergencyCall');
+  if (homeCall) homeCall.onclick = () => { location.href = 'tel:16699'; };
+  const homeUssd = $('#homeUssdApply');
+  if (homeUssd) homeUssd.onclick = () => { location.hash = '#/ussd'; };
+  const homeVoice = $('#homeVoiceApply');
+  if (homeVoice) homeVoice.onclick = () => { location.hash = '#/voice'; };
 }
 
 // ---------- ২. সেবাসমূহ পেজ ----------
