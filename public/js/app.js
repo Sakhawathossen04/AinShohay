@@ -14,6 +14,28 @@ let BOOT = null;           // /api/bootstrap থেকে আসা ডেটা
 let ME = null;             // লগইন করা ইউজার
 const bnNum = (s) => String(s).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[d]);
 
+// ---------- ইউনিফায়েড লগআউট (user + console — দুই পাশেই নির্ভরযোগ্য) ----------
+// সার্ভারে /api/logout কল করে সেশন ডিলিট করে + দুটি কুকিই এক্সপায়ার করে +
+// লোকাল স্টেট (ME) রিসেট করে। এরপর ব্যাক নেভিগেশনেও লগইন অবস্থায় ফেরা যায় না।
+async function doLogout() {
+  try { await apiPost('logout', {}); } catch (e) { /* সার্ভার না পাওয়া গেলেও ক্লায়েন্ট সাইডে লগআউট হবে */ }
+  // কুকি ফর্স-ক্লিয়ার (ব্রাউজার সাইড ব্যাকআপ)
+  ['dlas_session', 'session'].forEach((name) => {
+    document.cookie = name + '=; Path=/; Max-Age=0; SameSite=Lax';
+    document.cookie = name + '=; Path=/; Max-Age=0;';
+  });
+  ME = null;
+  renderAuthLink();
+}
+
+// সেশন কুকি কি সত্যিই মুছে গেছে? — লগআউট যাচাইয়ের জন্য
+function hasSessionCookie() {
+  return document.cookie.split(';').some((c) => {
+    const n = c.trim().split('=')[0];
+    return n === 'dlas_session' || n === 'session';
+  }) && (document.cookie.includes('dlas_session=') && !document.cookie.includes('dlas_session=;') && document.cookie.match(/(dlas_session|session)=[^\s;]+/) !== null);
+}
+
 // SQLite API-র case-type আইডি → বাংলা লেবেল (dashboard/track দেখানোর জন্য)
 const SQL_CASE_TYPE_BN = {
   MAINTENANCE: 'ভরণপোষণ', DOMESTIC_VIOLENCE: 'পারিবারিক সহিংসতা', DOWRY: 'যৌতুক',
@@ -821,42 +843,6 @@ async function pageServices() {
         <p>${t('adrServiceDesc')}</p>
         <a class="btn btn-outline btn-block" href="#/apply?purpose=mediation">${t('adrServiceBtn')}</a>
       </div>
-
-      <!-- ৪. পারিবারিক ও দেনমোহর বিরোধ (Unnecessary action button removed) -->
-      <div class="service-card">
-        <div class="service-head">
-          <div class="service-icon-box">🛡️</div>
-          <div>
-            <span class="service-tag-badge">পারিবারিক</span>
-            <h3>${t('familyServiceTitle')}</h3>
-          </div>
-        </div>
-        <p>${t('familyServiceDesc')}</p>
-      </div>
-
-      <!-- ৫. ভূমি ও সম্পত্তি বিরোধ প্রতিকার (Unnecessary action button removed) -->
-      <div class="service-card">
-        <div class="service-head">
-          <div class="service-icon-box">📜</div>
-          <div>
-            <span class="service-tag-badge">ভূমি</span>
-            <h3>${t('landServiceTitle')}</h3>
-          </div>
-        </div>
-        <p>${t('landServiceDesc')}</p>
-      </div>
-
-      <!-- ৬. কারাবন্দী ও জামিন সহায়তা (Unnecessary action button removed) -->
-      <div class="service-card">
-        <div class="service-head">
-          <div class="service-icon-box">🚨</div>
-          <div>
-            <span class="service-tag-badge">কারা অধিকার</span>
-            <h3>${t('jailServiceTitle')}</h3>
-          </div>
-        </div>
-        <p>${t('jailServiceDesc')}</p>
-      </div>
     </div>
   </div>`;
 }
@@ -965,7 +951,7 @@ async function pageTopics() {
     <h1>📚 ${t('libraryTitle')}</h1>
     <p>${t('libraryBody')}</p>
     <div class="search-bar" style="margin-top:1rem;max-width:100%">
-      <input id="topicQ" placeholder="${t('searchPh') || 'আইনি বিষয় বা কিওয়ার্ড লিখুন...'}">
+      <input id="topicQ" placeholder="আইনি বিষয় বা কিওয়ার্ড লিখুন...">
     </div>
   </div>
   <div class="container">
@@ -1816,10 +1802,9 @@ async function pageDashboard() {
   const logoutBtn = $('#d_logout');
   if (logoutBtn) {
     logoutBtn.onclick = async () => {
-      await apiPost('logout', {});
-      ME = null;
-      renderAuthLink();
+      await doLogout();
       location.hash = '#/';
+      route();
       toast('লগআউট সম্পন্ন হয়েছে');
     };
   }
@@ -1916,6 +1901,12 @@ async function pageLogin() {
             🚪 এক্সেস করুন →
           </button>
         </div>
+
+        <!-- নতুন অ্যাকাউন্ট তৈরির লিংক → সিগনআপ পেজ -->
+        <div class="auth-signup-link-row">
+          <span>নতুন ব্যবহারকারী?</span>
+          <a href="#/signup" id="loginSignupLink" class="auth-signup-link">✨ নতুন অ্যাকাউন্ট তৈরি করুন</a>
+        </div>
       </div>
     </div>`;
 
@@ -1954,6 +1945,12 @@ async function pageLogin() {
         location.hash = '#/dashboard';
         toast('সফলভাবে লগইন হয়েছে');
       };
+    }
+
+    // ── লগইন পেজের নিচে "নতুন অ্যাকাউন্ট তৈরি করুন" লিংক → সিগনআপ পেজ ──
+    const signupLink = $('#loginSignupLink');
+    if (signupLink) {
+      signupLink.onclick = () => { location.hash = '#/signup'; return false; };
     }
 
     // Staff login
@@ -2046,27 +2043,30 @@ async function pageOffices() {
   const offices = (BOOT && BOOT.offices) || [];
   const districtOffices = offices.filter(o => o.type === 'district');
   const divisionList = [...new Set(districtOffices.map(o => o.division))];
+  const BN = (n) => bnNum(n);
 
   app.innerHTML = `
   <div class="container page-head">
     <span class="section-tag">দেশব্যাপী নেটওয়ার্ক</span>
-    <h1>🗺️ ৬৪ জেলা ও বিশেষায়িত লিগ্যাল এইড অফিসসমূহ</h1>
-    <p>বাম পাশের তালিকা থেকে জেলা নির্বাচন করুন — ডান পাশের মানচিত্রে অফিসের অবস্থান দেখাবে। মানচিত্রের নীল পয়েন্টে ক্লিক করলেও জেলার তথ্য দেখা যাবে।</p>
+    <h1>🗺️ ৬৪ জেলা লিগ্যাল এইড অফিস ও লাইভ ম্যাপ</h1>
+    <p>আপনার নিকটতম জেলা জজ আদালতে অবস্থিত লিগ্যাল এইড অফিসে সরাসরি যোগাযোগ করুন বা ম্যাপে খুঁজে নিন।</p>
   </div>
   <div class="container">
     <div class="office-explorer">
-      <!-- Left: scrollable 64-district list -->
+      <!-- Left: search + scrollable office list -->
       <div class="office-list-panel">
         <div class="search-bar" style="margin:0 0 10px">
-          <input id="offQ" placeholder="জেলা খুঁজুন — যেমন: জয়পুরহাট, ঢাকা...">
+          <input id="offQ" placeholder="জেলার নাম লিখুন — যেমন: ঢাকা, জয়পুরহাট, চট্টগ্রাম...">
         </div>
+        <div class="office-count-line" id="offCount"></div>
         <div class="office-list-scroll" id="officeList"></div>
       </div>
-      <!-- Right: interactive Leaflet map -->
+      <!-- Right: interactive Leaflet map (large, like SS6/7) -->
       <div class="office-map-panel">
         <div id="officeMap"></div>
-        <div class="office-map-detail" id="officeDetail">
-          <span>👆 তালিকা বা মানচিত্র থেকে একটি জেলা নির্বাচন করুন</span>
+        <div class="office-map-footer">
+          <span>👆 তালিকা বা ম্যাপের পিনে ক্লিক করে সরাসরি লোকেশন ও যোগাযোগ দেখুন</span>
+          <span class="office-count-small" id="offCountSmall"></span>
         </div>
       </div>
     </div>
@@ -2075,67 +2075,66 @@ async function pageOffices() {
   // ---------- map init (Leaflet already loaded via index.html) ----------
   let map = null;
   const markers = [];
+  const brandPin = (active) => L.divIcon({
+    className: '',
+    html: `<div class="oa-pin ${active ? 'oa-pin-active' : ''}">⚖️</div>`,
+    iconSize: [30, 36],
+    iconAnchor: [15, 34],
+    popupAnchor: [0, -30]
+  });
+
   if (typeof L !== 'undefined' && $('#officeMap')) {
     map = L.map('officeMap', { scrollWheelZoom: true }).setView([23.7, 90.35], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
-      attribution: '© OpenStreetMap'
+      attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
     offices.forEach(o => {
       if (o.lat == null || o.lng == null) return;
-      const m = L.circleMarker([o.lat, o.lng], {
-        radius: 6,
-        color: '#FFF',
-        weight: 1.5,
-        fillColor: '#05513A',
-        fillOpacity: 0.9
-      }).addTo(map);
-      m.bindTooltip(o.district, { direction: 'top' });
-      m.on('click', () => selectOffice(o.id, { fromMap: true }));
+      const m = L.marker([o.lat, o.lng], { icon: brandPin(false) }).addTo(map);
+      m.bindPopup(
+        `<div class="oa-popup">
+          <button class="oa-popup-close" aria-label="বন্ধ করুন">✕</button>
+          <h4>🏛️ ${esc(o.name)}</h4>
+          <p>📍 ${esc(o.address || '')}</p>
+          <p class="oa-popup-phone">📞 ${esc(o.phone || '১৬৬৯৯')}</p>
+          <div class="oa-popup-actions">
+            <a class="oa-btn oa-btn-ghost" href="tel:${esc((o.phone || '16699').replace(/\D/g, ''))}">📞 কল</a>
+            <a class="oa-btn oa-btn-primary" href="#/apply">আবেদন</a>
+          </div>
+        </div>`,
+        { maxWidth: 280, minWidth: 240 }
+      );
+      m.on('popupopen', () => {
+        m.setIcon(brandPin(true));
+        const closeBtn = m.getPopup().getElement().querySelector('.oa-popup-close');
+        if (closeBtn) closeBtn.onclick = () => m.closePopup();
+      });
+      m.on('popupclose', () => m.setIcon(brandPin(false)));
+      m.on('click', () => { selectOffice(o.id, { fromMap: true }); m.openPopup(); });
       markers.push({ id: o.id, marker: m });
     });
   }
 
   const focusOnMap = (o) => {
     if (!map || o.lat == null) return;
-    map.flyTo([o.lat, o.lng], 11, { duration: 0.6 });
+    map.flyTo([o.lat, o.lng], 10, { duration: 0.6 });
     const hit = markers.find(x => x.id === o.id);
     if (hit) {
-      markers.forEach(x => x.marker.setStyle({ fillColor: '#05513A', radius: 6 }));
-      hit.marker.setStyle({ fillColor: '#D97706', radius: 10 });
+      hit.marker.setIcon(brandPin(true));
+      setTimeout(() => { try { hit.marker.openPopup(); } catch (e) {} }, 650);
     }
-  };
-
-  const showDetail = (o) => {
-    const box = $('#officeDetail');
-    if (!box) return;
-    box.innerHTML = `
-      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
-        <div>
-          <h3 style="margin:0 0 4px">🏛️ ${esc(o.name)}</h3>
-          <div style="font-size:0.85rem;color:var(--text-muted)">${esc(o.address || 'জেলা জজ আদালত ভবন')}</div>
-          <div style="font-size:0.85rem;margin-top:6px"><strong>ফোন:</strong> ${esc(o.phone || '১৬৬৯৯')} · <strong>সময়:</strong> ${esc(o.hours || 'রবি–বৃহস্পতি, সকাল ৯টা–বিকাল ৫টা')}</div>
-        </div>
-        <a class="btn btn-primary btn-sm" href="tel:${esc((o.phone || '16699').replace(/\D/g, ''))}">📞 কল করুন</a>
-      </div>`;
   };
 
   const selectOffice = (id, opts = {}) => {
     const o = offices.find(x => x.id === id);
     if (!o) return;
-    showDetail(o);
     focusOnMap(o);
+    $$('.office-row').forEach(r => r.classList.toggle('active', r.dataset.id === id));
     if (!opts.fromMap) {
-      // highlight + scroll the list row into view
-      $$('.office-row').forEach(r => r.classList.remove('active'));
       const row = $(`.office-row[data-id="${id}"]`);
-      if (row) {
-        row.classList.add('active');
-        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-    } else {
-      $$('.office-row').forEach(r => r.classList.toggle('active', r.dataset.id === id));
+      if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   };
 
@@ -2143,19 +2142,20 @@ async function pageOffices() {
   const renderList = (q = '') => {
     const ql = q.trim().toLowerCase();
     const matched = districtOffices.filter(o => !ql || (o.name + ' ' + o.district + ' ' + (o.division || '')).toLowerCase().includes(ql));
+    const countEl = $('#offCount');
+    if (countEl) countEl.textContent = `মোট অফিস: ${BN(matched.length)}টি`;
+    const countSmall = $('#offCountSmall');
+    if (countSmall) countSmall.textContent = `সর্বমোট ${BN(offices.length)}টি লোকেশন`;
     let html = '';
     divisionList.forEach(div => {
       const items = matched.filter(o => o.division === div);
       if (!items.length) return;
-      html += `<div class="office-div-label">${esc(div)} বিভাগ</div>`;
       html += items.map(o => `
         <button type="button" class="office-row" data-id="${o.id}">
-          <span class="office-row-no">${bnNum(districtOffices.indexOf(o) + 1)}</span>
           <span class="office-row-name">
-            <strong>${esc(o.district)}</strong>
-            <small>${esc(o.division || '')} বিভাগ</small>
+            <strong>🏛️ ${esc(o.district)} জেলা লিগ্যাল এইড অফিস</strong>
+            <small class="office-row-tag">জেলা ভিত্তিক</small>
           </span>
-          <span class="office-row-arrow">›</span>
         </button>
       `).join('');
     });
@@ -2329,8 +2329,88 @@ async function pageArticle(id) {
   </div>`;
 }
 
+// ---------- নাগরিক সিগনআপ পেজ (pageRegister) — নাম + ফোন + পাসওয়ার্ড ----------
+// এখানে অ্যাকাউন্ট তৈরি হলে সাথে সাথে লগইন হয়ে যায়, আর পরে একই ফোন +
+// পাসওয়ার্ড দিয়ে লগইন পেজের "নাগরিক লগইন" ট্যাব থেকে ঢোকা যায়।
 async function pageRegister() {
-  pageLogin();
+  if (ME) return (location.hash = '#/dashboard');
+
+  app.innerHTML = `
+  <div class="container auth-clean-wrap">
+    <div class="auth-clean-card">
+      <div class="auth-clean-header">
+        <h1>✨ নতুন অ্যাকাউন্ট তৈরি করুন</h1>
+        <p>CoU JusticeLab পোর্টালে নিবন্ধন করুন — সম্পূর্ণ বিনামূল্যে, সরকারি সেবা</p>
+      </div>
+
+      <div id="signupErr" class="form-error hidden"></div>
+
+      <div class="field">
+        <label>আপনার পুরো নাম <span class="req">*</span></label>
+        <input id="su_name" placeholder="যেমন: মোছাঃ করিমা বেগম" autocomplete="name">
+      </div>
+      <div class="field" style="margin-top:1rem">
+        <label>মোবাইল নম্বর <span class="req">*</span></label>
+        <input id="su_phone" type="tel" inputmode="numeric" maxlength="14" placeholder="01XXXXXXXXX" autocomplete="tel">
+        <div class="hint">এই নম্বর ও পাসওয়ার্ড দিয়েই পরে লগইন করবেন</div>
+      </div>
+      <div class="field" style="margin-top:1rem">
+        <label>পাসওয়ার্ড <span class="req">*</span></label>
+        <input id="su_pass" type="password" placeholder="কমপক্ষে ৪ অক্ষর" autocomplete="new-password">
+      </div>
+      <div class="field" style="margin-top:1rem">
+        <label>পাসওয়ার্ড আবার লিখুন <span class="req">*</span></label>
+        <input id="su_pass2" type="password" placeholder="একই পাসওয়ার্ড আবার দিন" autocomplete="new-password">
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btnSignupSubmit" style="margin-top:1.4rem">
+        ✅ অ্যাকাউন্ট তৈরি করুন →
+      </button>
+
+      <div class="auth-signup-link-row">
+        <span>আগে থেকেই অ্যাকাউন্ট আছে?</span>
+        <a href="#/login" id="signupLoginLink" class="auth-signup-link">👤 লগইন করুন</a>
+      </div>
+    </div>
+  </div>`;
+
+  const showErr = (msg) => {
+    const e = $('#signupErr');
+    e.textContent = msg;
+    e.classList.remove('hidden');
+  };
+
+  $('#signupLoginLink').onclick = () => { location.hash = '#/login'; return false; };
+
+  $('#btnSignupSubmit').onclick = async () => {
+    const name = $('#su_name').value.trim();
+    const phone = $('#su_phone').value.trim();
+    const pass = $('#su_pass').value;
+    const pass2 = $('#su_pass2').value;
+
+    if (!name) return showErr('আপনার নাম লিখুন');
+    if (!phone || phone.replace(/\D/g, '').length < 11) return showErr('সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন (যেমন: 01712345678)');
+    if (!pass || pass.length < 4) return showErr('পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের দিন');
+    if (pass !== pass2) return showErr('দুটি পাসওয়ার্ড মিলছে না — আবার চেক করুন');
+
+    const btn = $('#btnSignupSubmit');
+    btn.disabled = true;
+    btn.textContent = '⏳ অ্যাকাউন্ট তৈরি হচ্ছে…';
+
+    const r = await apiPost('auth', { mode: 'signup', name, phone, password: pass });
+    btn.disabled = false;
+    btn.textContent = '✅ অ্যাকাউন্ট তৈরি করুন →';
+
+    if (r.error) {
+      showErr(r.error + (r.alreadyRegistered ? ' — নিচের "লগইন করুন" লিংকে ক্লিক করুন।' : ''));
+      return;
+    }
+    ME = (r.session || r.user || { name, role: 'CITIZEN' });
+    ME.phoneDigits = phone.replace(/\D/g, '');
+    renderAuthLink();
+    toast('🎉 অ্যাকাউন্ট তৈরি সফল! স্বাগতম, ' + (ME.name || name));
+    location.hash = '#/dashboard';
+  };
 }
 
 async function pageComplaint() {

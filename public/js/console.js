@@ -8,8 +8,13 @@ async function pageConsole() {
   const presetPersona = (location.hash.split('?')[1] || '').match(/persona=(A[1-5])/);
   app.innerHTML = `
   <div class="container page-head">
-    <h1>🛠️ DLAS প্রোভাইডার কনসোল</h1>
-    <p>এক শেয়ার্ড রেকর্ড — ৭ প্রোভাইডার রোল ও ১১ টেকনিক্যাল মডিউলের টেস্টযোগ্য ভিউ (রুলবুক: Part B + Part C)।</p>
+    <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <h1>🛠️ DLAS প্রোভাইডার কনসোল</h1>
+        <p>এক শেয়ার্ড রেকর্ড — ৭ প্রোভাইডার রোল ও ১১ টেকনিক্যাল মডিউলের টেস্টযোগ্য ভিউ (রুলবুক: Part B + Part C)।</p>
+      </div>
+      <button class="btn btn-outline" id="consoleLogout" title="সেশন শেষ করে লগইন পেজে ফিরে যান">🚪 লগআউট${ME && ME.name ? ' — ' + esc(ME.name) : ''}</button>
+    </div>
   </div>
   <div class="container">
     <div class="form-card" style="max-width:none">
@@ -108,6 +113,15 @@ async function pageConsole() {
       </div>
     </div>
   </div>`;
+
+  // ---- কনসোল লগআউট — সেশন মুছে লগইন পেজে ফেরত (user + console একই ফ্লো) ----
+  const cOut = $('#consoleLogout');
+  if (cOut) cOut.onclick = async () => {
+    if (typeof doLogout === 'function') await doLogout();
+    else { try { await apiPost('logout', {}); } catch (e) {} ME = null; }
+    location.hash = '#/login';
+    toast('কনসোল থেকে লগআউট সম্পন্ন হয়েছে');
+  };
 
   // ---- রুলবুক পার্সোনা লোডার (A1–A5) — কভারেজ সেকশনের বোতামসহ ----
   const loadPersona = async (key) => {

@@ -223,6 +223,24 @@ const server = http.createServer(async (req, res) => {
         case 'coverage':
           result = handleCoverage(req, res);
           break;
+        case 'logout':
+          // Unified logout — dlas_session ও session দুই কুকিই মুছে দেয়। সেশন
+          // টোকেন হাতে পেয়ে Session টেবিল থেকেও ডিলিট করা হয়, তাই কোনোভাবেই
+          // পুরনো কুকি দিয়ে আবার ঢোকা যাবে না।
+          {
+            const { SESSION_COOKIE } = require('./server/services/session');
+            const rawCookies = parseCookies(req.headers.cookie);
+            const staleToken = rawCookies[SESSION_COOKIE] || rawCookies.session;
+            if (staleToken) {
+              try { db.run('DELETE FROM Session WHERE token = ?', [staleToken]); } catch (e) { /* ignore */ }
+            }
+            res.setHeader('Set-Cookie', [
+              `${SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`,
+              `session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
+            ]);
+            result = { ok: true, message: 'Logged out successfully' };
+          }
+          break;
         case 'audit':
           result = handleAudit(req, res, subParts, query, body, ctx);
           break;

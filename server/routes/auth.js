@@ -154,6 +154,63 @@ function handleAuth(req, res, pathParts, query, body, ctx) {
       };
     }
 
+    // ── Citizen Signup (নতুন নাগরিক অ্যাকাউন্ট তৈরি: নাম + ফোন + পাসওয়ার্ড) ──
+    // অ্যাকাউন্টটি SQLite User টেবিলে CITIZEN রোলে সংরক্ষিত হয় — পরে একই
+    // ফোন + পাসওয়ার্ড দিয়ে 'নাগরিক লগইন' ট্যাব থেকে প্রবেশ করা যায়।
+    if (mode === 'signup') {
+      const name = (body.name || '').trim();
+      const phoneRaw = (body.phone || '').trim();
+      const password = String(body.password || '').trim();
+      if (!name || !phoneRaw || !password) {
+        return { status: 400, data: { error: 'নাম, মোবাইল নম্বর ও পাসওয়ার্ড — তিনটিই দিন' } };
+      }
+      const phoneDigits = phoneRaw.replace(/\D/g, '');
+      if (phoneDigits.length < 11) {
+        return { status: 400, data: { error: 'সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন (যেমন: 01712345678)' } };
+      }
+      if (password.length < 4) {
+        return { status: 400, data: { error: 'পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের দিন' } };
+      }
+      // ডুপ্লিকেট চেক — একই ফোনে আগে থেকে অ্যাকাউন্ট থাকলে লগইনে পাঠান
+      const exists = db.get(
+        `SELECT id FROM User WHERE active = 1 AND REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ?`,
+        ['%' + phoneDigits.slice(-10)]
+      ) || db.get('SELECT id FROM User WHERE username = ? AND active = 1', [phoneDigits]);
+      if (exists) {
+        return { status: 409, data: { error: 'এই মোবাইল নম্বরে অ্যাকাউন্ট আছে — লগইন করুন', alreadyRegistered: true } };
+      }
+      const userId = 'usr_' + require('crypto').randomBytes(8).toString('hex');
+      db.run(
+        `INSERT INTO User (id, username, name, nameBn, role, office, phone, lang, pinHash, active, createdAt)
+         VALUES (?, ?, ?, ?, 'CITIZEN', NULL, ?, 'bn', ?, 1, ?)`,
+        [userId, phoneDigits, name, name, phoneRaw, hashPin(password), new Date().toISOString()]
+      );
+      const session = createStaffSession(userId);
+      res.setHeader('Set-Cookie', [
+        `${SESSION_COOKIE}=${session.token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax`,
+        `session=${session.token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax`
+      ]);
+      writeAudit({
+        actor: { userId, name, role: 'CITIZEN' },
+        channel: 'WEB',
+        action: 'CITIZEN_SIGNUP',
+        entityType: 'User',
+        entityId: userId,
+        onWhoseAuthority: name,
+      });
+      return {
+        session: {
+          sessionId: session.id,
+          userId,
+          role: 'CITIZEN',
+          name,
+          nameBn: name,
+          office: null,
+          citizenApplicationId: session.citizenApplicationId || null,
+        }
+      };
+    }
+
     // Citizen Login (phone OR application ID + PIN/last-4 verification)
     // Accepts: mode='citizen' { phone|id|applicationId, pin|password|last4|contactLast4 }
     if (mode === 'citizen') {
@@ -259,9 +316,14 @@ function handleAuth(req, res, pathParts, query, body, ctx) {
     return { status: 400, data: { error: 'Invalid auth mode' } };
   }
 
-  // DELETE /api/auth or logout
+  // DELETE /api/auth (or POST /api/logout) → Logout.
+  // দুটি সেশন কুকি (dlas_session + session) একসাথে মুছে দিতে হয় — নইলে
+  // পুরনো কুকি থেকে সেশন পুনরুদ্ধার হয়ে "লগআউট হয় না" সমস্যা তৈরি করে।
   if (req.method === 'DELETE') {
-    res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
+    res.setHeader('Set-Cookie', [
+      `${SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`,
+      `session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
+    ]);
     return { ok: true, message: 'Logged out successfully' };
   }
 

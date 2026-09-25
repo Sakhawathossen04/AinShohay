@@ -83,7 +83,9 @@
 }
 
 html {
-  font-size: calc(16px * var(--fscale));
+  /* ইস্যু-৫ ফিক্স: a11y ফন্ট-স্কেল এখন শুধু টেক্সট বাড়ায়, পুরো লেআউট
+     সরু (চিমটানো) করে না — rem-নির্ভর padding/width অপরিবর্তিত থাকে। */
+  font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
@@ -104,11 +106,17 @@ body {
   position: relative;
 }
 
+/* a11y ফন্ট বড়/ছোট বাটন — শুধু টেক্সটের আকার বদলায়, লেআউট ভাঙে না */
+:root[style*="--fscale"] body,
+body { font-size: calc(1rem * var(--fscale, 1)); }
+
 .app-main { flex: 1; }
 .container {
-  max-width: 1220px;
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 3.5vw, 2rem);
+  max-width: 1220px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 clamp(1rem, 3.5vw, 2rem) !important;
+  box-sizing: border-box !important;
 }
 .hidden { display: none !important; }
 a { color: var(--brand); text-decoration: none; transition: var(--transition); }
@@ -800,12 +808,18 @@ img, svg { vertical-align: middle; }
 }
 
 /* ==========================================================================
-   Core Legal Aid Services
+   Core Legal Aid Services — সবসময় ৩-কলাম (ট্যাবলেট/ডেস্কটপ), মোবাইলে ১
    ========================================================================== */
 .services-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.5rem;
+}
+@media (max-width: 992px) {
+  .services-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .services-grid { grid-template-columns: 1fr; }
 }
 .service-card {
   background: var(--surface);
@@ -1027,8 +1041,14 @@ img, svg { vertical-align: middle; }
    ========================================================================== */
 .topic-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.2rem;
+}
+@media (max-width: 992px) {
+  .topic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .topic-grid { grid-template-columns: 1fr; }
 }
 .topic-card {
   background: var(--surface);
@@ -2067,7 +2087,114 @@ img, svg { vertical-align: middle; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
 }
 
-/* ==========================================================================
+/* ============================================================================
+   প্রোভাইডার কনসোল — টেকনিক্যাল মডিউল বাটন গ্রিড (T1–T11)
+   ========================================================================== */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 1rem 0 1.5rem;
+}
+.module-card {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-align: right;
+  cursor: pointer;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  color: var(--text);
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(15, 23, 42, 0.06));
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+.module-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gov-green, #05513A);
+  box-shadow: var(--shadow, 0 4px 14px rgba(15, 23, 42, 0.1));
+  background: var(--gov-green-surface, #ECFDF5);
+}
+.module-card:active {
+  transform: translateY(0) scale(0.985);
+}
+.module-card .mod-badge {
+  flex: 0 0 auto;
+  background: var(--gov-green-dark, #023D2C);
+  color: #FFF;
+  font-weight: 800;
+  font-size: 0.78rem;
+  padding: 0.26rem 0.55rem;
+  border-radius: 8px;
+  min-width: 2.4rem;
+  text-align: center;
+  direction: ltr;
+}
+.module-card .mod-ic {
+  flex: 0 0 auto;
+  font-size: 1.2rem;
+}
+.module-card > span:last-child {
+  flex: 1;
+  min-width: 0;
+}
+.persona-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+}
+.persona-row .btn { width: 100%; }
+.mod-json {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0.4rem 0 0;
+}
+@media (max-width: 992px) {
+  .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .module-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================================
+   লগইন পেজ — নতুন অ্যাকাউন্ট (সিগনআপ) লিংক
+   ========================================================================== */
+.auth-signup-link-row {
+  margin-top: 1.4rem;
+  padding-top: 1.1rem;
+  border-top: 1px dashed var(--border);
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-signup-link {
+  font-weight: 700;
+  color: var(--gov-green-dark, #023D2C);
+  font-size: 1rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-signup-link:hover {
+  color: var(--gov-green, #05513A);
+}
+
+/* ============================================================================
    Missing Utility Styles – page-head, section-tag, breadcrumb, empty-state
    ========================================================================== */
 .page-head {
@@ -2912,9 +3039,15 @@ img, svg { vertical-align: middle; }
    ========================================================================== */
 .subtopic-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
   margin: 1.5rem 0 2.5rem;
+}
+@media (max-width: 992px) {
+  .subtopic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .subtopic-grid { grid-template-columns: 1fr; }
 }
 .subtopic-card {
   background: var(--surface);
@@ -2998,7 +3131,7 @@ img, svg { vertical-align: middle; }
    ============================================================================ */
 .office-explorer {
   display: grid;
-  grid-template-columns: minmax(320px, 420px) 1fr;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
   gap: 20px;
   align-items: stretch;
   margin-bottom: 3rem;
@@ -3010,7 +3143,24 @@ img, svg { vertical-align: middle; }
   padding: 14px;
   display: flex;
   flex-direction: column;
-  min-height: 560px;
+  min-height: 600px;
+}
+.office-count-line {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 4px 8px;
+}
+.office-row-tag {
+  display: inline-block;
+  margin-top: 3px;
+  background: var(--gov-gold-bg, #FEF3C7);
+  color: #B45309;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 4px;
+  width: fit-content;
 }
 .office-list-scroll {
   overflow-y: auto;
@@ -3110,26 +3260,77 @@ img, svg { vertical-align: middle; }
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 560px;
+  min-height: 600px;
 }
 #officeMap {
   flex: 1;
-  min-height: 420px;
+  min-height: 540px;
   border-radius: 10px;
   z-index: 1;
   background: #E5EAF0;
 }
-.office-map-detail {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  min-height: 64px;
+.office-map-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 2px 4px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.office-count-small { font-weight: 700; color: var(--gov-green, #05513A); }
+
+/* ম্যাপ পিন (⚖️ ব্র্যান্ড মার্কার) */
+.oa-pin {
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  background: #05513A;
+  border: 2px solid #FFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  justify-content: center;
+  font-size: 13px;
+  transition: transform 0.15s ease;
 }
+.oa-pin > * { transform: rotate(45deg); }
+.oa-pin-active {
+  background: #D97706;
+  transform: rotate(-45deg) scale(1.25);
+  z-index: 1000;
+}
+/* লিফলেট পপআপ ব্র্যান্ডিং */
+.oa-popup { min-width: 200px; font-family: 'Hind Siliguri', sans-serif; }
+.oa-popup h4 { margin: 0 24px 6px 0; font-size: 0.95rem; color: #023D2C; line-height: 1.35; }
+.oa-popup p { margin: 0 0 4px; font-size: 0.82rem; color: #475569; line-height: 1.5; }
+.oa-popup-phone { font-weight: 700; color: #B91C1C !important; }
+.oa-popup-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #94A3B8;
+  padding: 2px 4px;
+}
+.oa-popup-close:hover { color: #334155; }
+.oa-popup-actions { display: flex; gap: 6px; margin-top: 8px; }
+.oa-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 7px;
+  text-decoration: none;
+}
+.oa-btn-ghost { background: #F1F5F9; color: #0F172A; border: 1px solid #E2E8F0; }
+.oa-btn-primary { background: #023D2C; color: #FFF; }
 
 @media (max-width: 900px) {
   .office-explorer {
@@ -3139,7 +3340,7 @@ img, svg { vertical-align: middle; }
     max-height: 340px;
   }
   #officeMap {
-    min-height: 320px;
+    min-height: 360px;
   }
 }
 
