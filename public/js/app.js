@@ -1751,6 +1751,22 @@ async function pageTrack(queryStr) {
           </div>
         ` : ''}
 
+        ${(r.documents && r.documents.length) ? `
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.2rem;margin:10px 0">
+            <strong style="font-size:.92rem">📎 সংযুক্ত ডকুমেন্ট (${bnNum(r.documents.length)}টি):</strong>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
+              ${r.documents.map((f) => `
+                <a class="att-file-chip" href="${esc(f.url || '#')}" target="_blank" rel="noopener">
+                  <span class="att-file-ic">${f.kind === 'image' ? '🖼️' : f.kind === 'pdf' ? '📄' : f.kind === 'video' ? '🎬' : f.kind === 'audio' ? '🎧' : '📎'}</span>
+                  <span>
+                    <strong>${esc(f.name.length > 28 ? f.name.slice(0, 26) + '…' : f.name)}</strong>
+                    <small>${f.size ? (f.size < 1048576 ? bnNum(Math.round(f.size / 1024)) + ' KB' : bnNum((f.size / 1048576).toFixed(1)) + ' MB') : ''}</small>
+                  </span>
+                </a>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+
         ${(r.headsUp && r.headsUp.length) ? `
           <div class="quick-ans" style="margin:10px 0;background:var(--surface);border-color:var(--gov-gold)">
             🔔 <strong>গুরুত্বপূর্ণ নির্দেশনা:</strong>
@@ -1794,7 +1810,21 @@ async function pageTrack(queryStr) {
     doTrack();
   };
 
-  if (initialId && initialLast4) {
+  // ড্যাশবোর্ড থেকে last4 ছাড়া এলে লোকালস্টোরেজের সেভ করা রেকর্ড থেকে বের করি —
+  // ফলে ড্যাশবোর্ডের কার্ডে ক্লিক করলেই সরাসরি ট্র্যাকিং রেজাল্ট দেখায় (কোনো এরর নেই)।
+  const fillLast4FromLocal = (appId) => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('dlas_my_apps') || '[]');
+      const hit = stored.find((x) => String(x.appId).toUpperCase() === String(appId).toUpperCase());
+      if (hit && hit.last4) return hit.last4;
+    } catch (e) {}
+    return '';
+  };
+
+  const effectiveLast4 = initialLast4 || fillLast4FromLocal(initialId);
+  if (effectiveLast4 && $('#t_last4')) $('#t_last4').value = effectiveLast4;
+
+  if (initialId && effectiveLast4) {
     doTrack();
   }
 }
@@ -1847,7 +1877,7 @@ async function pageApply(queryStr) {
   render();
 
   function render() {
-    const steps = ['সমস্যা', 'পরিচয়', 'যোগাযোগ', 'আর্থ-সামাজিক', 'প্রতিপক্ষ', 'যাচাই ও জমা'];
+    const steps = ['সমস্যা', 'পরিচয়', 'যোগাযোগ', 'আর্থ-সামাজিক', 'প্রতিপক্ষ', 'ডকুমেন্ট', 'যাচাই ও জমা'];
     app.innerHTML = `
     <div class="container page-head">
       <span class="section-tag">সরকারি আইনি সহায়তা</span>
@@ -1867,7 +1897,7 @@ async function pageApply(queryStr) {
         <div class="wizard-actions">
           <button class="btn btn-ghost" id="aPrev" ${state.step === 1 ? 'style="visibility:hidden"' : ''}>← ${t('guideBack')}</button>
           <button class="btn btn-primary" id="aNext">
-            ${state.step === 6 ? '✓ জমা দিন' : t('guideNext') + ' →'}
+            ${state.step === 7 ? '✓ জমা দিন' : t('guideNext') + ' →'}
           </button>
         </div>
       </div>
@@ -1880,7 +1910,7 @@ async function pageApply(queryStr) {
     };
     $('#aNext').onclick = () => {
       if (!collect()) return;
-      if (state.step < 6) { state.step++; render(); }
+      if (state.step < 7) { state.step++; render(); }
       else submit();
     };
   }
@@ -2092,6 +2122,83 @@ async function pageApply(queryStr) {
           🔒 <strong>সুরক্ষিত রেকর্ড:</strong> প্রতিপক্ষকে কখনই আপনার যোগাযোগের সংবেদনশীল তথ্য জানানো হয় না।
         </div>
       `);
+    } else if (state.step === 6) {
+      // ---------- ধাপ ৬: ডকুমেন্ট / ছবি / ভিডিও সংযুক্তি (ঐচ্ছিক) ----------
+      state.data.files = state.data.files || [];
+      stepHtml(`
+        <h3 style="margin:0 0 .4rem">📎 সহায়ক ডকুমেন্ট সংযুক্ত করুন <span style="font-weight:400;color:var(--text-muted);font-size:.85rem">(ঐচ্ছিক — চাইলে বাদ দিতে পারেন)</span></h3>
+        <p style="font-size:.88rem;color:var(--text-muted);margin:.2rem 0 1rem">আপনার আবেদনের পক্ষে ছবি, স্ক্রিনশট, দলিল/সনদের PDF, ভয়েস রেকর্ডিং বা ভিডিও জুড়ে দিন। এগুলো কর্মকর্তার যাচাই দ্রুত করে এবং আবেদন শক্তিশালী হয়।</p>
+
+        <div class="att-dropzone" id="attDrop">
+          <div class="att-dropzone-icon">📁</div>
+          <div class="att-dropzone-text"><strong>ফাইল টেনে আনুন</strong> অথবা নিচের বাটন থেকে বাছুন</div>
+          <div class="att-dropzone-sub">ছবি (JPG/PNG), PDF, ভিডিও (MP4), অডিও — প্রতিটি সর্বোচ্চ ২৫ MB</div>
+          <button type="button" class="btn btn-outline btn-sm" id="attPick">+ ফাইল বাছুন</button>
+          <input type="file" id="attInput" multiple accept="image/*,.pdf,.mp4,.mov,.webm,.mp3,.m4a,.wav,.doc,.docx" style="display:none">
+        </div>
+
+        <div class="att-preview-grid" id="attPreview"></div>
+        <div id="attErr" class="form-error hidden" style="margin-top:.8rem"></div>
+
+        <div class="quick-ans" style="margin-top:1rem;background:var(--gov-green-surface);border-color:#A7F3D0">
+          🔐 <strong>সুরক্ষা:</strong> ফাইলগুলো সার্ভারের সুরক্ষিত <code>data/uploads/</code> ফোল্ডারে আপনার আবেদন আইডির নিজস্ব ফোল্ডারে সংরক্ষিত হবে — শুধু দায়িত্বপ্রাপ্ত কর্মকর্তাই দেখতে পারবেন।
+        </div>
+      `);
+
+      const renderPreviews = () => {
+        const files = state.data.files;
+        $('#attPreview').innerHTML = files.map((f, i) => `
+          <div class="att-preview-card">
+            <button type="button" class="att-remove" data-i="${i}" title="সরিয়ে ফেলুন">✕</button>
+            ${f.isImage
+              ? `<img class="att-thumb" src="${f.preview}" alt="${esc(f.name)}">`
+              : `<div class="att-thumb att-thumb-icon">${f.kind === 'pdf' ? '📄' : f.kind === 'video' ? '🎬' : f.kind === 'audio' ? '🎧' : '📎'}</div>`}
+            <div class="att-meta">
+              <div class="att-name" title="${esc(f.name)}">${esc(f.name.length > 26 ? f.name.slice(0, 24) + '…' : f.name)}</div>
+              <div class="att-size">${f.sizeKB < 1024 ? bnNum(f.sizeKB) + ' KB' : bnNum((f.sizeKB / 1024).toFixed(1)) + ' MB'}</div>
+            </div>
+          </div>`).join('') || '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:.85rem;padding:.6rem">এখনো কোনো ফাইল যোগ করা হয়নি</div>';
+        $$('#attPreview .att-remove').forEach((b) => {
+          b.onclick = () => {
+            const f = state.data.files[+b.dataset.i];
+            if (f && f.preview) URL.revokeObjectURL(f.preview);
+            state.data.files.splice(+b.dataset.i, 1);
+            renderPreviews();
+          };
+        });
+      };
+      renderPreviews();
+
+      const addFiles = (list) => {
+        const err = $('#attErr');
+        err.classList.add('hidden');
+        for (const file of list) {
+          const ext = (file.name.split('.').pop() || '').toLowerCase();
+          const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].includes(ext) || (file.type || '').startsWith('image/');
+          const kind = isImage ? 'image' : ext === 'pdf' ? 'pdf' : ['mp4', 'mov', 'webm'].includes(ext) ? 'video' : ['mp3', 'm4a', 'wav'].includes(ext) ? 'audio' : 'doc';
+          if (file.size > 25 * 1024 * 1024) {
+            err.textContent = `"${file.name}" ফাইলটি ২৫ মেগাবাইটের বেশি — ছোট কপি দিন।`;
+            err.classList.remove('hidden');
+            continue;
+          }
+          state.data.files.push({
+            file,
+            name: file.name,
+            sizeKB: Math.round(file.size / 1024),
+            kind,
+            isImage,
+            preview: isImage ? URL.createObjectURL(file) : null
+          });
+        }
+        renderPreviews();
+      };
+
+      $('#attPick').onclick = () => $('#attInput').click();
+      $('#attInput').onchange = (e) => { addFiles([...e.target.files]); e.target.value = ''; };
+      const dz = $('#attDrop');
+      ['dragover', 'dragenter'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('att-dropzone-live'); }));
+      ['dragleave', 'drop'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('att-dropzone-live'); }));
+      dz.addEventListener('drop', (e) => { if (e.dataTransfer && e.dataTransfer.files.length) addFiles([...e.dataTransfer.files]); });
     } else {
       const d2 = state.data;
       const catObj = allCategories.find(c => c.id === d2.caseType);
@@ -2161,6 +2268,9 @@ async function pageApply(queryStr) {
       d.oppName = $('#f_oppName').value.trim();
       d.oppType = $('#f_oppType').value;
       d.oppPhone = $('#f_oppPhone').value.trim();
+    } else if (state.step === 6) {
+      // ডকুমেন্ট ঐচ্ছিক — ফাইলগুলো স্টেটেই থাকে, এখানে শুধু নিশ্চিত করি অ্যারে আছে
+      d.files = d.files || [];
     } else {
       if (!$('#f_true').checked) {
         toast('তথ্য সঠিক বলে বক্সে টিক চিহ্ন দিন');
@@ -2212,6 +2322,24 @@ async function pageApply(queryStr) {
 
     const finalAppId = r.appId || r.applicationId || ('APP-2026-' + Math.floor(1000 + Math.random() * 9000));
 
+    // ---------- সংযুক্ত ডকুমেন্ট আপলোড (ধাপ ৬) — সার্ভারের data/uploads/<appId>/ ফোল্ডারে সেভ ----------
+    const pendingFiles = d.files || [];
+    if (pendingFiles.length) {
+      try {
+        const fd = new FormData();
+        fd.append('appId', finalAppId);
+        pendingFiles.forEach((f) => fd.append('files', f.file, f.name));
+        const up = await fetch('/api/attachments', { method: 'POST', body: fd });
+        const upRes = await up.json();
+        if (!up.ok || upRes.error) {
+          console.warn('Attachment upload warning:', upRes.error);
+          toast('⚠️ আবেদন জমা হয়েছে, কিন্তু কিছু ফাইল আপলোড হয়নি — পরে অফিসে জুড়ে দিতে পারবেন');
+        }
+      } catch (e) {
+        console.warn('Attachment upload failed:', e);
+      }
+    }
+
     // Save locally to citizen's localStorage dashboard store
     try {
       const stored = JSON.parse(localStorage.getItem('dlas_my_apps') || '[]');
@@ -2241,6 +2369,15 @@ async function pageApply(queryStr) {
         <div class="quick-ans" style="text-align:left;background:var(--gov-green-surface);border-color:#A7F3D0">
           🆓 <strong>বিনামূল্যে সরকারি সেবা:</strong> এই আবেদন ও তৎপরবর্তী সকল আইনি সহায়তা সম্পূর্ণ বিনামূল্যে। কোনো ফি প্রদান করবেন না।
         </div>
+
+        ${pendingFiles.length ? `
+        <div style="background:var(--surface-2);border-radius:10px;padding:1.1rem;text-align:left;margin-top:1rem">
+          <strong>📎 সংযুক্ত ডকুমেন্ট (${bnNum(pendingFiles.length)}টি):</strong>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+            ${pendingFiles.map((f) => `<span class="badge info" style="font-size:.8rem">${f.kind === 'image' ? '🖼️' : f.kind === 'pdf' ? '📄' : f.kind === 'video' ? '🎬' : f.kind === 'audio' ? '🎧' : '📎'} ${esc(f.name.length > 30 ? f.name.slice(0, 28) + '…' : f.name)}</span>`).join('')}
+          </div>
+          <div class="hint" style="margin-top:8px">📁 সার্ভার ফোল্ডার: <code>data/uploads/${esc(finalAppId)}/</code> — ফাইলগুলো আপনার আবেদনের সাথেই সংরক্ষিত হয়েছে।</div>
+        </div>` : ''}
 
         <div style="background:var(--surface-2);border-radius:10px;padding:1.2rem;text-align:left;margin-top:1.2rem">
           <strong>পরবর্তী করণীয় ও ধাপসমূহ:</strong>
@@ -2356,7 +2493,7 @@ async function pageDashboard() {
     ${apps.length ? `
       <div class="myapps">
         ${apps.map(a => `
-          <a class="app-card" href="#/track?id=${encodeURIComponent(a.appId)}&last4=${encodeURIComponent(a.last4 || '3344')}" style="text-decoration:none;color:inherit">
+          <a class="app-card" href="#/track?id=${encodeURIComponent(a.appId)}&last4=${encodeURIComponent(a.last4 || '3344')}&auto=1" style="text-decoration:none;color:inherit">
             <span class="app-stage-icon">${stageIcons[a.stage || 0] || '📝'}</span>
             <span class="app-main">
               <span class="app-id">${esc(a.appId)}</span>
@@ -2784,18 +2921,84 @@ async function pageNews() {
 async function pageNewsDetail(id) {
   const n = ((BOOT && BOOT.news) || []).find(x => x.id === id);
   if (!n) return pageNews();
+  const summary = n.summary || n.body || '';
+  const highlights = n.highlights || [];
+  const sections = n.sections || [];
+  const stats = n.stats || [];
+  const cases = n.cases || [];
+  const isEvent = n.type === 'event';
+
   app.innerHTML = `
   <div class="container page-head">
-    <div class="breadcrumb"><a href="#/news">নিউজ ও ইভেন্ট</a> / ${esc(n.title)}</div>
-    <h1>${esc(n.title)}</h1>
-    <div style="color:var(--text-muted);font-size:0.9rem;margin-top:6px">প্রকাশের তারিখ: ${esc(n.date)}</div>
-  </div>
-  <div class="container" style="max-width:800px;margin-bottom:3rem">
-    <img src="${n.img}" style="width:100%;border-radius:12px;margin-bottom:1.5rem" alt="${esc(n.title)}">
-    <div style="font-size:1.05rem;line-height:1.7">${esc(n.body)}</div>
-    <div style="margin-top:2rem">
-      <a class="btn btn-outline" href="#/news">← সব নিউজে ফিরুন</a>
+    <div class="breadcrumb"><a href="#/news">নিউজ ও ইভেন্ট</a> / ${esc(n.title.length > 40 ? n.title.slice(0, 38) + '…' : n.title)}</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+      <span class="news-badge ${isEvent ? 'event' : 'news'}">${isEvent ? 'ইভেন্ট' : 'নিউজ'}</span>
+      <span style="color:var(--text-muted);font-size:.88rem">📅 ${esc(n.date)}</span>
     </div>
+    <h1>${esc(n.title)}</h1>
+    ${summary ? `<p class="news-detail-lead">${esc(summary)}</p>` : ''}
+  </div>
+  <div class="container news-detail-wrap">
+    <div class="news-detail-main">
+      <img class="news-detail-img" src="${n.img}" alt="${esc(n.title)}" loading="lazy">
+
+      ${highlights.length ? `
+      <div class="news-hl-strip">
+        ${highlights.map((h) => `<div class="news-hl-item">✓ ${esc(h)}</div>`).join('')}
+      </div>` : ''}
+
+      <div class="news-detail-body">
+        <p>${esc(n.body)}</p>
+        ${sections.map((s) => `
+          <h3>📌 ${esc(s.h)}</h3>
+          <p>${esc(s.p)}</p>
+        `).join('')}
+      </div>
+
+      ${(stats.length || cases.length) ? `
+      <div class="news-stats-row">
+        ${stats.map(([num, label]) => `
+          <div class="news-stat-card">
+            <div class="news-stat-num">${esc(num)}</div>
+            <div class="news-stat-label">${esc(label)}</div>
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${cases.length ? `
+      <div class="news-cases-block">
+        <h3>📂 ${isEvent ? 'বিস্তারিত তথ্য' : 'কেস স্টাডি'}</h3>
+        ${cases.map((c) => `
+          <div class="news-case-card">
+            <strong>${esc(c.t)}</strong>
+            <p>${esc(c.d)}</p>
+          </div>`).join('')}
+      </div>` : ''}
+
+      <div class="news-cta-row">
+        <a class="btn btn-primary" href="#/apply">📝 আইনি সহায়তা পেতে আবেদন করুন</a>
+        <a class="btn btn-outline" href="tel:16699">📞 ১৬৬৯৯ হেল্পলাইন</a>
+        <a class="btn btn-ghost" href="#/news">← সব নিউজে ফিরুন</a>
+      </div>
+    </div>
+
+    <aside class="news-detail-side">
+      <div class="news-side-box">
+        <h4>📰 অন্যান্য নিউজ</h4>
+        ${((BOOT && BOOT.news) || []).filter((x) => x.id !== id).slice(0, 5).map((x) => `
+          <a class="news-side-item" href="#/news/${x.id}">
+            <img src="${x.img}" alt="" loading="lazy">
+            <div>
+              <strong>${esc(x.title.length > 52 ? x.title.slice(0, 50) + '…' : x.title)}</strong>
+              <small>${esc(x.date)}</small>
+            </div>
+          </a>`).join('')}
+      </div>
+      <div class="news-side-box news-side-cta">
+        <h4>🤝 বিনামূল্যে সেবা</h4>
+        <p>যেকোনো আইনি সমস্যায় সরকারি খরচে সহায়তা পান — আজই আবেদন করুন।</p>
+        <a class="btn btn-primary btn-sm btn-block" href="#/apply" style="margin-top:8px">আবেদন করুন →</a>
+      </div>
+    </aside>
   </div>`;
 }
 

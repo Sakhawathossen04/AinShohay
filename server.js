@@ -28,13 +28,12 @@ const { handleCoverage } = require('./server/routes/coverage');
 const { handleAudit } = require('./server/routes/audit');
 const { handleDocuments } = require('./server/routes/documents');
 const { handleIncidentGroups } = require('./server/routes/incident-groups');
+const { handleAttachments } = require('./server/routes/attachments');
 const { handleResources } = require('./server/routes/resources');
 const { handleAinShohay, currentUser: getAinShohayUser } = require('./server/routes/ain-shohay');
 
 const PORT = Number(process.env.PORT) || 3000;
-const PUBLIC_DIR = path.join(__dirname, 'public');
-
-const MIME_TYPES = {
+const PUBLIC_DIR = path.join(__dirname, 'public');  const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -42,6 +41,15 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.pdf': 'application/pdf',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
   '.txt': 'text/plain; charset=utf-8'
@@ -141,7 +149,9 @@ const server = http.createServer(async (req, res) => {
     const rootRoute = parts[0] || '';
     const subParts = parts.slice(1);
 
-    const body = ['POST', 'PATCH', 'PUT'].includes(req.method) ? await readBody(req) : {};
+    // multipart আপলোড (attachments) নিজে বডি পড়ে — এখানে প্রি-পার্স করা যাবে না
+  const isMultipart = String(req.headers['content-type'] || '').includes('multipart/form-data');
+  const body = (!isMultipart && ['POST', 'PATCH', 'PUT'].includes(req.method)) ? await readBody(req) : {};
 
     try {
       let result = null;
@@ -249,6 +259,9 @@ const server = http.createServer(async (req, res) => {
           break;
         case 'incident-groups':
           result = handleIncidentGroups(req, res, subParts, query, body, ctx);
+          break;
+        case 'attachments':
+          result = handleAttachments(req, res, subParts, query, body);
           break;
         case 'bootstrap':
         case 'article':

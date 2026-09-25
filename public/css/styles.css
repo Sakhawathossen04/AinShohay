@@ -2775,6 +2775,204 @@ img, svg { vertical-align: middle; }
 .channel-card-cta { border-color: #DC2626; }
 .channel-icon-red { background: #FEF2F2; }
 .channel-card-highlight { border-color: #0B9E63; box-shadow: 0 3px 14px rgba(11, 158, 99, 0.12); }
+
+/* ============================================================================
+   আবেদন ফরম — ধাপ ৬: ডকুমেন্ট সংযুক্তি (Dropzone + Preview)
+   ========================================================================== */
+.att-dropzone {
+  border: 2px dashed #A7D8C0;
+  border-radius: 14px;
+  background: linear-gradient(150deg, #F4FBF7, #ECFDF5);
+  padding: 26px 18px;
+  text-align: center;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+.att-dropzone:hover, .att-dropzone-live {
+  border-color: #0B9E63;
+  background: #E8F8F0;
+  transform: translateY(-1px);
+}
+.att-dropzone-icon { font-size: 1.9rem; margin-bottom: 6px; }
+.att-dropzone-text { font-size: 0.95rem; color: var(--text); }
+.att-dropzone-sub { font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 12px; }
+.att-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.att-preview-card {
+  position: relative;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  text-align: center;
+}
+.att-thumb {
+  width: 100%;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--surface-2, #F1F5F9);
+}
+.att-thumb-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+.att-remove {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #DC2626;
+  color: #FFF;
+  font-size: 0.72rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+}
+.att-remove:hover { background: #B91C1C; transform: scale(1.1); }
+.att-meta { padding: 6px 2px 2px; }
+.att-name { font-size: 0.76rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.att-size { font-size: 0.7rem; color: var(--text-muted); }
+
+/* ট্র্যাকিং রেজাল্টে ডকুমেন্ট চিপ */
+.att-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2, #F8FAF9);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  text-decoration: none;
+  color: var(--text);
+  transition: all 0.14s ease;
+}
+.att-file-chip:hover { border-color: var(--gov-green, #05513A); background: var(--gov-green-surface, #ECFDF5); transform: translateY(-1px); }
+.att-file-chip .att-file-ic { font-size: 1.25rem; }
+.att-file-chip strong { display: block; font-size: 0.82rem; }
+.att-file-chip small { color: var(--text-muted); font-size: 0.72rem; }
+
+/* ============================================================================
+   নিউজ ডিটেইল পেজ (সমৃদ্ধ লেআউট)
+   ========================================================================== */
+.news-detail-lead {
+  font-size: 1.05rem;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.7;
+  max-width: 900px;
+}
+.news-detail-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 26px;
+  margin-bottom: 3rem;
+  align-items: start;
+}
+@media (max-width: 992px) { .news-detail-wrap { grid-template-columns: 1fr; } }
+.news-detail-main {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(15, 23, 42, 0.05));
+}
+.news-detail-img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.news-hl-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.news-hl-item {
+  background: var(--gov-green-surface, #ECFDF5);
+  border: 1px solid #A7F3D0;
+  color: #065F46;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 9px 12px;
+  border-radius: 9px;
+  line-height: 1.5;
+}
+.news-detail-body { line-height: 1.85; font-size: 1rem; color: var(--text); }
+.news-detail-body h3 {
+  color: var(--gov-green-dark, #023D2C);
+  font-size: 1.12rem;
+  margin: 1.4rem 0 0.5rem;
+}
+.news-detail-body p { margin: 0 0 0.8rem; }
+.news-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+.news-stat-card {
+  background: linear-gradient(150deg, #023D2C, #05513A);
+  color: #FFF;
+  border-radius: 12px;
+  padding: 16px 10px;
+  text-align: center;
+}
+.news-stat-num { font-size: 1.3rem; font-weight: 800; color: #FDE68A; }
+.news-stat-label { font-size: 0.76rem; opacity: 0.92; margin-top: 3px; }
+.news-cases-block {
+  background: var(--surface-2, #F8FAF9);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 16px 0;
+}
+.news-cases-block h3 { margin: 0 0 10px; font-size: 1.02rem; color: var(--gov-green-dark, #023D2C); }
+.news-case-card {
+  background: var(--surface);
+  border-left: 4px solid var(--gov-green, #05513A);
+  border-radius: 9px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.news-case-card:last-child { margin-bottom: 0; }
+.news-case-card strong { font-size: 0.92rem; display: block; margin-bottom: 4px; }
+.news-case-card p { margin: 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.65; }
+.news-cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border); }
+.news-detail-side { display: flex; flex-direction: column; gap: 16px; }
+.news-side-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+.news-side-box h4 { margin: 0 0 12px; font-size: 0.98rem; color: var(--gov-green-dark, #023D2C); }
+.news-side-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+  text-decoration: none;
+  color: var(--text);
+}
+.news-side-item:last-child { border-bottom: none; }
+.news-side-item img { width: 62px; height: 46px; object-fit: cover; border-radius: 7px; flex-shrink: 0; }
+.news-side-item strong { display: block; font-size: 0.8rem; line-height: 1.45; }
+.news-side-item:hover strong { color: var(--gov-green, #05513A); }
+.news-side-item small { color: var(--text-muted); font-size: 0.72rem; }
+.news-side-cta { background: linear-gradient(150deg, #F4FBF7, #ECFDF5); border-color: #A7F3D0; }
+.news-side-cta p { font-size: 0.84rem; color: var(--text-muted); margin: 0; line-height: 1.6; }
 .page-head {
   padding: 2.5rem 0 2rem;
 }

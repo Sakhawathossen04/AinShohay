@@ -684,7 +684,9 @@ api.track = (b, req) => {
     headsUp,
     stages: seed.APPLICATION_STAGES.map((s, i) => ({ ...s, done: i <= app.stage, current: i === app.stage })),
     office: app.office, district: app.district, caseType: app.caseType, emergency: app.emergency,
+    applicantName: app.name || null,
     submitted: app.createdAt, history: app.history,
+    documents: (app.documents || []).map((x) => ({ id: x.id, name: x.name, kind: x.kind, size: x.size, url: x.url, uploadedAt: x.uploadedAt })),
     note: 'সম্পূর্ণ বিবরণের জন্য নিকটবর্তী লিগ্যাল এইড অফিসে যোগাযোগ করুন।'
   };
 };
