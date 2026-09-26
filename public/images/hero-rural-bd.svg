@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" role="img" aria-label="Rural Bangladesh: river, beel wetland, boats and village homes at golden hour">
+  <title>গ্রামীণ বাংলাদেশ — নদী, বিল ও গ্রাম (Rural Bangladesh)</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eaf7fd"/>
+      <stop offset=".5" stop-color="#cfeafa"/>
+      <stop offset="1" stop-color="#b9e1f3"/>
+    </linearGradient>
+    <linearGradient id="far" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fd3ec"/>
+      <stop offset="1" stop-color="#7dbde2"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ecbe8"/>
+      <stop offset=".5" stop-color="#69b4dc"/>
+      <stop offset="1" stop-color="#4a9cc9"/>
+    </linearGradient>
+    <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f6b4f"/>
+      <stop offset="1" stop-color="#24523d"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#sky)"/>
+  <circle cx="985" cy="120" r="52" fill="#e8b23a" opacity=".92"/>
+  <circle cx="985" cy="120" r="76" fill="#e8b23a" opacity=".16"/>
+  <g fill="#ffffff" opacity=".85">
+    <ellipse cx="240" cy="98" rx="88" ry="20"/>
+    <ellipse cx="300" cy="84" rx="60" ry="16"/>
+    <ellipse cx="700" cy="70" rx="70" ry="15" opacity=".7"/>
+    <ellipse cx="750" cy="84" rx="46" ry="12" opacity=".7"/>
+  </g>
+
+  <!-- distant flood-plain horizon -->
+  <rect y="300" width="1200" height="52" fill="url(#far)"/>
+
+  <!-- far bank: palm silhouettes and village -->
+  <g fill="#2c5f7c" opacity=".9">
+    <!-- palm: trunk + curved fronds -->
+    <g>
+      <path d="M128 306c-1-26 2-46 8-62l6 2c-5 16-8 36-7 60h-7Z"/>
+      <path d="M138 246c-10-8-22-10-32-7 12-7 26-5 36 3z"/>
+      <path d="M140 244c-2-12 2-24 10-32-3 12-3 24-2 32z"/>
+      <path d="M143 247c8-9 20-13 31-11-11 1-22 7-28 14z"/>
+      <path d="M142 250c10-3 21 0 28 7-9-3-20-3-27-2z"/>
+    </g>
+    <g>
+      <path d="M158 306c-1-20 2-36 7-48l5 2c-4 12-6 28-5 46h-7Z"/>
+      <path d="M166 260c-8-6-17-8-25-6 9-5 20-4 28 3z"/>
+      <path d="M168 258c-1-9 2-19 8-25-3 9-3 19-2 25z"/>
+      <path d="M170 261c6-7 16-10 24-9-9 1-17 5-22 11z"/>
+    </g>
+    <g>
+      <path d="M1018 306c-1-26 2-46 8-62l6 2c-5 16-8 36-7 60h-7Z"/>
+      <path d="M1028 246c-10-8-22-10-32-7 12-7 26-5 36 3z"/>
+      <path d="M1030 244c-2-12 2-24 10-32-3 12-3 24-2 32z"/>
+      <path d="M1033 247c8-9 20-13 31-11-11 1-22 7-28 14z"/>
+      <path d="M1032 250c10-3 21 0 28 7-9-3-20-3-27-2z"/>
+    </g>
+    <g>
+      <path d="M1048 306c-1-20 2-36 7-48l5 2c-4 12-6 28-5 46h-7Z"/>
+      <path d="M1056 260c-8-6-17-8-25-6 9-5 20-4 28 3z"/>
+      <path d="M1058 258c-1-9 2-19 8-25-3 9-3 19-2 25z"/>
+      <path d="M1060 261c6-7 16-10 24-9-9 1-17 5-22 11z"/>
+    </g>
+    <g>
+      <path d="M568 306c-1-22 2-40 8-54l5 2c-5 14-7 32-6 52h-7Z"/>
+      <path d="M577 254c-9-7-19-9-28-6 10-6 22-4 31 3z"/>
+      <path d="M579 252c-2-10 2-21 9-28-3 10-3 21-2 28z"/>
+      <path d="M581 255c7-8 17-11 27-10-10 1-19 6-25 12z"/>
+    </g>
+  </g>
+  <!-- village houses: walls + pitched roofs -->
+  <g>
+    <g fill="#31688a">
+      <rect x="348" y="292" width="36" height="16"/>
+      <path d="M342 294l24-22 24 22h-10l-14-13-14 13h-10Z"/>
+      <rect x="424" y="288" width="42" height="20"/>
+      <path d="M418 290l27-25 27 25h-11l-16-15-16 15h-11Z"/>
+      <rect x="848" y="294" width="32" height="14"/>
+      <path d="M842 296l22-20 22 20h-9l-13-12-13 12h-9Z"/>
+      <rect x="912" y="290" width="38" height="18"/>
+      <path d="M906 292l25-23 25 23h-10l-15-14-15 14h-10Z"/>
+    </g>
+    <g fill="#e8b23a" opacity=".7">
+      <rect x="360" y="296" width="5" height="6"/>
+      <rect x="440" y="294" width="6" height="7"/>
+      <rect x="924" y="296" width="5" height="6"/>
+    </g>
+  </g>
+
+  <!-- main river -->
+  <rect y="352" width="1200" height="150" fill="url(#water)"/>
+  <g stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".45" fill="none">
+    <path d="M80 392h130M300 384h90M520 398h150M760 386h100M940 402h140"/>
+    <path d="M160 436h170M470 444h120M700 434h150M980 440h120"/>
+    <path d="M60 472h120M330 478h140M640 470h110M880 476h160"/>
+  </g>
+
+  <!-- country boat 1 (with sail) -->
+  <g>
+    <path d="M240 372c34 8 60 8 92 0-10 16-24 24-46 24s-36-8-46-24Z" fill="#6d4526"/>
+    <path d="M286 300l4 72" stroke="#6d4526" stroke-width="5"/>
+    <path d="M290 302l52 62-52 6z" fill="#f4f1e6"/>
+    <path d="M286 306l-38 54 38 5z" fill="#e9e4d2"/>
+  </g>
+  <!-- country boat 2 -->
+  <g>
+    <path d="M760 452c30 7 54 7 82 0-9 14-21 21-41 21s-32-7-41-21Z" fill="#7a5230"/>
+    <path d="M801 400c8 14 8 32 0 52" stroke="#7a5230" stroke-width="4" fill="none"/>
+    <path d="M823 412c5 9 5 22 0 32" stroke="#7a5230" stroke-width="4" fill="none" opacity=".8"/>
+  </g>
+
+  <!-- beel / wetland with shapla -->
+  <g>
+    <ellipse cx="1005" cy="468" rx="150" ry="40" fill="#5fb08f" opacity=".25"/>
+    <g fill="#3f9d7a">
+      <circle cx="955" cy="458" r="13"/><circle cx="990" cy="470" r="10"/><circle cx="1030" cy="456" r="14"/><circle cx="1065" cy="468" r="9"/>
+    </g>
+    <path d="M1030 452c-6-10-2-20 4-26 6 6 10 16 4 26z" fill="#e78fb3"/>
+    <path d="M958 448c-5-8-2-17 3-21 5 5 8 13 3 21z" fill="#f0a5c3"/>
+    <g fill="#2e7d5b">
+      <ellipse cx="948" cy="470" rx="16" ry="4"/><ellipse cx="1010" cy="472" rx="18" ry="4"/><ellipse cx="1072" cy="470" rx="14" ry="4"/>
+    </g>
+  </g>
+
+  <!-- rice paddies foreground -->
+  <g>
+    <path d="M0 502c200-22 420-22 620-6s400 18 580 2v102H0Z" fill="url(#fg)"/>
+    <g stroke="#3f8a63" stroke-width="5" stroke-linecap="round" fill="none" opacity=".85">
+      <path d="M60 540q14-16 28 0M120 552q14-16 28 0M190 538q14-16 28 0M260 554q14-16 28 0M340 540q14-16 28 0M420 556q14-16 28 0M500 542q14-16 28 0M580 556q14-16 28 0M660 542q14-16 28 0M740 556q14-16 28 0M820 542q14-16 28 0M900 556q14-16 28 0M980 542q14-16 28 0M1060 556q14-16 28 0"/>
+    </g>
+    <path d="M0 540c240 26 760 26 1200 0" stroke="#1e4634" stroke-width="3" fill="none" opacity=".5"/>
+  </g>
+
+  <!-- banyan tree + figure walking to UDC -->
+  <g>
+    <path d="M112 596c-4-52-6-84 10-112 16 28 18 60 14 112Z" fill="#5a3d22"/>
+    <circle cx="122" cy="452" r="52" fill="#2f6b4f"/>
+    <circle cx="86" cy="472" r="36" fill="#357657"/>
+    <circle cx="158" cy="470" r="38" fill="#357657"/>
+    <g stroke="#24523d" stroke-width="4" fill="none" opacity=".7">
+      <path d="M92 596c2-22 8-40 18-52M152 596c-2-22-8-40-18-52"/>
+    </g>
+  </g>
+  <g>
+    <circle cx="262" cy="520" r="9" fill="#7a4a2b"/>
+    <path d="M262 529c-8 3-12 12-12 24v20h24v-20c0-12-4-21-12-24Z" fill="#e8b23a"/>
+    <path d="M250 596l2-23M274 596l-2-23" stroke="#41576b" stroke-width="5" stroke-linecap="round"/>
+    <path d="M250 543l-12 14M274 543l12 10" stroke="#7a4a2b" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- kingfisher -->
+  <g>
+    <path d="M520 128c10-6 22-6 30 2-8 6-20 8-30 6z" fill="#2e9bd6"/>
+    <circle cx="549" cy="128" r="4" fill="#1b4f6e"/>
+    <path d="M552 128l10 2-10 3z" fill="#e8b23a"/>
+    <path d="M520 132c8 8 18 10 26 8" stroke="#1b6fa8" stroke-width="3" fill="none"/>
+  </g>
+</svg>

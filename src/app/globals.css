@@ -1,0 +1,55 @@
+@import "tailwindcss";
+@source "../../src";
+@source "../../public";
+
+:root {
+  --brand: #134970;
+  --brand-dark: #0f3350;
+  --gold: #e8b23a;
+  --ink: #2b4557;
+}
+
+@theme inline {
+  --color-brand: #134970;
+  --color-gold: #e8b23a;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Noto Sans Bengali", "Hind Siliguri", "SolaimanLipi", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Light / data-saver mode (T10): hides decorative imagery */
+html[data-light="1"] img[aria-hidden],
+html[data-light="1"] .decorative {
+  display: none !important;
+}
+
+::selection {
+  background: #cfe6f4;
+  color: #134970;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    transition-duration: 0.001s !important;
+  }
+}
+
+/* Focus visibility for accessibility (Ripon / A2) */
+:focus-visible {
+  outline: 3px solid #e8b23a;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Line clamp helper (no plugin) */
+.line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
