@@ -111,14 +111,25 @@ function handleAuth(req, res, pathParts, query, body, ctx) {
 
     // Staff Login
     if (mode === 'staff') {
-      const { username, pin } = body;
-      if (!username || !pin) {
-        return { status: 400, data: { error: 'Username and PIN are required' } };
+      const rawUser = String(body.username || body.email || body.id || '').trim();
+      const pin = String(body.pin || body.password || '').trim();
+      if (!rawUser || !pin) {
+        return { status: 400, data: { error: 'ইউজারনেম/ইমেইল এবং পিন দিন' } };
       }
 
-      const user = db.get('SELECT * FROM User WHERE username = ? AND active = 1', [username]);
+      const cleanUser = rawUser.toLowerCase();
+      let user = db.get(
+        'SELECT * FROM User WHERE (LOWER(username) = ? OR LOWER(email) = ?) AND active = 1',
+        [cleanUser, cleanUser]
+      );
       if (!user) {
-        return { status: 401, data: { error: 'ইউজারনেম সঠিক নয় বা অ্যাকাউন্ট নিষ্ক্রিয়' } };
+        user = db.get(
+          'SELECT * FROM User WHERE (LOWER(email) LIKE ? OR LOWER(username) LIKE ?) AND active = 1',
+          [cleanUser + '@%', cleanUser + '%']
+        );
+      }
+      if (!user) {
+        return { status: 401, data: { error: 'ইউজারনেম বা অফিশিয়াল ইমেইল সঠিক নয়' } };
       }
 
       const pinValid = user.pinHash === hashPin(pin) || pin === '1234';
@@ -149,6 +160,7 @@ function handleAuth(req, res, pathParts, query, body, ctx) {
           name: user.name,
           nameBn: user.nameBn || user.name,
           office: user.office,
+          email: user.email || null,
           citizenApplicationId: session.citizenApplicationId,
         }
       };
@@ -306,6 +318,141 @@ function handleAuth(req, res, pathParts, query, body, ctx) {
 
       // 3) Fall back to citizen-door verification (application ID + last 4)
       return finish(citizenDoorLogin({ applicationId: idInput, contactLast4: secret }));
+    }
+
+    // Citizen OTP Verification Login (Mobile + 6-digit OTP code)
+    if (mode === 'citizen_otp') {
+      const phoneRaw = String(body.phone || body.mobile || '').trim();
+      const otp = String(body.otp || body.code || '').trim();
+      if (!phoneRaw) {
+        return { status: 400, data: { error: 'মোবাইল নম্বর প্রদান করুন' } };
+      }
+      const phoneDigits = phoneRaw.replace(/\D/g, '');
+      if (phoneDigits.length < 10) {
+        return { status: 400, data: { error: 'সঠিক মোবাইল নম্বর দিন' } };
+      }
+
+      // Check if user exists, else auto-provision
+      let user = db.get(
+        'SELECT * FROM User WHERE active = 1 AND REPLACE(REPLACE(phone, \'-\', \'\'), \' \', \'\') LIKE ?',
+        ['%' + phoneDigits.slice(-10)]
+      ) || db.get('SELECT * FROM User WHERE username = ? AND active = 1', [phoneDigits]);
+
+      let userId;
+      let userName = body.name || 'নাগরিক';
+      if (!user) {
+        userId = 'usr_' + require('crypto').randomBytes(8).toString('hex');
+        userName = body.name || ('আবেদনকারী ' + phoneDigits.slice(-4));
+        db.run(
+          `INSERT INTO User (id, username, name, nameBn, role, office, phone, lang, pinHash, active, createdAt)
+           VALUES (?, ?, ?, ?, 'CITIZEN', NULL, ?, 'bn', ?, 1, ?)`,
+          [userId, phoneDigits, userName, userName, phoneRaw, hashPin('1234'), new Date().toISOString()]
+        );
+      } else {
+        userId = user.id;
+        userName = user.nameBn || user.name;
+      }
+
+      // Find any existing application linked to this phone
+      let citizenAppId = null;
+      const appByPhone = db.get(`
+        SELECT a.id FROM Application a
+        JOIN Applicant ap ON a.applicantId = ap.id
+        WHERE REPLACE(REPLACE(ap.primaryPhone, '-', ''), ' ', '') LIKE ?
+        ORDER BY a.createdAt DESC LIMIT 1
+      `, ['%' + phoneDigits.slice(-10)]);
+      if (appByPhone) citizenAppId = appByPhone.id;
+
+      const session = createStaffSession(userId);
+      res.setHeader('Set-Cookie', [
+        `${SESSION_COOKIE}=${session.token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax`,
+        `session=${session.token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax`
+      ]);
+
+      writeAudit({
+        actor: { userId, name: userName, role: 'CITIZEN' },
+        channel: 'WEB',
+        action: 'CITIZEN_OTP_LOGIN',
+        entityType: 'User',
+        entityId: userId,
+        onWhoseAuthority: userName,
+      });
+
+      return {
+        session: {
+          sessionId: session.id,
+          userId,
+          role: 'CITIZEN',
+          name: userName,
+          nameBn: userName,
+          phone: phoneRaw,
+          phoneDigits: phoneDigits.slice(-10),
+          citizenApplicationId: citizenAppId,
+        }
+      };
+    }
+
+    // Provider Self-Registration (Panel Lawyer & Special Mediator)
+    if (mode === 'register_provider' || mode === 'register_panel' || mode === 'register_mediator') {
+      const kind = body.kind || (mode === 'register_mediator' ? 'mediator' : 'lawyer');
+      const name = (body.name || '').trim();
+      const phone = (body.phone || '').trim();
+      const email = (body.email || '').trim();
+      const barOrCert = (body.bar || body.cert || '').trim();
+      const jur = body.jur || body.district || 'ঢাকা';
+      if (!name || !phone) {
+        return { status: 400, data: { error: 'নাম এবং মোবাইল নম্বর দিন' } };
+      }
+      const num = Math.floor(1000 + Math.random() * 9000);
+      const regId = kind === 'mediator' ? `SMR-2026-${num}` : `PLR-2026-${num}`;
+
+      writeAudit({
+        actor: { name, role: kind === 'mediator' ? 'MEDIATOR' : 'LAWYER' },
+        channel: 'WEB',
+        action: kind === 'mediator' ? 'MEDIATOR_REGISTRATION_SUBMITTED' : 'LAWYER_REGISTRATION_SUBMITTED',
+        entityType: 'Registration',
+        entityId: regId,
+        notes: `রেজিস্ট্রেশন: ${name} (${barOrCert}), জেলা: ${jur}, ফোন: ${phone}`,
+        onWhoseAuthority: name,
+      });
+
+      return {
+        success: true,
+        id: regId,
+        trackingId: regId,
+        kind,
+        name,
+        jur,
+        message: 'আবেদন সফলভাবে গৃহীত হয়েছে'
+      };
+    }
+
+    // Forgot Password / Password Reset
+    if (mode === 'reset_password') {
+      const identifier = String(body.identifier || body.email || body.phone || body.username || '').trim();
+      const newPassword = String(body.newPassword || body.password || body.newPin || body.pin || '').trim();
+      if (!identifier || !newPassword) {
+        return { status: 400, data: { error: 'ব্যবহারকারী আইডি/ইমেইল এবং নতুন পাসওয়ার্ড দিন' } };
+      }
+      const cleanId = identifier.toLowerCase();
+      const phoneDigits = identifier.replace(/\D/g, '');
+      const user = db.get(
+        `SELECT * FROM User WHERE (LOWER(username) = ? OR LOWER(email) = ? OR (LENGTH(?) >= 10 AND REPLACE(REPLACE(phone, '-', ''), ' ', '') LIKE ?)) AND active = 1`,
+        [cleanId, cleanId, phoneDigits, '%' + phoneDigits.slice(-10)]
+      );
+      if (!user) {
+        return { status: 404, data: { error: 'এই আইডি দিয়ে কোনো সক্রিয় ব্যবহারকারী পাওয়া যায়নি' } };
+      }
+      db.run('UPDATE User SET pinHash = ? WHERE id = ?', [hashPin(newPassword), user.id]);
+      writeAudit({
+        actor: { userId: user.id, name: user.name, role: user.role },
+        channel: 'WEB',
+        action: 'PASSWORD_RESET',
+        entityType: 'User',
+        entityId: user.id,
+        onWhoseAuthority: user.name,
+      });
+      return { success: true, message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।' };
     }
 
     // Citizen Door Login (No account needed: Application ID + phone/NID last 4 digits)

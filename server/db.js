@@ -120,6 +120,7 @@ const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS User (
   id TEXT PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
+  email TEXT,
   name TEXT NOT NULL,
   nameBn TEXT,
   role TEXT NOT NULL,
@@ -740,12 +741,136 @@ function seedIfEmpty() {
   }
 }
 
+// Ensure email column exists on User table (migration)
+try {
+  const cols = sqlite.prepare('PRAGMA table_info(User)').all();
+  if (!cols.some(c => c.name === 'email')) {
+    sqlite.exec('ALTER TABLE User ADD COLUMN email TEXT;');
+  }
+} catch (e) { /* ignore */ }
+
+function ensureStaffUsers() {
+  const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+  const PIN = sha('dlas-demo:1234');
+  const now = new Date().toISOString();
+  const rnd = () => crypto.randomBytes(8).toString('hex');
+
+  const staffRoster = [
+    { username: 'judge.netrokona', email: 'cjm.netrokona@judiciary.gov.bd', name: 'Justice A. K. M. Rahman', nameBn: 'বিচারক এ. কে. এম. রহমান', role: 'JUDGE', office: 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা' },
+    { username: 'officer.netrokona', email: 'netrokona.dlao@dbla.gov.bd', name: 'Md. Shahidul Islam', nameBn: 'মোঃ শহীদুল ইসলাম', role: 'DLAO_OFFICER', office: 'নেত্রকোনা জেলা লিগ্যাল এইড অফিস' },
+    { username: 'chief.netrokona', email: 'chief.netrokona@dbla.gov.bd', name: 'Nizam Uddin Ahmed', nameBn: 'নিজাম উদ্দিন আহমেদ', role: 'CHIEF_OFFICER', office: 'নেত্রকোনা জেলা লিগ্যাল এইড অফিস' },
+    { username: 'chairman.netrokona', email: 'chairman.netrokona@dbla.gov.bd', name: 'Justice (Retd.) Anwarul Kabir', nameBn: 'বিচারপতি (অব.) আনোয়ারুল কবির', role: 'CHAIRMAN', office: 'জেলা লিগ্যাল এইড কমিটি, নেত্রকোনা' },
+    { username: 'officer.sclao', email: 'sc.officer@dbla.gov.bd', name: 'Md. Kamruzzaman', nameBn: 'মোঃ কামরুজ্জামান', role: 'SCLAO', office: 'সুপ্রীম কোর্ট লিগ্যাল এইড সেল' },
+    { username: 'officer.labour', email: 'labour.dhaka@dbla.gov.bd', name: 'Md. Anisur Rahman', nameBn: 'মোঃ আনিসুর রহমান', role: 'LABOUR_CELL', office: 'শ্রম লিগ্যাল এইড সেল — ঢাকা' },
+    { username: 'officer.chowki', email: 'kaliajuri.chowki@dbla.gov.bd', name: 'Md. Faruk Hossain', nameBn: 'মোঃ ফারুক হোসেন', role: 'DLAO_OFFICER', office: 'খালিয়াজুরি চৌকি আদালত লিগ্যাল এইড অফিস' },
+    { username: 'lawyer.farida', email: 'farida.yasmin@panel.dbla.gov.bd', name: 'Advocate Farida Yasmin', nameBn: 'অ্যাডভোকেট ফরিদা ইয়াসমিন', role: 'LAWYER', office: 'নেত্রকোনা জেলা লিগ্যাল এইড অফিস' },
+    { username: 'mediator.tahmina', email: 'tahmina.akter@mediator.dbla.gov.bd', name: 'Advocate Tahmina Akter', nameBn: 'অ্যাডভোকেট তাহমিনা আক্তার', role: 'MEDIATOR', office: 'জাতীয় মধ্যস্থতাকারী প্যানেল' },
+    { username: 'ngo.brac', email: 'farzana.haque@brac.net', name: 'Farzana Haque', nameBn: 'ফারজানা হক', role: 'CASE_SUPPORT', office: 'ব্র্যাক — নেত্রকোনা' },
+    { username: 'udc.modonpur', email: 'modonpur.udc@udc.gov.bd', name: 'Md. Selim Mia', nameBn: 'মোঃ সেলিম মিয়া', role: 'UDC', office: 'মদনপুর ইউডিসি — নেত্রকোনা' },
+    { username: 'helpline.rumana', email: 'operator.16699@dbla.gov.bd', name: 'Mst. Rumana Islam', nameBn: 'মোছাঃ রুমানা ইসলাম', role: 'HELPLINE', office: 'জাতীয় হেল্পলাইন ১৬৬৯৯' },
+    { username: 'referral.uzlac', email: 'uzlac.netrokona@dbla.gov.bd', name: 'Md. Abdul Halim', nameBn: 'মোঃ আব্দুল হালিম', role: 'DLAO_OFFICER', office: 'উপজেলা কমিটি (UzLAC) — নেত্রকোনা সদর' },
+    { username: 'admin.hq', email: 'admin.hq@dbla.gov.bd', name: 'Nasreen Sultana', nameBn: 'নাসরীন সুলতানা', role: 'ADMIN', office: 'ডিবিএলএ সদর দপ্তর, ঢাকা' },
+    // Existing defaults
+    { username: 'officer.joypurhat', email: 'joypurhat.dlao@dbla.gov.bd' },
+    { username: 'officer.jhenaidah', email: 'jhenaidah.dlao@dbla.gov.bd' },
+    { username: 'officer.barguna', email: 'barguna.dlao@dbla.gov.bd' },
+    { username: 'mediator.joypurhat', email: 'mediator.joypurhat@dbla.gov.bd' },
+    { username: 'helpline.agent1', email: 'helpline.agent1@dbla.gov.bd' },
+    { username: 'udc.khagrachari', email: 'khagrachhari.dlao@dbla.gov.bd' },
+    { username: 'lawyer.kabir', email: 'kabir.hossain@panel.dbla.gov.bd' },
+    { username: 'receiving.dhaka', email: 'receiving.dhaka@dbla.gov.bd' },
+    { username: 'admin', email: 'admin@dbla.gov.bd' },
+  ];
+
+  for (const u of staffRoster) {
+    const existing = sqlite.prepare('SELECT id FROM User WHERE username = ? OR email = ?').get(u.username, u.email || '__none__');
+    if (existing) {
+      if (u.email) {
+        try { sqlite.prepare('UPDATE User SET email = ? WHERE id = ?').run(u.email, existing.id); } catch (e) {}
+      }
+    } else {
+      const id = 'usr_' + rnd();
+      sqlite.prepare(`
+        INSERT INTO User (id, username, email, name, nameBn, role, office, pinHash, active, createdAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+      `).run(id, u.username, u.email || null, u.name, u.nameBn, u.role, u.office, PIN, now);
+    }
+  }
+
+  // Ensure Judge Bench Demo Case (connects citizen Rehana Begum with Judge A.K.M. Rahman)
+  try {
+    const judgeUser = sqlite.prepare("SELECT id FROM User WHERE username = 'judge.netrokona' OR role = 'JUDGE'").get();
+    let rehana = sqlite.prepare("SELECT id FROM Applicant WHERE primaryPhone = '01700000001' OR fullName = 'Rehana Begum'").get();
+    const targetCaseId = 'CASE-2026-0004';
+    const appId = 'DLAS-NET-2026-04417';
+
+    if (!rehana) {
+      const applcId = 'applc_rehana_01';
+      sqlite.prepare(`
+        INSERT INTO Applicant (id, fullName, district, upazila, primaryPhone, nidRef, contactNote, createdAt)
+        VALUES (?, 'Rehana Begum', 'নেত্রকোনা', 'নেত্রকোনা সদর', '01700000001', '1985441700123', 'আবেদনকারী স্বশরীরে উপস্থিত হয়ে আবেদন জানিয়েছেন', ?)
+      `).run(applcId, now);
+      rehana = { id: applcId };
+    }
+
+    const existingApp = sqlite.prepare("SELECT id FROM Application WHERE id = ?").get(appId);
+    if (!existingApp) {
+      sqlite.prepare(`
+        INSERT INTO Application (id, applicantId, channel, status, caseType, narrative, district, office, urgencyFlag, sensitiveFlag, caseId, createdAt, updatedAt)
+        VALUES (?, ?, 'WEB', 'CONVERTED_TO_CASE', 'FAMILY_MAINTENANCE', 'পারিবারিক ভরণপোষণ ও নাবালক সন্তানের খরচ আদায়ে আইনগত সহায়তা চেয়ে আবেদন।', 'নেত্রকোনা', 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা', 0, 0, ?, ?, ?)
+      `).run(appId, rehana.id, targetCaseId, now, now);
+    }
+
+    const existingCase = sqlite.prepare("SELECT id FROM \"Case\" WHERE id = ?").get(targetCaseId);
+    if (existingCase) {
+      sqlite.prepare(`
+        UPDATE "Case"
+        SET applicationId = ?, office = 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা', district = 'নেত্রকোনা', caseType = 'FAMILY_MAINTENANCE', priority = 'HIGH'
+        WHERE id = ?
+      `).run(appId, targetCaseId);
+    } else {
+      sqlite.prepare(`
+        INSERT INTO "Case" (id, applicationId, status, caseType, office, district, priority, priorityReason, prioritySource, sensitivity, acceptedByUserId, createdAt, updatedAt)
+        VALUES (?, ?, 'OPEN', 'FAMILY_MAINTENANCE', 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা', 'নেত্রকোনা', 'HIGH', 'নিয়মিত পারিবারিক মামলা', 'COURT_ASSIGNMENT', 'STANDARD', ?, ?, ?)
+      `).run(targetCaseId, appId, judgeUser ? judgeUser.id : 'usr_judge_01', now, now);
+    }
+
+    // Ensure initial statement record
+    const hasStatement = sqlite.prepare("SELECT id FROM RecordEntry WHERE applicationId = ? OR caseId = ?").get(appId, targetCaseId);
+    if (!hasStatement) {
+      sqlite.prepare(`
+        INSERT INTO RecordEntry (id, applicationId, caseId, provenance, text, language, statedByName, statedByRole, channel, kind, createdAt)
+        VALUES (?, ?, ?, 'APPLICANT_CONFIRMED', 'নাবালক সন্তানের ভরণপোষণের দাবিতে মাননীয় আদালতের শরণাপন্ন হয়েছি। প্রয়োজনীয় কাগজপত্র সংযুক্ত করা হয়েছে।', 'bn', 'রেহানা বেগম', 'CITIZEN', 'WEB', 'STATEMENT', ?)
+      `).run('rec_' + rnd(), appId, targetCaseId, now);
+
+      sqlite.prepare(`
+        INSERT INTO RecordEntry (id, applicationId, caseId, provenance, text, language, statedByName, statedByRole, channel, kind, createdAt)
+        VALUES (?, ?, ?, 'OFFICER_ENTERED', 'মামলাটি শুনানির জন্য গ্রহণ করা হয়েছে। নির্ধারিত তারিখে উভয় পক্ষের উপস্থিতির নির্দেশ রইল।', 'bn', 'বিচারক এ. কে. এম. রহমান', 'JUDGE', 'WEB', 'ORDER', ?)
+      `).run('rec_' + rnd(), appId, targetCaseId, now);
+    }
+
+    // Ensure hearing
+    const hasHearing = sqlite.prepare("SELECT id FROM Hearing WHERE caseId = ?").get(targetCaseId);
+    if (!hasHearing) {
+      const hearingDate = new Date(Date.now() + 4 * 86400000).toISOString();
+      sqlite.prepare(`
+        INSERT INTO Hearing (id, caseId, lawyerAssignmentId, hearingDate, location, status, notes, createdAt)
+        VALUES (?, ?, null, ?, 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা (কক্ষ নং ২)', 'SCHEDULED', 'উভয় পক্ষের উপস্থিতিতে শুনানির প্রাথমিক তারিখ নির্ধারিত', ?)
+      `).run('hear_' + rnd(), targetCaseId, hearingDate, now);
+    }
+  } catch (e) {
+    console.warn('[DB] Judge bench case init notice:', e.message);
+  }
+}
+
 // Auto-create schema (idempotent) then seed if empty.
 sqlite.exec(SCHEMA_SQL);
 try {
   seedIfEmpty();
+  ensureStaffUsers();
 } catch (err) {
   console.error('[DB] Init error:', err.message);
 }
 
 module.exports = db;
+

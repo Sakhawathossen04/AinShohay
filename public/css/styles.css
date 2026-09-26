@@ -4314,3 +4314,458 @@ img, svg { vertical-align: middle; }
   .app-card { flex-wrap: wrap; }
   .app-right { margin-left: 60px; }
 }
+
+/* ============================================================================
+   DLAS 2026 Executive Design System — Auth, Citizen Dashboard & Judge Bench View
+   ============================================================================ */
+
+.dlas-auth-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  min-height: calc(100vh - 180px);
+  background: var(--surface, #FFFFFF);
+  border-top: 1px solid var(--border, #E2ECE5);
+}
+
+.dlas-auth-col-form {
+  flex: 1 1 540px;
+  min-width: 0;
+  padding: 44px 52px 64px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  .dlas-auth-col-form {
+    padding: 24px 20px 40px;
+  }
+}
+
+.dlas-auth-back-btn {
+  appearance: none;
+  cursor: pointer;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 0;
+  margin-bottom: 24px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--gov-green, #00543E);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 0.15s ease;
+}
+.dlas-auth-back-btn:hover {
+  opacity: 0.8;
+}
+
+.dlas-auth-inner {
+  max-width: 32rem;
+  width: 100%;
+}
+
+.dlas-auth-heading {
+  margin: 0 0 8px;
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--text, #11221A);
+}
+
+.dlas-auth-lead {
+  margin: 0 0 28px;
+  font-size: 1rem;
+  color: var(--text-muted, #52675C);
+  line-height: 1.5;
+}
+
+.dlas-role-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.dlas-role-pill {
+  appearance: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px 22px;
+  border: 1.5px solid var(--border, #E2ECE5);
+  border-radius: 999px;
+  background: var(--surface, #FFFFFF);
+  color: var(--text, #11221A);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.dlas-role-pill:hover {
+  border-color: var(--gov-green, #00543E);
+  background: var(--gov-green-surface, #E8F5EF);
+}
+.dlas-role-pill.active {
+  border-color: var(--gov-green, #00543E);
+  background: var(--gov-green-surface, #E8F5EF);
+  color: var(--gov-green, #00543E);
+}
+.dlas-role-radio-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.dlas-role-radio-dot span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  display: none;
+}
+.dlas-role-pill.active .dlas-role-radio-dot span {
+  display: block;
+}
+
+.dlas-btn-primary {
+  appearance: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 24px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--gov-green, #00543E);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 84, 62, 0.2);
+  transition: all 0.18s ease;
+}
+.dlas-btn-primary:hover {
+  background: var(--gov-green-dark, #003828);
+  box-shadow: 0 4px 14px rgba(0, 84, 62, 0.3);
+  transform: translateY(-1px);
+}
+
+.dlas-input-group {
+  margin-bottom: 20px;
+}
+.dlas-label {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text, #11221A);
+  margin-bottom: 8px;
+}
+.dlas-input {
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 14px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: var(--text, #11221A);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.dlas-input:focus {
+  outline: none;
+  border-color: var(--gov-green, #00543E);
+  box-shadow: 0 0 0 3px rgba(0, 84, 62, 0.15);
+}
+
+.dlas-roster-menu {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  background: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.dlas-roster-item-btn {
+  appearance: none;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: left;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid #F1F5F9;
+  background: transparent;
+  font-family: inherit;
+  transition: background 0.12s ease;
+}
+.dlas-roster-item-btn:hover {
+  background: var(--gov-green-surface, #E8F5EF);
+}
+.dlas-roster-email {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text, #11221A);
+}
+.dlas-roster-meta {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-muted, #52675C);
+  margin-top: 2px;
+}
+
+.dlas-otp-wrap {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 1.2rem 0;
+}
+.dlas-otp-box {
+  width: 52px;
+  height: 58px;
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  border: 2px solid #CBD5E1;
+  border-radius: 8px;
+  background: #FFFFFF;
+}
+.dlas-otp-box:focus {
+  outline: none;
+  border-color: var(--gov-green, #00543E);
+  box-shadow: 0 0 0 3px rgba(0, 84, 62, 0.15);
+}
+
+.dlas-auth-col-hero {
+  flex: 1 1 440px;
+  min-width: 0;
+  min-height: 400px;
+  position: relative;
+  background: var(--gov-green-dark, #003828);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.dlas-auth-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+}
+.dlas-auth-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 54, 40, 0.96) 0%, rgba(0, 84, 62, 0.78) 50%, rgba(0, 54, 40, 0.4) 100%);
+}
+.dlas-auth-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 48px 44px;
+  color: #FFFFFF;
+}
+.dlas-auth-hero-title {
+  margin: 0 0 14px;
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #FFFFFF;
+}
+.dlas-auth-hero-desc {
+  margin: 0 0 24px;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+.dlas-auth-trust-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+.dlas-auth-trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dlas-notice-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  margin-top: 16px;
+}
+.dlas-notice-warn {
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  color: #92400E;
+}
+.dlas-notice-success {
+  background: #DCFCE7;
+  border: 1px solid #16A34A;
+  color: #166534;
+}
+.dlas-notice-err {
+  background: #FEE2E2;
+  border: 1px solid #EF4444;
+  color: #B91C1C;
+}
+
+/* ============ Judge Bench View Styling ============ */
+.judge-bench-wrap {
+  padding: 28px 0 60px;
+}
+.judge-bench-hero {
+  background: linear-gradient(135deg, #003628 0%, #00543E 100%);
+  color: #FFFFFF;
+  border-radius: 14px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  box-shadow: 0 8px 24px rgba(0, 54, 40, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.judge-bench-title {
+  margin: 0 0 6px;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+.judge-bench-sub {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+.judge-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+.judge-kpi-card {
+  background: #FFFFFF;
+  border: 1.5px solid var(--border, #E2ECE5);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+.judge-kpi-card h4 {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  color: var(--text-muted, #52675C);
+}
+.judge-kpi-val {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--gov-green, #00543E);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.judge-kpi-sub {
+  font-size: 0.84rem;
+  color: #64748B;
+}
+
+.judge-table-card {
+  background: #FFFFFF;
+  border: 1.5px solid var(--border, #E2ECE5);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.judge-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.judge-table th {
+  background: #F8FAFC;
+  padding: 14px 18px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #475569;
+  text-align: left;
+  border-bottom: 1.5px solid #E2E8F0;
+}
+.judge-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 0.94rem;
+  vertical-align: middle;
+}
+.judge-table tr:hover td {
+  background: #F8FAFC;
+}
+
+.cz-timeline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cz-timeline-item {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 16px;
+  position: relative;
+}
+.cz-timeline-axis {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.cz-timeline-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid var(--gov-green, #00543E);
+  background: #FFFFFF;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.cz-timeline-dot.done {
+  background: var(--gov-green, #00543E);
+}
+.cz-timeline-line {
+  width: 2px;
+  flex: 1;
+  min-height: 28px;
+  background: #CBD5E1;
+}
+.cz-timeline-item:last-child .cz-timeline-line {
+  display: none;
+}
+.cz-timeline-content {
+  padding-bottom: 24px;
+}
+

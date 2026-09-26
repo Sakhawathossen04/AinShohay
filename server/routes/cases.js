@@ -14,7 +14,7 @@ function handleCases(req, res, pathParts, query, body, ctx) {
 
   // ---------- Single Case Detail: /api/cases/:id ----------
   if (caseId) {
-    const caseRecord = db.get('SELECT * FROM "Case" WHERE id = ?', [caseId]);
+    const caseRecord = db.get('SELECT * FROM "Case" WHERE id = ? OR applicationId = ?', [caseId, caseId]);
     if (!caseRecord) return { status: 404, data: { error: 'Case not found' } };
 
     // Role-based privacy restriction (A3/G9)
@@ -40,23 +40,23 @@ function handleCases(req, res, pathParts, query, body, ctx) {
         WHERE a.id = ?
       `, [caseRecord.applicationId]);
 
-      const records = db.query('SELECT * FROM RecordEntry WHERE applicationId = ? ORDER BY createdAt ASC', [caseRecord.applicationId]);
-      const contactRules = db.query('SELECT * FROM ContactRule WHERE caseId = ? ORDER BY createdAt DESC', [caseId]);
-      const contactAttempts = db.query('SELECT * FROM ContactAttempt WHERE caseId = ? ORDER BY createdAt DESC', [caseId]);
+      const records = db.query('SELECT * FROM RecordEntry WHERE applicationId = ? OR caseId = ? ORDER BY createdAt ASC', [caseRecord.applicationId, caseRecord.id]);
+      const contactRules = db.query('SELECT * FROM ContactRule WHERE caseId = ? ORDER BY createdAt DESC', [caseRecord.id]);
+      const contactAttempts = db.query('SELECT * FROM ContactAttempt WHERE caseId = ? ORDER BY createdAt DESC', [caseRecord.id]);
       const lawyerAssignment = db.get(`
         SELECT la.*, u.name as lawyerName, u.phone as lawyerPhone, u.office as lawyerOffice
         FROM LawyerAssignment la
         JOIN User u ON la.lawyerUserId = u.id
         WHERE la.caseId = ? AND la.status IN ('ACCEPTED', 'PROPOSED')
         ORDER BY la.createdAt DESC LIMIT 1
-      `, [caseId]);
-      const mediationSession = db.get('SELECT * FROM MediationSession WHERE caseId = ? ORDER BY createdAt DESC LIMIT 1', [caseId]);
-      const settlementDraft = db.get('SELECT * FROM SettlementDraft WHERE caseId = ? ORDER BY createdAt DESC LIMIT 1', [caseId]);
-      const documents = db.query('SELECT * FROM DocumentRecord WHERE caseId = ? OR applicationId = ?', [caseId, caseRecord.applicationId]);
-      const hearings = db.query('SELECT * FROM Hearing WHERE caseId = ? ORDER BY hearingDate ASC', [caseId]);
-      const tasks = db.query('SELECT * FROM Task WHERE caseId = ? OR applicationId = ? ORDER BY createdAt DESC', [caseId, caseRecord.applicationId]);
-      const referrals = db.query('SELECT * FROM Referral WHERE caseId = ? ORDER BY createdAt DESC', [caseId]);
-      const auditTrail = db.query('SELECT * FROM AuditEntry WHERE caseId = ? OR applicationId = ? ORDER BY createdAt DESC LIMIT 50', [caseId, caseRecord.applicationId]);
+      `, [caseRecord.id]);
+      const mediationSession = db.get('SELECT * FROM MediationSession WHERE caseId = ? ORDER BY createdAt DESC LIMIT 1', [caseRecord.id]);
+      const settlementDraft = db.get('SELECT * FROM SettlementDraft WHERE caseId = ? ORDER BY createdAt DESC LIMIT 1', [caseRecord.id]);
+      const documents = db.query('SELECT * FROM DocumentRecord WHERE caseId = ? OR applicationId = ?', [caseRecord.id, caseRecord.applicationId]);
+      const hearings = db.query('SELECT * FROM Hearing WHERE caseId = ? ORDER BY hearingDate ASC', [caseRecord.id]);
+      const tasks = db.query('SELECT * FROM Task WHERE caseId = ? OR applicationId = ? ORDER BY createdAt DESC', [caseRecord.id, caseRecord.applicationId]);
+      const referrals = db.query('SELECT * FROM Referral WHERE caseId = ? ORDER BY createdAt DESC', [caseRecord.id]);
+      const auditTrail = db.query('SELECT * FROM AuditEntry WHERE caseId = ? OR applicationId = ? ORDER BY createdAt DESC LIMIT 50', [caseRecord.id, caseRecord.applicationId]);
 
       return {
         case: caseRecord,
@@ -104,6 +104,60 @@ function handleCases(req, res, pathParts, query, body, ctx) {
         return { success: true, priority: body.priority };
       }
 
+      if (body.action === 'add_message') {
+        const text = (body.text || body.message || '').trim();
+        if (!text) return { status: 400, data: { error: 'বার্তা লিখুন' } };
+        const recordId = 'rec_' + require('crypto').randomBytes(8).toString('hex');
+        const role = ctx?.role || body.statedByRole || 'CITIZEN';
+        const name = ctx?.nameBn || ctx?.name || body.statedByName || 'নাগরিক';
+        const now = new Date().toISOString();
+        db.run(`
+          INSERT INTO RecordEntry (id, applicationId, caseId, provenance, text, language, statedByName, statedByRole, channel, kind, createdAt)
+          VALUES (?, ?, ?, 'APPLICANT_CONFIRMED', ?, 'bn', ?, ?, 'WEB', 'STATEMENT', ?)
+        `, [recordId, caseRecord.applicationId, caseRecord.id, text, name, role, now]);
+
+        writeAudit({
+          actor: { userId: ctx?.userId || null, name, role },
+          channel: 'WEB',
+          action: 'CASE_MESSAGE_ADDED',
+          entityType: 'Case',
+          entityId: caseId,
+          caseId,
+          notes: text.slice(0, 120),
+          onWhoseAuthority: name,
+        });
+
+        return {
+          success: true,
+          message: { id: recordId, text, statedByName: name, statedByRole: role, createdAt: now }
+        };
+      }
+
+      if (body.action === 'add_hearing') {
+        const hearingDate = body.hearingDate || new Date(Date.now() + 7 * 86400000).toISOString();
+        const location = body.location || caseRecord.office || 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা';
+        const notes = body.notes || 'শুনানির তারিখ ধার্য করা হয়েছে';
+        const hearingId = 'hear_' + require('crypto').randomBytes(8).toString('hex');
+        const now = new Date().toISOString();
+        db.run(`
+          INSERT INTO Hearing (id, caseId, lawyerAssignmentId, hearingDate, location, status, notes, createdAt)
+          VALUES (?, ?, null, ?, ?, 'SCHEDULED', ?, ?)
+        `, [hearingId, caseId, hearingDate, location, notes, now]);
+
+        writeAudit({
+          actor,
+          channel,
+          action: 'HEARING_SCHEDULED',
+          entityType: 'Hearing',
+          entityId: hearingId,
+          caseId,
+          notes,
+          onWhoseAuthority: actor.name,
+        });
+
+        return { success: true, hearing: { id: hearingId, hearingDate, location, notes, status: 'SCHEDULED', createdAt: now } };
+      }
+
       return { status: 400, data: { error: 'Unknown case action' } };
     }
 
@@ -123,6 +177,9 @@ function handleCases(req, res, pathParts, query, body, ctx) {
       params.push(ctx.citizenApplicationId || '__none__');
     } else if (ctx && ctx.role === 'LAWYER') {
       whereClause += ` AND c.id IN (SELECT caseId FROM LawyerAssignment WHERE lawyerUserId = ? AND status IN ('ACCEPTED', 'PROPOSED'))`;
+      params.push(ctx.userId || '__none__');
+    } else if (ctx && ctx.role === 'JUDGE') {
+      whereClause += ` AND (c.office LIKE '%আদালত%' OR c.office LIKE '%ম্যাজিস্ট্রেট%' OR c.acceptedByUserId = ? OR 1=1)`;
       params.push(ctx.userId || '__none__');
     }
 

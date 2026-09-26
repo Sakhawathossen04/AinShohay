@@ -1084,6 +1084,10 @@ const routes = [
   { re: /^#\/login(\?.*)?$/, fn: pageLogin },
   { re: /^#\/(register|signup)(\?.*)?$/, fn: pageRegister },
   { re: /^#\/dashboard$/, fn: pageDashboard },
+  { re: /^#\/citizen(\/.*)?$/, fn: pageDashboard },
+  { re: /^#\/citizen-case\/([\w-]+)$/, fn: pageCitizenCase },
+  { re: /^#\/(role-judge|judge)(\?.*)?$/, fn: pageJudgeBench },
+  { re: /^#\/judge-calendar$/, fn: pageJudgeCalendar },
   { re: /^#\/console(\?.*)?$/, fn: pageConsole },
   { re: /^#\/complaint$/, fn: pageComplaint }
 ];
@@ -2404,120 +2408,196 @@ async function pageApply(queryStr) {
   }
 }
 
+// ============================================================================
+// DLAS Official Staff & Officer Roster (Single Source of Truth)
+// ============================================================================
+const DLAS_ROSTER = [
+  { key: "judge", email: "cjm.netrokona@judiciary.gov.bd", role: "judge", nameBn: "বিচারক এ. কে. এম. রহমান", nameEn: "Justice A. K. M. Rahman", titleBn: "বিচার বিভাগীয় ম্যাজিস্ট্রেট", officeBn: "চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা", pin: "1234" },
+  { key: "dlao", email: "netrokona.dlao@dbla.gov.bd", role: "dlao", nameBn: "মোঃ শহীদুল ইসলাম", nameEn: "Md. Shahidul Islam", titleBn: "লিগ্যাল এইড অফিসার", officeBn: "নেত্রকোনা জেলা লিগ্যাল এইড অফিস", pin: "1234" },
+  { key: "chief", email: "chief.netrokona@dbla.gov.bd", role: "chief", nameBn: "নিজাম উদ্দিন আহমেদ", nameEn: "Nizam Uddin Ahmed", titleBn: "চীফ লিগ্যাল এইড অফিসার", officeBn: "নেত্রকোনা জেলা লিগ্যাল এইড অফিস", pin: "1234" },
+  { key: "chairman", email: "chairman.netrokona@dbla.gov.bd", role: "chairman", nameBn: "বিচারপতি (অব.) আনোয়ারুল কবির", nameEn: "Justice (Retd.) Anwarul Kabir", titleBn: "জেলা কমিটির চেয়ারম্যান", officeBn: "জেলা লিগ্যাল এইড কমিটি, নেত্রকোনা", pin: "1234" },
+  { key: "dlao_joy", email: "joypurhat.dlao@dbla.gov.bd", role: "dlao", nameBn: "রহিমা খাতুন", nameEn: "Rahima Khatun", titleBn: "লিগ্যাল এইড অফিসার", officeBn: "জয়পুরহাট জেলা লিগ্যাল এইড অফিস", pin: "1234" },
+  { key: "dlao_jhe", email: "jhenaidah.dlao@dbla.gov.bd", role: "dlao", nameBn: "মাহমুদুল হাসান", nameEn: "Mahmudul Hasan", titleBn: "লিগ্যাল এইড অফিসার", officeBn: "ঝিনাইদহ জেলা লিগ্যাল এইড অফিস", pin: "1234" },
+  { key: "dlao_bar", email: "barguna.dlao@dbla.gov.bd", role: "dlao", nameBn: "আরিফ চৌধুরী", nameEn: "Arif Chowdhury", titleBn: "লিগ্যাল এইড অফিসার", officeBn: "বরগুনা জেলা লিগ্যাল এইড অফিস", pin: "1234" },
+  { key: "panel", email: "farida.yasmin@panel.dbla.gov.bd", role: "panel", nameBn: "অ্যাডভোকেট ফরিদা ইয়াসমিন", nameEn: "Advocate Farida Yasmin", titleBn: "প্যানেল আইনজীবী", officeBn: "নেত্রকোনা জেলা লিগ্যাল এইড অফিস", pin: "1234" },
+  { key: "panel_kabir", email: "kabir.hossain@panel.dbla.gov.bd", role: "panel", nameBn: "অ্যাডভোকেট কবির হোসেন", nameEn: "Advocate Kabir Hossain", titleBn: "প্যানেল আইনজীবী", officeBn: "বরগুনা জেলা আদালত", pin: "1234" },
+  { key: "mediator", email: "tahmina.akter@mediator.dbla.gov.bd", role: "mediator", nameBn: "অ্যাডভোকেট তাহমিনা আক্তার", nameEn: "Advocate Tahmina Akter", titleBn: "বিশেষ মধ্যস্থতাকারী (ADR)", officeBn: "জাতীয় মধ্যস্থতাকারী প্যানেল", pin: "1234" },
+  { key: "sclao", email: "sc.officer@dbla.gov.bd", role: "sclao", nameBn: "মোঃ কামরুজ্জামান", nameEn: "Md. Kamruzzaman", titleBn: "সুপ্রীম কোর্ট লিগ্যাল এইড অফিসার", officeBn: "সুপ্রীম কোর্ট লিগ্যাল এইড সেল", pin: "1234" },
+  { key: "labour", email: "labour.dhaka@dbla.gov.bd", role: "labour", nameBn: "মোঃ আনিসুর রহমান", nameEn: "Md. Anisur Rahman", titleBn: "শ্রম লিগ্যাল এইড সেল কর্মকর্তা", officeBn: "শ্রম লিগ্যাল এইড সেল — ঢাকা", pin: "1234" },
+  { key: "chowki", email: "kaliajuri.chowki@dbla.gov.bd", role: "chowki", nameBn: "মোঃ ফারুক হোসেন", nameEn: "Md. Faruk Hossain", titleBn: "লিগ্যাল এইড অফিসার — চৌকি আদালত", officeBn: "খালিয়াজুরি চৌকি আদালত লিগ্যাল এইড অফিস", pin: "1234" },
+  { key: "udc", email: "modonpur.udc@udc.gov.bd", role: "udc", nameBn: "মোঃ সেলিম মিয়া", nameEn: "Md. Selim Mia", titleBn: "ইউডিসি উদ্যোক্তা", officeBn: "মদনপুর ইউডিসি — নেত্রকোনা", pin: "1234" },
+  { key: "callcentre", email: "operator.16699@dbla.gov.bd", role: "callcentre", nameBn: "মোছাঃ রুমানা ইসলাম", nameEn: "Mst. Rumana Islam", titleBn: "কল-সেন্টার অপারেটর", officeBn: "জাতীয় হেল্পলাইন ১৬৬৯৯", pin: "1234" },
+  { key: "ngo", email: "farzana.haque@brac.net", role: "ngo", nameBn: "ফারজানা হক", nameEn: "Farzana Haque", titleBn: "এনজিও/সিএসও পার্টনার", officeBn: "ব্র্যাক — নেত্রকোনা", pin: "1234" },
+  { key: "admin", email: "admin.hq@dbla.gov.bd", role: "admin", nameBn: "নাসরীন সুলতানা", nameEn: "Nasreen Sultana", titleBn: "DBLA জাতীয় প্রশাসক", officeBn: "ডিবিএলএ সদর দপ্তর, ঢাকা", pin: "1234" }
+];
+
 // ---------- ৭. নাগরিক ড্যাশবোর্ড (pageDashboard) ----------
 async function pageDashboard() {
   const localApps = JSON.parse(localStorage.getItem('dlas_my_apps') || '[]');
   let serverApps = [];
+  let serverCases = [];
 
   if (ME) {
     try {
-      const r = await apiGet('applications');
-      serverApps = r.applications || [];
+      const [rApps, rCases] = await Promise.all([
+        apiGet('applications'),
+        apiGet('cases')
+      ]);
+      serverApps = rApps.applications || [];
+      serverCases = rCases.cases || [];
     } catch (e) {}
   }
 
   // Merge unique by appId
   const combinedMap = new Map();
-  // JSON application store (DLAS-NET-*) — লগইন করা নাগরিকের সব আবেদন
   if (ME && (!ME.userId || /^DLAS-NET-/.test(String(ME.citizenApplicationId || '')))) {
     try {
       const mine = await apiGet('my_applications');
       (mine.applications || []).forEach(a => {
         combinedMap.set(a.appId, {
           appId: a.appId,
+          caseId: a.caseId || null,
           caseType: ctLabel(a.caseType),
-          district: a.district || '',
+          district: a.district || 'নেত্রকোনা',
+          office: a.office || 'জেলা আইনি সহায়তা কার্যালয়, নেত্রকোনা',
           submittedAt: a.createdAt || null,
-          stage: (typeof a.stage === 'number') ? a.stage : 0,
+          stage: (typeof a.stage === 'number') ? a.stage : 1,
           emergency: !!a.emergency,
           last4: ((ME.phoneDigits || a.phone || '') + '').replace(/\D/g, '').slice(-4) || '0001'
         });
       });
     } catch (e) {}
   }
-  // Normalize server (SQLite) rows into the dashboard shape
+
+  // Normalize server (SQLite) rows into dashboard shape
   serverApps.forEach(a => {
     combinedMap.set(a.appId || a.id, {
       appId: a.appId || a.id,
+      caseId: a.caseId || null,
       caseType: ctLabel(a.caseType),
-      district: a.district || a.applicantDistrict || '',
+      district: a.district || a.applicantDistrict || 'নেত্রকোনা',
+      office: a.office || 'জেলা আইনি সহায়তা কার্যালয়, নেত্রকোনা',
       submittedAt: a.submittedAt || a.createdAt,
       stage: stageFromStatus(a.status, a.caseStatus),
       emergency: !!(a.emergency || a.urgencyFlag),
-      last4: ((a.phone || a.primaryPhone || '') + '').replace(/\D/g, '').slice(-4) || '3344'
+      last4: ((a.phone || a.primaryPhone || '') + '').replace(/\D/g, '').slice(-4) || '0001'
     });
   });
+
   localApps.forEach(a => {
     if (!combinedMap.has(a.appId)) combinedMap.set(a.appId, a);
   });
-  const apps = Array.from(combinedMap.values());
 
-  const stageIcons = ['📝', '🔍', '⚖️', '🤝', '✅'];
+  const apps = Array.from(combinedMap.values());
+  const activeCount = apps.filter(a => (a.stage || 0) < 4).length;
+  const settledCount = apps.filter(a => (a.stage || 0) >= 4).length;
+  const urgentCount = apps.filter(a => a.emergency).length;
+
+  // Find linked case for hearings / judge bench
+  const judgeHearingCase = serverCases.find(c => c.office && (c.office.includes('ম্যাজিস্ট্রেট') || c.office.includes('আদালত'))) || serverCases[0];
 
   app.innerHTML = `
   <div class="container page-head">
-    <div class="dash-hero">
-      <div class="dash-avatar">👤</div>
-      <div>
-        <h1>${t('dashTitle')}</h1>
-        <p>${ME ? 'স্বাগতম, <strong>' + esc(ME.name || 'নাগরিক') + '</strong>!' : 'আপনার দাখিলকৃত আবেদনের রিয়েলটাইম অবস্থা ও ইতিহাস'}</p>
+    <div class="dash-hero" style="background:linear-gradient(135deg,#003628 0%,#00543E 100%);color:#fff;border-radius:14px;padding:26px 30px;box-shadow:0 8px 24px rgba(0,54,40,0.15)">
+      <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+        <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.18);display:grid;place-items:center;font-size:1.8rem">👤</div>
+        <div>
+          <h1 style="margin:0 0 4px;font-size:1.65rem;color:#fff">${ME ? 'স্বাগতম, ' + esc(ME.nameBn || ME.name || 'নাগরিক') : t('dashTitle')}</h1>
+          <p style="margin:0;font-size:0.95rem;color:rgba(255,255,255,0.88)">
+            ${ME ? 'মোবাইল: ' + esc(ME.phone || ME.username || '০১৭••••••০১') + ' · ডিজিটাল লিগ্যাল এইড নাগরিক প্যানেল' : 'আপনার আবেদনের রিয়েলটাইম অবস্থা ও আদালতের শুনানি তথ্য'}
+          </p>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn btn-outline btn-sm" href="#/apply" style="color:#fff;border-color:rgba(255,255,255,0.4)">+ নতুন আবেদন</a>
+          ${ME ? `<button class="btn btn-outline btn-sm" id="d_logout" style="color:#fff;border-color:rgba(255,255,255,0.4)">${t('logout')}</button>` : `<a class="btn btn-primary btn-sm" href="#/login">লগইন করুন</a>`}
+        </div>
       </div>
-      ${ME ? `<button class="btn btn-outline btn-sm" id="d_logout" style="margin-left:auto">${t('logout')}</button>` : `<a class="btn btn-primary btn-sm" href="#/login" style="margin-left:auto">লগইন করুন</a>`}
     </div>
   </div>
+
   <div class="container">
-    <div class="dash-grid">
+    <!-- ৪টি মূল পরিসংখ্যান কার্ড -->
+    <div class="dash-grid" style="margin-top:1.5rem">
       <div class="stat-card">
-        <h3>মোট আবেদন</h3>
-        <div class="stat-num">${bnNum(apps.length)}</div>
+        <h3>মোট আবেদন ও মামলা</h3>
+        <div class="stat-num">${bnNum(apps.length || 1)}</div>
       </div>
       <div class="stat-card">
         <h3>চলমান / পর্যালোচনায়</h3>
-        <div class="stat-num">${bnNum(apps.filter(a => (a.stage || 0) < 4).length)}</div>
+        <div class="stat-num">${bnNum(activeCount || 1)}</div>
       </div>
       <div class="stat-card">
         <h3>নিষ্পত্তি সম্পন্ন</h3>
-        <div class="stat-num">${bnNum(apps.filter(a => (a.stage || 0) >= 4).length)}</div>
+        <div class="stat-num">${bnNum(settledCount)}</div>
       </div>
       <div class="stat-card">
-        <h3>জরুরি সহায়তা</h3>
-        <div class="stat-num">${bnNum(apps.filter(a => a.emergency).length)}</div>
+        <h3>জরুরি সেবা</h3>
+        <div class="stat-num">${bnNum(urgentCount)}</div>
       </div>
     </div>
 
-    <div class="dash-head-row" style="margin:2rem 0 1rem;display:flex;justify-content:space-between;align-items:center">
-      <h2>${t('myApps')}</h2>
+    <!-- জরুরি পদক্ষেপ ও আদালতের শুনানি নোটিশ (User & Judge Connection) -->
+    <div style="margin-top:2rem;background:#FFFFFF;border:1.5px solid var(--border,#E2ECE5);border-left:5px solid var(--gov-green,#00543E);border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;font-weight:700;color:var(--gov-green,#00543E);text-transform:uppercase;letter-spacing:0.04em">
+            🏛️ বিচারিক আদালত ও বেঞ্চের নোটিশ
+          </span>
+          <h3 style="margin:6px 0;font-size:1.15rem;color:var(--text,#11221A)">
+            চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা — বিচারক এ. কে. এম. রহমান
+          </h3>
+          <p style="margin:0;font-size:0.92rem;color:var(--text-muted,#52675C)">
+            ${judgeHearingCase ? 'আপনার মামলা (আইডি: ' + esc(judgeHearingCase.id) + ') মাননীয় আদালতের কার্যতালিকাভুক্ত। আগামী নির্ধারিত তারিখে বিজ্ঞ আইনজীবী উপস্থিত থাকবেন।' : 'আপনার আবেদনের প্রাথমিক যাচাই সম্পন্ন হয়েছে। আদালতে শুনানির দিন ধার্য হলে এখানে স্বয়ংক্রিয় নোটিশ পাবেন।'}
+          </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${judgeHearingCase ? `<a href="#/citizen-case/${encodeURIComponent(judgeHearingCase.id)}" class="btn btn-primary btn-sm">বিচারিক মামলার বিস্তারিত ও বার্তা →</a>` : `<a href="#/apply" class="btn btn-outline btn-sm">আবেদন দেখুন</a>`}
+        </div>
+      </div>
+    </div>
+
+    <!-- আমার আবেদন ও মামলা তালিকা -->
+    <div class="dash-head-row" style="margin:2.5rem 0 1rem;display:flex;justify-content:space-between;align-items:center">
+      <h2 style="font-size:1.4rem;font-weight:700">${t('myApps')}</h2>
       <a class="btn btn-primary btn-sm" href="#/apply">+ নতুন আবেদন দাখিল করুন</a>
     </div>
 
-    ${apps.length ? `
-      <div class="myapps">
-        ${apps.map(a => `
-          <a class="app-card" href="#/track?id=${encodeURIComponent(a.appId)}&last4=${encodeURIComponent(a.last4 || '3344')}&auto=1" style="text-decoration:none;color:inherit">
-            <span class="app-stage-icon">${stageIcons[a.stage || 0] || '📝'}</span>
-            <span class="app-main">
-              <span class="app-id">${esc(a.appId)}</span>
-              <span class="app-meta">
-                ${esc(a.caseType || 'পারিবারিক/সাধারণ')} · ${a.district ? esc(a.district) + ' · ' : ''}দাখিল: ${new Date(a.submittedAt || a.createdAt || Date.now()).toLocaleDateString('bn-BD')}
-              </span>
-            </span>
-            <span class="app-right">
-              <span class="badge ${(a.stage || 0) >= 4 ? 'success' : 'warn'}">
-                ${(a.stage || 0) >= 4 ? 'নিষ্পত্তি সম্পন্ন' : 'চলমান (UNDER REVIEW)'}
-              </span>
-              <span class="app-chevron">›</span>
-            </span>
-          </a>
-        `).join('')}
+    <div class="judge-table-card" style="margin-bottom:3rem">
+      <div style="overflow-x:auto">
+        <table class="judge-table">
+          <thead>
+            <tr>
+              <th>আবেদন / মামলা আইডি</th>
+              <th>বিষয় / ধরন</th>
+              <th>আদালত / কার্যালয়</th>
+              <th>দাখিলের তারিখ</th>
+              <th>বর্তমান অবস্থা</th>
+              <th>পদক্ষেপ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(apps.length ? apps : [{ appId: 'DLAS-NET-2026-04417', caseId: 'CASE-2026-0004', caseType: 'পারিবারিক ভরণপোষণ', office: 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা', submittedAt: new Date().toISOString(), stage: 3 }]).map(a => `
+              <tr>
+                <td><strong>${esc(a.appId)}</strong></td>
+                <td>${esc(a.caseType || 'পারিবারিক')}</td>
+                <td>${esc(a.office || 'নেত্রকোনা জেলা আদালত')}</td>
+                <td>${new Date(a.submittedAt || Date.now()).toLocaleDateString('bn-BD')}</td>
+                <td>
+                  <span class="badge ${(a.stage || 0) >= 3 ? 'success' : 'warn'}">
+                    ${(a.stage || 0) >= 3 ? '⚖️ আদালতে চলমান (HEARING)' : '📋 পর্যালোচনায় (REVIEW)'}
+                  </span>
+                </td>
+                <td>
+                  <a href="#/citizen-case/${encodeURIComponent(a.caseId || a.appId)}" class="btn btn-outline btn-sm" style="font-weight:600">
+                    বিস্তারিত ও বার্তা →
+                  </a>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
-    ` : `
-      <div class="empty-state">
-        ${t('noApps')}
-        <div style="margin-top:12px">
-          <a class="btn btn-primary" href="#/apply">নতুন আবেদন করুন →</a>
-        </div>
-      </div>
-    `}
+    </div>
   </div>`;
 
   const logoutBtn = $('#d_logout');
@@ -2531,183 +2611,1385 @@ async function pageDashboard() {
   }
 }
 
-// ---------- ৮. আধুনিক পরিষ্কার লগইন প্যানেল (pageLogin) — Executive Redesign ----------
+// ---------- ৭.১ নাগরিক কেস ভিউ ও সরাসরি বিচারক/কর্মকর্তা বার্তা (pageCitizenCase) ----------
+async function pageCitizenCase(caseId) {
+  let caseData = null;
+  const cleanId = (caseId || 'CASE-2026-0004').trim();
+
+  try {
+    caseData = await apiGet(`cases/${encodeURIComponent(cleanId)}`);
+  } catch (e) {}
+
+  const c = (caseData && caseData.case) || {
+    id: cleanId,
+    caseType: 'FAMILY_MAINTENANCE',
+    office: 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা',
+    district: 'নেত্রকোনা',
+    priority: 'URGENT',
+    status: 'OPEN',
+    createdAt: new Date().toISOString()
+  };
+
+  const applicant = (caseData && caseData.application) || {
+    fullName: ME ? (ME.nameBn || ME.name) : 'রেহানা বেগম',
+    primaryPhone: ME ? (ME.phone || '০১৭০০০০০০০১') : '০১৭০০০০০০০১',
+    applicantDistrict: 'নেত্রকোনা'
+  };
+
+  const records = (caseData && caseData.records) || [
+    { text: 'নাবালক সন্তানের ভরণপোষণ ও চিকিৎসার দাবিতে মাননীয় আদালতের শরণাপন্ন হয়েছি।', statedByName: applicant.fullName, statedByRole: 'APPLICANT', createdAt: new Date(Date.now() - 3 * 86400000).toISOString() },
+    { text: 'নথি পর্যালোচনাপূর্বক আগামী মঙ্গলবার বেলা ১১টায় শুনানির দিন ধার্য করা হলো। উভয় পক্ষকে উপস্থিত থাকার নির্দেশ দেওয়া হলো।', statedByName: 'বিচারক এ. কে. এম. রহমান', statedByRole: 'JUDGE', createdAt: new Date().toISOString() }
+  ];
+
+  const hearings = (caseData && caseData.hearings) || [
+    { hearingDate: new Date(Date.now() + 4 * 86400000).toISOString(), location: 'চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা (কক্ষ নং ২)', notes: 'উভয় পক্ষের উপস্থিতিতে শুনানির প্রাথমিক তারিখ' }
+  ];
+
+  app.innerHTML = `
+  <div class="container" style="padding-top:24px;padding-bottom:60px">
+    <a href="#/dashboard" class="dlas-auth-back-btn" style="margin-bottom:18px">
+      ← ড্যাশবোর্ডে ফিরে যান
+    </a>
+
+    <!-- কেস হেডার কার্ড -->
+    <div style="background:#FFFFFF;border:1.5px solid var(--border,#E2ECE5);border-top:4px solid var(--gov-green,#00543E);border-radius:12px;padding:26px 30px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:8px">
+        <span style="font-family:monospace;font-size:0.92rem;font-weight:700;color:var(--gov-green,#00543E);background:var(--gov-green-surface,#E8F5EF);padding:4px 10px;border-radius:6px">
+          ${esc(c.id)}
+        </span>
+        <span class="badge success" style="font-size:0.88rem;padding:6px 12px">
+          ⚖️ আদালতে চলমান (HEARING ASSIGNED)
+        </span>
+      </div>
+      <h1 style="margin:0 0 14px;font-size:1.65rem;color:var(--text,#11221A);font-weight:700">
+        পারিবারিক ভরণপোষণ ও আইনি সহায়তা মামলা
+      </h1>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;padding-top:16px;border-top:1px solid #F1F5F9;font-size:0.92rem">
+        <div>
+          <span style="color:var(--text-muted,#52675C);display:block;font-size:0.82rem">আদালত ও বিচারিক বেঞ্চ:</span>
+          <strong>চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা</strong>
+        </div>
+        <div>
+          <span style="color:var(--text-muted,#52675C);display:block;font-size:0.82rem">দায়িত্বপ্রাপ্ত বিচারক:</span>
+          <strong>বিচারক এ. কে. এম. রহমান (ম্যাজিস্ট্রেট)</strong>
+        </div>
+        <div>
+          <span style="color:var(--text-muted,#52675C);display:block;font-size:0.82rem">নিয়োজিত প্যানেল আইনজীবী:</span>
+          <strong>অ্যাডভোকেট ফরিদা ইয়াসমিন</strong>
+        </div>
+        <div>
+          <span style="color:var(--text-muted,#52675C);display:block;font-size:0.82rem">দাখিলকারী নাগরিক:</span>
+          <strong>${esc(applicant.fullName)} (${esc(applicant.primaryPhone || '০১৭••••••০১')})</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- ২ কলাম লেআউট: বামে টাইমলাইন ও নথি, ডানে সরাসরি বিচারক/কর্মকর্তা বার্তা -->
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <!-- বাম কলাম -->
+      <div style="flex:1 1 500px;min-width:0;display:flex;flex-direction:column;gap:24px">
+        <!-- শুনানির সময়সূচি -->
+        <div style="background:#FFFFFF;border:1.5px solid var(--border,#E2ECE5);border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+          <h3 style="margin:0 0 16px;font-size:1.2rem;font-weight:700;color:var(--gov-green,#00543E);display:flex;align-items:center;gap:8px">
+            📅 আদালতের পরবর্তী শুনানির তারিখ
+          </h3>
+          ${hearings.length ? hearings.map(h => `
+            <div style="background:var(--gov-green-surface,#E8F5EF);border:1px solid #A7F3D0;border-radius:8px;padding:16px">
+              <div style="font-size:1.1rem;font-weight:700;color:var(--gov-green-dark,#003628);margin-bottom:4px">
+                ${new Date(h.hearingDate).toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+              <div style="font-size:0.92rem;color:var(--text,#11221A);margin-bottom:4px">📍 স্থান: ${esc(h.location)}</div>
+              ${h.notes ? `<div style="font-size:0.88rem;color:var(--text-muted,#52675C)">📝 আদালতের আদেশ নোট: ${esc(h.notes)}</div>` : ''}
+            </div>
+          `).join('') : '<p style="color:var(--text-muted,#52675C)">শুনানির তারিখ ধার্য প্রক্রিয়াধীন।</p>'}
+        </div>
+
+        <!-- কেস অগ্রগতি টাইমলাইন -->
+        <div style="background:#FFFFFF;border:1.5px solid var(--border,#E2ECE5);border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+          <h3 style="margin:0 0 18px;font-size:1.2rem;font-weight:700;color:var(--text,#11221A)">
+            পরিক্রমা ও অগ্রগতি ধাপ (Progress Timeline)
+          </h3>
+          <ul class="cz-timeline-list">
+            <li class="cz-timeline-item">
+              <div class="cz-timeline-axis"><div class="cz-timeline-dot done"></div><div class="cz-timeline-line"></div></div>
+              <div class="cz-timeline-content">
+                <strong>১. আবেদন দাখিল সম্পন্ন</strong>
+                <p style="margin:2px 0 0;font-size:0.86rem;color:var(--text-muted,#52675C)">ডিজিটাল পোর্টালে নাগরিকের বক্তব্য ও তথ্য নিবন্ধিত হয়েছে।</p>
+              </div>
+            </li>
+            <li class="cz-timeline-item">
+              <div class="cz-timeline-axis"><div class="cz-timeline-dot done"></div><div class="cz-timeline-line"></div></div>
+              <div class="cz-timeline-content">
+                <strong>২. লিগ্যাল এইড কর্মকর্তার প্রাথমিক মূল্যায়ন</strong>
+                <p style="margin:2px 0 0;font-size:0.86rem;color:var(--text-muted,#52675C)">আইনগত সহায়তা নীতিমালা অনুসারে যোগ্য বিবেচিত ও মামলা গৃহীত হয়েছে।</p>
+              </div>
+            </li>
+            <li class="cz-timeline-item">
+              <div class="cz-timeline-axis"><div class="cz-timeline-dot done"></div><div class="cz-timeline-line"></div></div>
+              <div class="cz-timeline-content">
+                <strong>৩. প্যানেল আইনজীবী ও আদালত নির্ধারণ</strong>
+                <p style="margin:2px 0 0;font-size:0.86rem;color:var(--text-muted,#52675C)">অ্যাডভোকেট ফরিদা ইয়াসমিন ও নেত্রকোনা সিজেএম আদালত বেঞ্চে মামলা ন্যস্ত।</p>
+              </div>
+            </li>
+            <li class="cz-timeline-item">
+              <div class="cz-timeline-axis"><div class="cz-timeline-dot done"></div><div class="cz-timeline-line"></div></div>
+              <div class="cz-timeline-content">
+                <strong>৪. বিচারিক শুনানি পর্যায় (চলমান)</strong>
+                <p style="margin:2px 0 0;font-size:0.86rem;color:var(--text-muted,#52675C)">মাননীয় বিচারক এ. কে. এম. রহমান শুনানি তারিখ ধার্য করেছেন।</p>
+              </div>
+            </li>
+            <li class="cz-timeline-item">
+              <div class="cz-timeline-axis"><div class="cz-timeline-dot"></div><div class="cz-timeline-line"></div></div>
+              <div class="cz-timeline-content">
+                <strong style="color:var(--text-muted,#52675C)">৫. আদেশ ও রায় বাস্তবায়ন</strong>
+                <p style="margin:2px 0 0;font-size:0.86rem;color:var(--text-muted,#52675C)">শুনানি অন্তে নিষ্পত্তি ও ভরণপোষণ আদেশ জারি।</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- প্রয়োজনীয় নথিপত্র চেকলিস্ট -->
+        <div style="background:#FFFFFF;border:1.5px solid var(--border,#E2ECE5);border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <h3 style="margin:0;font-size:1.2rem;font-weight:700">প্রয়োজনীয় নথিপত্র (Documents)</h3>
+            <span style="font-size:0.88rem;color:var(--gov-green,#00543E);font-weight:600">৩/৩ টি নথি প্রস্তুত</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">
+              <div>
+                <strong>জাতীয় পরিচয়পত্র / জন্ম নিবন্ধন সনদ</strong>
+                <span style="display:block;font-size:0.82rem;color:var(--text-muted,#52675C)">যাচাইকরণ সম্পন্ন (NID-VERIFIED)</span>
+              </div>
+              <span class="badge success">দাখিলকৃত ✓</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">
+              <div>
+                <strong>সন্তানের জন্ম সনদ ও খরচের বিবরণ</strong>
+                <span style="display:block;font-size:0.82rem;color:var(--text-muted,#52675C)">আদালতে পেশ করার জন্য সংরক্ষিত</span>
+              </div>
+              <span class="badge success">দাখিলকৃত ✓</span>
+            </div>
+          </div>
+          <div style="margin-top:14px">
+            <button class="btn btn-outline btn-sm" id="btnUploadDoc" style="width:100%">
+              + নতুন সহায়ক নথি / রসিদ আপলোড করুন
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ডান কলাম: নাগরিক ও বিচারক সরাসরি বার্তা আদান-প্রদান (Live User-Judge Connection) -->
+      <div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:24px">
+        <div style="background:#FFFFFF;border:1.5px solid var(--border,#E2ECE5);border-top:4px solid #D97706;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="font-size:1.4rem">💬</span>
+            <div>
+              <h3 style="margin:0;font-size:1.15rem;font-weight:700">আদালত ও বিচারিক বার্তা আদান-প্রদান</h3>
+              <small style="color:var(--text-muted,#52675C)">বিচারক, আইনজীবী ও নাগরিকের মধ্যে সরাসরি সংযোগ</small>
+            </div>
+          </div>
+          <p style="font-size:0.88rem;color:var(--text-muted,#52675C);margin-bottom:16px">
+            এই মামলার শুনানির বিষয়ে মাননীয় বিচারক বা দায়িত্বপ্রাপ্ত কর্মকর্তার উদ্দেশ্যে কোনো নিবেদন বা বক্তব্য থাকলে সরাসরি পাঠান:
+          </p>
+
+          <!-- মেসেজ থ্রেড -->
+          <div id="czMsgThread" style="display:flex;flex-direction:column;gap:12px;max-height:360px;overflow-y:auto;margin-bottom:16px;padding:8px">
+            ${records.map(r => `
+              <div style="padding:12px 14px;border-radius:10px;font-size:0.92rem;line-height:1.45;${
+                r.statedByRole === 'JUDGE'
+                  ? 'background:#FEF3C7;border:1px solid #F59E0B;align-self:flex-start;max-width:92%'
+                  : 'background:var(--gov-green-surface,#E8F5EF);border:1px solid #A7F3D0;align-self:flex-end;max-width:92%'
+              }">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:0.8rem;font-weight:700;color:${r.statedByRole === 'JUDGE' ? '#92400E' : 'var(--gov-green,#00543E)'}">
+                  <span>${r.statedByRole === 'JUDGE' ? '⚖️ ' + esc(r.statedByName) + ' (বিচারক)' : '👤 ' + esc(r.statedByName) + ' (নাগরিক)'}</span>
+                  <span style="opacity:0.75;font-weight:400">${new Date(r.createdAt || Date.now()).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div style="color:var(--text,#11221A);white-space:pre-wrap">${esc(r.text)}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- বার্তা প্রেরণের ইনপুট -->
+          <div>
+            <textarea id="czNewMsg" rows="3" class="dlas-input" placeholder="আপনার বক্তব্য বা প্রশ্ন লিখুন…" style="min-height:85px;resize:vertical;margin-bottom:10px"></textarea>
+            <button class="dlas-btn-primary" id="btnSendCzMsg" style="min-height:46px;font-size:0.95rem">
+              ✉️ আদালতে বার্তা পাঠান
+            </button>
+          </div>
+        </div>
+
+        <!-- আদালত ও কার্যালয় যোগাযোগ -->
+        <div style="background:#FFFFFF;border:1.5px solid var(--border,#E2ECE5);border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+          <h4 style="margin:0 0 12px;font-size:1.05rem;font-weight:700">🏛️ আদালতের হেল্পডেস্ক যোগাযোগ</h4>
+          <p style="margin:0 0 6px;font-size:0.9rem"><strong>চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা</strong></p>
+          <p style="margin:0 0 6px;font-size:0.88rem;color:var(--text-muted,#52675C)">📍 নেত্রকোনা কোর্ট চত্বর, নেত্রকোনা সদর</p>
+          <p style="margin:0 0 6px;font-size:0.88rem;color:var(--text-muted,#52675C)">📞 আদালত বেঞ্চ সহকারী: ০১৭৩৩০০০০০০</p>
+          <p style="margin:0;font-size:0.88rem;color:var(--text-muted,#52675C)">📞 জাতীয় লিগ্যাল এইড হেল্পলাইন: <strong>১৬৬৯৯</strong> (টোল-ফ্রি ২৪ ঘণ্টা)</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // বার্তা প্রেরণের ইভেন্ট
+  const sendBtn = $('#btnSendCzMsg');
+  if (sendBtn) {
+    sendBtn.onclick = async () => {
+      const msgInput = $('#czNewMsg');
+      const text = (msgInput.value || '').trim();
+      if (!text) return toast('অনুগ্রহ করে বক্তব্য লিখুন');
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'পাঠানো হচ্ছে…';
+
+      try {
+        const r = await apiPost(`cases/${encodeURIComponent(cleanId)}`, {
+          action: 'add_message',
+          text,
+          statedByName: applicant.fullName,
+          statedByRole: 'APPLICANT'
+        });
+        if (r.error) {
+          toast(r.error);
+        } else {
+          toast('আদালতে বার্তা সফলভাবে পাঠানো হয়েছে');
+          msgInput.value = '';
+          // রিলোড ভিউ
+          pageCitizenCase(cleanId);
+        }
+      } catch (err) {
+        toast('বার্তা পাঠানো সম্ভব হয়নি');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = '✉️ আদালতে বার্তা পাঠান';
+      }
+    };
+  }
+
+  // নথি আপলোড ডেমো
+  const docBtn = $('#btnUploadDoc');
+  if (docBtn) {
+    docBtn.onclick = () => {
+      toast('সহায়ক নথি আপলোড ও যাচাই সফল হয়েছে ✓');
+    };
+  }
+}
+
+// ---------- ৭.২ বিচারক বেঞ্চ ভিউ (Judge Bench View — pageJudgeBench) ----------
+async function pageJudgeBench() {
+  if (!ME) {
+    return (location.hash = '#/login');
+  }
+
+  let cases = [];
+  try {
+    const r = await apiGet('cases');
+    cases = r.cases || [];
+  } catch (e) {}
+
+  // Filter or show bench cases
+  const benchCases = cases.length ? cases : [
+    { id: 'CASE-2026-0004', applicantName: 'রেহানা বেগম', caseType: 'পারিবারিক ভরণপোষণ', priority: 'URGENT', status: 'OPEN', hearingDate: new Date(Date.now() + 4 * 86400000).toISOString(), lawyerName: 'অ্যাডভোকেট ফরিদা ইয়াসমিন' },
+    { id: 'CASE-2026-0001', applicantName: 'ময়ূরী আক্তার', caseType: 'পারিবারিক সহিংসতা', priority: 'URGENT', status: 'OPEN', hearingDate: new Date(Date.now() + 6 * 86400000).toISOString(), lawyerName: 'অ্যাডভোকেট শাহানা আক্তার' },
+    { id: 'CASE-2026-0003', applicantName: 'নুচিং মারমা', caseType: 'ভূমি বিরোধ', priority: 'HIGH', status: 'OPEN', hearingDate: new Date(Date.now() + 8 * 86400000).toISOString(), lawyerName: 'অ্যাডভোকেট কবির হোসেন' }
+  ];
+
+  app.innerHTML = `
+  <div class="container judge-bench-wrap">
+    <!-- বিচারক বেঞ্চ হেডার ব্যানার -->
+    <div class="judge-bench-hero">
+      <div>
+        <span style="font-size:0.85rem;background:rgba(255,255,255,0.18);padding:4px 12px;border-radius:999px;display:inline-block;margin-bottom:8px">
+          ⚖️ জুডিশিয়ারি পোর্টাল · বিচার বিভাগীয় ম্যাজিস্ট্রেট বেঞ্চ
+        </span>
+        <h1 class="judge-bench-title">বিচারক এ. কে. এম. রহমান</h1>
+        <p class="judge-bench-sub">
+          চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা — আইনি সহায়তা কজ-লিস্ট ও শুনানি ব্যবস্থাপনা
+        </p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="#/judge-calendar" class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5)">
+          📅 বেঞ্চ কজ-লিস্ট
+        </a>
+        <a href="#/console" class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.5)">
+          🏛️ পূর্ণ কনসোল
+        </a>
+      </div>
+    </div>
+
+    <!-- বেঞ্চ কেপিআই পরিসংখ্যান (Prototype KPIs) -->
+    <div class="judge-kpis-grid">
+      <div class="judge-kpi-card">
+        <h4>আমার বেঞ্চের মোট মামলা</h4>
+        <div class="judge-kpi-val">${bnNum(24)}</div>
+        <div class="judge-kpi-sub">১১টি লিগ্যাল এইড সমর্থিত</div>
+      </div>
+      <div class="judge-kpi-card">
+        <h4>আজকের শুনানি তালিকা</h4>
+        <div class="judge-kpi-val">${bnNum(3)}</div>
+        <div class="judge-kpi-sub">সকাল ১০:০০ টা থেকে শুরু</div>
+      </div>
+      <div class="judge-kpi-card">
+        <h4>নতুন রেফারেল গৃহীত</h4>
+        <div class="judge-kpi-val" style="color:#D97706">${bnNum(6)}</div>
+        <div class="judge-kpi-sub">চলতি মাসে ৪টি নতুন দাখিল</div>
+      </div>
+      <div class="judge-kpi-card">
+        <h4>নিষ্পত্তিকৃত মামলা</h4>
+        <div class="judge-kpi-val" style="color:#16A34A">${bnNum(11)}</div>
+        <div class="judge-kpi-sub">৭টি আপস-মীমাংসায় নিষ্পত্তি</div>
+      </div>
+    </div>
+
+    <!-- বেঞ্চের মামলা তালিকা -->
+    <div class="judge-table-card" style="margin-bottom:28px">
+      <div style="padding:18px 24px;border-bottom:1.5px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <h3 style="margin:0;font-size:1.25rem;font-weight:700">আমার বেঞ্চের বিচারাধীন মামলাসমূহ</h3>
+        <span style="font-size:0.9rem;color:var(--text-muted,#52675C)">সর্বমোট: ${bnNum(benchCases.length)}টি মামলা সক্রিয়</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="judge-table">
+          <thead>
+            <tr>
+              <th>মামলা আইডি</th>
+              <th>আবেদনকারী নাগরিক</th>
+              <th>মামলার বিষয়</th>
+              <th>পরবর্তী শুনানির তারিখ</th>
+              <th>নিয়োজিত আইনজীবী</th>
+              <th>অবস্থা</th>
+              <th>আদালতি পদক্ষেপ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${benchCases.map(c => `
+              <tr>
+                <td><strong>${esc(c.id)}</strong></td>
+                <td>${esc(c.applicantName || 'রেহানা বেগম')}</td>
+                <td>${esc(ctLabel(c.caseType) || 'পারিবারিক')}</td>
+                <td>
+                  <span style="color:var(--gov-green,#00543E);font-weight:700">
+                    ${new Date(c.hearingDate || Date.now() + 4 * 86400000).toLocaleDateString('bn-BD')}
+                  </span>
+                </td>
+                <td>${esc(c.lawyerName || 'অ্যাডভোকেট ফরিদা ইয়াসমিন')}</td>
+                <td><span class="badge success">শুনানিভুক্ত</span></td>
+                <td>
+                  <button class="btn btn-primary btn-sm btn-open-bench-hearing" data-id="${esc(c.id)}" data-name="${esc(c.applicantName || 'নাগরিক')}" style="padding:6px 12px;font-size:0.86rem">
+                    ⚖️ আদেশ ও শুনানি
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- বিচারক আদেশ ও শুনানির তারিখ ধার্য প্যানেল (Interactive Modal / Box) -->
+    <div id="judgeActionModal" style="display:none;background:#FFFFFF;border:2px solid var(--gov-green,#00543E);border-radius:12px;padding:26px;box-shadow:0 8px 30px rgba(0,0,0,0.12);margin-bottom:30px">
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #E2E8F0;padding-bottom:14px;margin-bottom:18px">
+        <h3 style="margin:0;font-size:1.3rem;color:var(--gov-green,#00543E);font-weight:700">
+          ⚖️ আদালতের বিচারিক আদেশ ও শুনানি ব্যবস্থাপনা — <span id="modalCaseTitle"></span>
+        </h3>
+        <button id="btnCloseModal" class="btn btn-outline btn-sm">✕ বন্ধ করুন</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:18px">
+        <div>
+          <label class="dlas-label">পরবর্তী শুনানির তারিখ নির্ধারণ:</label>
+          <input type="date" id="hearingDateInput" class="dlas-input" value="${new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]}">
+        </div>
+        <div>
+          <label class="dlas-label">আদালত কক্ষ / এজলাস:</label>
+          <input type="text" id="hearingRoomInput" class="dlas-input" value="চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা (এজলাস ২)">
+        </div>
+      </div>
+
+      <div style="margin-bottom:18px">
+        <label class="dlas-label">আদালতের আদেশ নোট / শুনানির নির্দেশনা (নাগরিক ড্যাশবোর্ডে প্রদর্শিত হবে):</label>
+        <textarea id="hearingOrderNotes" class="dlas-input" rows="3" placeholder="আদালতের আদেশ লিপিবদ্ধ করুন…"></textarea>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button id="btnSaveHearing" class="dlas-btn-primary" style="flex:1;min-height:48px">
+          ✓ শুনানির তারিখ ও আদেশ জারি করুন
+        </button>
+        <button id="btnSendOrderMsg" class="btn btn-outline" style="flex:1;min-height:48px;font-weight:700">
+          💬 আবেদনকারীকে সরাসরি নির্দেশনা বার্তা পাঠান
+        </button>
+      </div>
+    </div>
+  </div>`;
+
+  // বিচারক শুনানির মডাল ইভেন্ট
+  let activeCaseId = 'CASE-2026-0004';
+  $$('.btn-open-bench-hearing').forEach(btn => {
+    btn.onclick = () => {
+      activeCaseId = btn.dataset.id;
+      $('#modalCaseTitle').textContent = `${activeCaseId} (${btn.dataset.name})`;
+      $('#judgeActionModal').style.display = 'block';
+      $('#judgeActionModal').scrollIntoView({ behavior: 'smooth' });
+    };
+  });
+
+  const closeBtn = $('#btnCloseModal');
+  if (closeBtn) {
+    closeBtn.onclick = () => { $('#judgeActionModal').style.display = 'none'; };
+  }
+
+  // শুনানি ধার্য
+  const saveHearingBtn = $('#btnSaveHearing');
+  if (saveHearingBtn) {
+    saveHearingBtn.onclick = async () => {
+      const hearingDate = $('#hearingDateInput').value;
+      const location = $('#hearingRoomInput').value;
+      const notes = $('#hearingOrderNotes').value.trim() || 'শুনানির তারিখ ধার্য করা হয়েছে';
+      saveHearingBtn.disabled = true;
+
+      try {
+        const r = await apiPost(`cases/${encodeURIComponent(activeCaseId)}`, {
+          action: 'add_hearing',
+          hearingDate,
+          location,
+          notes
+        });
+        if (r.error) {
+          toast(r.error);
+        } else {
+          toast('আদালতে শুনানির নতুন তারিখ ও আদেশ সফলভাবে লিপিবদ্ধ হয়েছে ✓');
+          $('#judgeActionModal').style.display = 'none';
+        }
+      } catch (err) {
+        toast('শুনানি সংরক্ষণ করা যায়নি');
+      } finally {
+        saveHearingBtn.disabled = false;
+      }
+    };
+  }
+
+  // আদেশ বার্তা প্রেরণ
+  const sendOrderBtn = $('#btnSendOrderMsg');
+  if (sendOrderBtn) {
+    sendOrderBtn.onclick = async () => {
+      const notes = $('#hearingOrderNotes').value.trim();
+      if (!notes) return toast('আদেশের বক্তব্য লিখুন');
+      sendOrderBtn.disabled = true;
+
+      try {
+        const r = await apiPost(`cases/${encodeURIComponent(activeCaseId)}`, {
+          action: 'add_message',
+          text: notes,
+          statedByName: 'বিচারক এ. কে. এম. রহমান',
+          statedByRole: 'JUDGE'
+        });
+        if (r.error) {
+          toast(r.error);
+        } else {
+          toast('আবেদনকারীর কাছে আদালতের নির্দেশনা বার্তা পাঠানো হয়েছে ✓');
+          $('#judgeActionModal').style.display = 'none';
+        }
+      } catch (err) {
+        toast('বার্তা পাঠানো সম্ভব হয়নি');
+      } finally {
+        sendOrderBtn.disabled = false;
+      }
+    };
+  }
+}
+
+// ---------- ৭.৩ বিচারক ক্যালেন্ডার (pageJudgeCalendar) ----------
+async function pageJudgeCalendar() {
+  app.innerHTML = `
+  <div class="container" style="padding-top:28px;padding-bottom:60px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <a href="#/role-judge" class="dlas-auth-back-btn" style="margin-bottom:8px">← বিচারক বেঞ্চে ফিরুন</a>
+        <h1 style="margin:0;font-size:1.8rem;color:var(--text,#11221A);font-weight:700">📅 বেঞ্চ কজ-লিস্ট ও শুনানি ক্যালেন্ডার</h1>
+        <p style="margin:0;color:var(--text-muted,#52675C)">চীফ জুডিসিয়াল ম্যাজিস্ট্রেট আদালত, নেত্রকোনা — বিচারক এ. কে. এম. রহমান</p>
+      </div>
+      <button class="btn btn-outline" onclick="window.print()">🖨️ কজ-লিস্ট প্রিন্ট</button>
+    </div>
+
+    <div class="judge-table-card">
+      <div style="padding:16px 20px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;font-weight:700">
+        আজকের কার্যতালিকা (Daily Cause List — ${new Date().toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })})
+      </div>
+      <table class="judge-table">
+        <thead>
+          <tr>
+            <th>সময়</th>
+            <th>মামলা নম্বর</th>
+            <th>পক্ষগণের নাম</th>
+            <th>আইনজীবী</th>
+            <th>পদক্ষেপ / অবস্থা</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>সকাল ১০:৩০</strong></td>
+            <td>CASE-2026-0004</td>
+            <td>রেহানা বেগম বনাম আক্তার হোসেন</td>
+            <td>অ্যাডভোকেট ফরিদা ইয়াসমিন</td>
+            <td><span class="badge success">শুনানি ও অন্তর্বর্তী আদেশ</span></td>
+          </tr>
+          <tr>
+            <td><strong>সকাল ১১:১৫</strong></td>
+            <td>CASE-2026-0001</td>
+            <td>ময়ূরী আক্তার বনাম শফিকুল ইসলাম</td>
+            <td>অ্যাডভোকেট শাহানা আক্তার</td>
+            <td><span class="badge warn">সেফ-কন্টাক্ট সুরক্ষা শুনানি</span></td>
+          </tr>
+          <tr>
+            <td><strong>বেলা ১২:০০</strong></td>
+            <td>CASE-2026-0003</td>
+            <td>নুচিং মারমা বনাম প্রতিপক্ষ</td>
+            <td>অ্যাডভোকেট কবির হোসেন</td>
+            <td><span class="badge success">দলিল পর্যালোচনা</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ============================================================================
+// ৮. আধুনিক সম্পূর্ণ লগইন প্যানেল (pageLogin) — DLAS Executive Full HTML Clone
+// ============================================================================
 async function pageLogin() {
   if (ME) {
+    if (ME.role === 'JUDGE' || String(ME.role).toLowerCase() === 'judge') {
+      return (location.hash = '#/role-judge');
+    }
     if (ME.role && ME.role !== 'applicant' && ME.role !== 'CITIZEN') {
       return (location.hash = '#/console');
     }
     return (location.hash = '#/dashboard');
   }
 
-  let activeTab = 'citizen'; // 'citizen', 'staff', 'door'
+  // State
+  let authStep = 'role'; // 'role' | 'staff' | 'applicant' | 'otp' | 'createPick' | 'regStart' | 'regPanel' | 'regMed' | 'fpEmail' | 'fpCode' | 'fpNew' | 'fpDone'
+  let rolePick = 'staff'; // 'staff' | 'applicant'
+  let staffQuery = '';
+  let staffPicked = 'judge';
+  let appPhone = '';
+  let appPin = '';
+  let appMode = 'otp'; // 'otp' | 'pin'
+  let otpCode = '123456';
+  let remember = true;
+  let notice = '';
+  let noticeType = 'warn';
+
+  // Panel & Mediator Reg fields
+  let plrName = '', plrBar = '', plrJur = 'netrokona', plrSpec = 'family', plrPhone = '', plrEmail = '', plrDone = '';
+  let medName = '', medCert = '', medDist = 'netrokona', medPhone = '', medEmail = '', medDone = '';
+
+  // Citizen Reg fields
+  let regName = '', regPhone = '', regPw = '', regDist = 'নেত্রকোনা';
+
+  // Forgot password fields
+  let fpId = '', fpCode = '123456', fpPw1 = '', fpPw2 = '';
 
   function render() {
-    app.innerHTML = `
-    <div class="container auth-clean-wrap">
-      <div class="auth-clean-card">
-        <div class="auth-clean-header">
-          <h1>🏛️ CoU JusticeLab পোর্টাল</h1>
-          <p>ডিজিটাল আইনগত সহায়তা ও সেবা ব্যবস্থাপনা — অ্যাকাউন্টে প্রবেশ করুন</p>
+    let contentHtml = '';
+
+    // Step: Role Selection
+    if (authStep === 'role') {
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        <h2 class="dlas-auth-heading">আইনি সহায়তা সিস্টেমে প্রবেশ করুন</h2>
+        <p class="dlas-auth-lead">আপনার প্রাতিষ্ঠানিক ভূমিকা নির্বাচন করুন। কর্মকর্তা ও নাগরিক উভয়ই একই সমন্বিত প্ল্যাটফর্মে সংযুক্ত।</p>
+
+        <div style="font-size:0.92rem;font-weight:600;color:var(--text);margin-bottom:10px">
+          ভূমিকা নির্বাচন করুন <span style="color:#D32F2F">*</span>
         </div>
 
-        <!-- ৩টি স্পষ্ট ভূমিকা বাটন (3 Clean Role Tabs) -->
-        <div class="auth-role-tabs">
-          <button type="button" class="auth-role-btn ${activeTab === 'citizen' ? 'active' : ''}" id="tabBtnCitizen">
-            👤 নাগরিক লগইন
+        <div class="dlas-role-radios">
+          <button type="button" class="dlas-role-pill ${rolePick === 'staff' ? 'active' : ''}" id="pickStaffBtn">
+            <span class="dlas-role-radio-dot"><span></span></span>
+            🏛️ কর্মকর্তা ও আইনজীবী লগইন
           </button>
-          <button type="button" class="auth-role-btn ${activeTab === 'staff' ? 'active' : ''}" id="tabBtnStaff">
-            🏛️ কর্মকর্তা / প্রোভাইডার
-          </button>
-          <button type="button" class="auth-role-btn ${activeTab === 'door' ? 'active' : ''}" id="tabBtnDoor">
-            🚪 ডোর / হেল্পলাইন
+          <button type="button" class="dlas-role-pill ${rolePick === 'applicant' ? 'active' : ''}" id="pickApplicantBtn">
+            <span class="dlas-role-radio-dot"><span></span></span>
+            👤 আবেদনকারী / নাগরিক লগইন
           </button>
         </div>
 
-        <div id="loginErr" class="form-error hidden"></div>
+        <button type="button" class="dlas-btn-primary" id="btnContinueRole">
+          পরবর্তী ধাপে যান →
+        </button>
 
-        <!-- ১. নাগরিক লগইন -->
-        <div id="loginCitizenForm" class="${activeTab === 'citizen' ? '' : 'hidden'}">
-          <div class="field">
-            <label>মোবাইল নম্বর বা আবেদন আইডি <span class="req">*</span></label>
-            <input id="c_id" placeholder="যেমন: 01700000001 বা DLAS-NET-2026-04420" value="01700000001">
+        <div style="margin-top:24px;font-size:0.94rem;color:var(--text-muted)">
+          অ্যাকাউন্ট নেই?
+          <button type="button" id="btnGoCreatePick" style="appearance:none;border:0;background:transparent;color:var(--gov-green);font-weight:700;cursor:pointer;text-decoration:underline">
+            নতুন অ্যাকাউন্ট বা তালিকাভুক্তির আবেদন করুন
+          </button>
+        </div>
+      </div>`;
+    }
+
+    // Step: Staff Login
+    else if (authStep === 'staff') {
+      const q = staffQuery.trim().toLowerCase();
+      const filteredRoster = DLAS_ROSTER.filter(r => {
+        if (!q) return true;
+        const hay = [r.nameBn, r.nameEn, r.email, r.titleBn, r.officeBn].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        <h2 class="dlas-auth-heading">🏛️ কর্মকর্তা ও আইনজীবী লগইন</h2>
+        <p class="dlas-auth-lead">আপনার অফিশিয়াল আইডি বা প্রাতিষ্ঠানিক ইমেইল নির্বাচন করুন (স্বয়ংক্রিয় অনুসন্ধান সম্বলিত)।</p>
+
+        <div class="dlas-input-group">
+          <label class="dlas-label" for="st-uid">
+            অফিশিয়াল আইডি বা প্রাতিষ্ঠানিক ইমেইল <span style="color:#D32F2F">*</span>
+          </label>
+          <input id="st-uid" type="text" class="dlas-input" autocomplete="off" value="${esc(staffQuery || 'cjm.netrokona@judiciary.gov.bd')}" placeholder="যেমন: cjm.netrokona@judiciary.gov.bd বা netrokona.dlao@dbla.gov.bd">
+          <small style="display:block;margin-top:5px;font-size:0.8rem;color:var(--text-muted)">
+            তালিকা থেকে পদবী সিলেক্ট করুন অথবা সরাসরি ইমেইল লিখুন
+          </small>
+
+          <ul class="dlas-roster-menu" id="rosterList">
+            ${filteredRoster.slice(0, 8).map(r => `
+              <li>
+                <button type="button" class="dlas-roster-item-btn" data-email="${esc(r.email)}" data-pin="${esc(r.pin || '1234')}">
+                  <span class="dlas-roster-email">${esc(r.nameBn)} — ${esc(r.titleBn)}</span>
+                  <span class="dlas-roster-meta">${esc(r.officeBn)} · <span style="color:var(--gov-green);font-weight:600">${esc(r.email)}</span></span>
+                </button>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <div class="dlas-input-group">
+          <label class="dlas-label" for="st-pw">
+            পাসওয়ার্ড / পিন (PIN) <span style="color:#D32F2F">*</span>
+          </label>
+          <input id="st-pw" type="password" class="dlas-input" value="1234" placeholder="••••">
+          <small style="display:block;margin-top:4px;font-size:0.8rem;color:var(--text-muted)">ডেমো পিন: ১২৩৪ (সবার জন্য প্রযোজ্য)</small>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px">
+          <label style="display:inline-flex;align-items:center;gap:8px;font-size:0.92rem;cursor:pointer">
+            <input type="checkbox" id="chkRemember" ${remember ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--gov-green)">
+            মনে রাখুন
+          </label>
+          <button type="button" id="btnForgotPw" style="appearance:none;border:0;background:transparent;color:var(--gov-green);font-size:0.9rem;font-weight:600;text-decoration:underline;cursor:pointer">
+            পাসওয়ার্ড ভুলে গেছেন?
+          </button>
+        </div>
+
+        <button type="button" class="dlas-btn-primary" id="btnStaffLoginSubmit">
+          লগইন করুন →
+        </button>
+      </div>`;
+    }
+
+    // Step: Applicant Login
+    else if (authStep === 'applicant') {
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        <h2 class="dlas-auth-heading">👤 আবেদনকারী / নাগরিক লগইন</h2>
+        <p class="dlas-auth-lead">আপনার নিবন্ধিত মোবাইল নম্বর দিন। ওটিপি (OTP) কোড অথবা পিন দিয়ে সহজে প্রবেশ করুন।</p>
+
+        <!-- মোড টগল -->
+        <div style="display:flex;gap:8px;margin-bottom:20px;background:#F1F5F9;padding:4px;border-radius:8px">
+          <button type="button" id="modeOtpBtn" style="flex:1;padding:10px;border:0;border-radius:6px;font-weight:700;font-family:inherit;cursor:pointer;${appMode === 'otp' ? 'background:#fff;color:var(--gov-green);box-shadow:0 1px 3px rgba(0,0,0,0.1)' : 'background:transparent;color:var(--text-muted)'}">
+            📱 ওটিপি (OTP) কোড দিয়ে
+          </button>
+          <button type="button" id="modePinBtn" style="flex:1;padding:10px;border:0;border-radius:6px;font-weight:700;font-family:inherit;cursor:pointer;${appMode === 'pin' ? 'background:#fff;color:var(--gov-green);box-shadow:0 1px 3px rgba(0,0,0,0.1)' : 'background:transparent;color:var(--text-muted)'}">
+            🔑 পিন / পাসওয়ার্ড দিয়ে
+          </button>
+        </div>
+
+        <div class="dlas-input-group">
+          <label class="dlas-label" for="ap-mob">
+            মোবাইল নম্বর <span style="color:#D32F2F">*</span>
+          </label>
+          <input id="ap-mob" type="tel" class="dlas-input" value="${esc(appPhone || '01700000001')}" placeholder="যেমন: 01712345678">
+          <small style="display:block;margin-top:5px;font-size:0.8rem;color:var(--text-muted)">
+            আবেদনে বা নিবন্ধনে ব্যবহৃত ১১ সংখ্যার মোবাইল নম্বর দিন
+          </small>
+        </div>
+
+        ${appMode === 'pin' ? `
+          <div class="dlas-input-group">
+            <label class="dlas-label" for="ap-pin">
+              পিন নম্বর / পাসওয়ার্ড <span style="color:#D32F2F">*</span>
+            </label>
+            <input id="ap-pin" type="password" class="dlas-input" value="${esc(appPin || '0001')}" placeholder="••••">
+            <small style="display:block;margin-top:4px;font-size:0.8rem;color:var(--text-muted)">ডেমো পিন: ০০০১ অথবা ১২৩৪</small>
           </div>
-          <div class="field" style="margin-top:1rem">
-            <label>৪-সংখ্যার পিন (PIN) <span class="req">*</span></label>
-            <input id="c_pin" type="password" maxlength="6" value="0001" placeholder="••••">
-            <div class="hint">ডেমো: ময়ূরী আক্তার — ফোন ০১৭০০০০০০০১ / আবেদন DLAS-NET-2026-04420, পিন/শেষ ৪ অঙ্ক: ০০০১</div>
-          </div>
-          <button class="btn btn-primary btn-block" id="btnCitizenSubmit" style="margin-top:1.4rem">
-            👤 নাগরিক অ্যাকাউন্টে প্রবেশ করুন →
+        ` : ''}
+
+        <button type="button" class="dlas-btn-primary" id="btnApplicantSubmit">
+          ${appMode === 'otp' ? 'ওটিপি (OTP) কোড পাঠান →' : 'প্রবেশ করুন →'}
+        </button>
+
+        <div style="margin-top:20px;font-size:0.92rem;color:var(--text-muted)">
+          নতুন আবেদনকারী?
+          <button type="button" id="btnGoRegister" style="appearance:none;border:0;background:transparent;color:var(--gov-green);font-weight:700;cursor:pointer;text-decoration:underline">
+            এখানে নিবন্ধন করুন
           </button>
         </div>
+      </div>`;
+    }
 
-        <!-- ২. কর্মকর্তা / প্রোভাইডার লগইন -->
-        <div id="loginStaffForm" class="${activeTab === 'staff' ? '' : 'hidden'}">
-          <div class="auth-quick-preset-select">
-            <label><strong>পদবী নির্বাচন করুন (স্বয়ংক্রিয় পূরণ):</strong></label>
-            <select id="staffPresetSelect">
-              <option value="officer.joypurhat|1234">রহিমা খাতুন — DLAO কর্মকর্তা (জয়পুরহাট)</option>
-              <option value="lawyer.kabir|1234">অ্যাডভ. কবির হোসেন — প্যানেল আইনজীবী</option>
-              <option value="mediator.joypurhat|1234">নাসরিন সুলতানা — মধ্যস্থতাকারী (ADR)</option>
-              <option value="receiving.dhaka|1234">তানভীর আহমেদ — গ্রহণকারী DLAO (ঢাকা)</option>
-              <option value="udc.khagrachari|1234">জয়ন্ত চাকমা — UDC উদ্যোক্তা</option>
-              <option value="admin|1234">সিস্টেম প্রশাসক (Admin)</option>
+    // Step: OTP Verification
+    else if (authStep === 'otp') {
+      const maskedPhone = appPhone.length >= 10 ? appPhone.slice(0, 3) + '••••' + appPhone.slice(-4) : '০১৭••••••০১';
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        <h2 class="dlas-auth-heading">📱 মোবাইল নম্বর যাচাইকরণ (OTP)</h2>
+        <p class="dlas-auth-lead">
+          আপনার <strong>${maskedPhone}</strong> নম্বরে ৬-সংখ্যার যাচাইকরণ কোড পাঠানো হয়েছে।
+        </p>
+
+        <div class="dlas-input-group">
+          <label class="dlas-label" for="otp-val" style="text-align:center">
+            যাচাইকরণ কোড (OTP) <span style="color:#D32F2F">*</span>
+          </label>
+          <input id="otp-val" type="text" maxlength="6" class="dlas-input" value="${esc(otpCode)}" style="text-align:center;letter-spacing:0.5em;font-size:1.6rem;font-weight:800;font-family:monospace">
+          <small style="display:block;margin-top:6px;text-align:center;font-size:0.84rem;color:var(--gov-green);font-weight:600">
+            ডেমো ওটিপি কোড: ১২৩৪৫৬ (যেকোনো ৬ অঙ্ক গৃহীত হবে)
+          </small>
+        </div>
+
+        <button type="button" class="dlas-btn-primary" id="btnConfirmOtp">
+          যাচাই করুন ও ড্যাশবোর্ডে প্রবেশ করুন →
+        </button>
+
+        <div style="margin-top:20px;text-align:center;font-size:0.9rem;color:var(--text-muted)">
+          কোড পাননি?
+          <button type="button" id="btnResendOtp" style="appearance:none;border:0;background:transparent;color:var(--gov-green);font-weight:700;cursor:pointer;text-decoration:underline">
+            পুনরায় কোড পাঠান
+          </button>
+        </div>
+      </div>`;
+    }
+
+    // Step: Create Account Picker
+    else if (authStep === 'createPick') {
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        <h2 class="dlas-auth-heading">✨ নতুন অ্যাকাউন্ট বা তালিকাভুক্তির আবেদন</h2>
+        <p class="dlas-auth-lead">আপনার প্রযোজ্য আবেদন ধরনটি বেছে নিন:</p>
+
+        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px">
+          <button type="button" id="pickRegCitizen" style="appearance:none;cursor:pointer;display:flex;align-items:flex-start;gap:16px;padding:18px 20px;border:1.5px solid var(--border);border-radius:10px;background:#fff;text-align:left;font-family:inherit;transition:all 0.15s ease">
+            <span style="font-size:1.8rem">👤</span>
+            <div>
+              <strong style="display:block;font-size:1.05rem;color:var(--text)">নাগরিক / সেবাগ্রহীতা অ্যাকাউন্ট</strong>
+              <span style="font-size:0.88rem;color:var(--text-muted)">সরকারি খরচে আইনি সহায়তা, পরামর্শ ও মামলা ট্র্যাকিং করতে নিজস্ব প্রোফাইল খুলুন।</span>
+            </div>
+          </button>
+
+          <button type="button" id="pickRegPanel" style="appearance:none;cursor:pointer;display:flex;align-items:flex-start;gap:16px;padding:18px 20px;border:1.5px solid var(--border);border-radius:10px;background:#fff;text-align:left;font-family:inherit;transition:all 0.15s ease">
+            <span style="font-size:1.8rem">⚖️</span>
+            <div>
+              <strong style="display:block;font-size:1.05rem;color:var(--text)">প্যানেল আইনজীবী তালিকাভুক্তি আবেদন</strong>
+              <span style="font-size:0.88rem;color:var(--text-muted)">জেলা লিগ্যাল এইড বা সুপ্রীম কোর্ট লিগ্যাল এইড প্যানেলে আইনজীবী হিসেবে যুক্ত হতে আবেদন করুন।</span>
+            </div>
+          </button>
+
+          <button type="button" id="pickRegMed" style="appearance:none;cursor:pointer;display:flex;align-items:flex-start;gap:16px;padding:18px 20px;border:1.5px solid var(--border);border-radius:10px;background:#fff;text-align:left;font-family:inherit;transition:all 0.15s ease">
+            <span style="font-size:1.8rem">🤝</span>
+            <div>
+              <strong style="display:block;font-size:1.05rem;color:var(--text)">বিশেষ মধ্যস্থতাকারী আবেদন (ADR Mediator)</strong>
+              <span style="font-size:0.88rem;color:var(--text-muted)">জাতীয় মধ্যস্থতাকারী প্যানেলে সনদপ্রাপ্ত মধ্যস্থতাকারী হিসেবে দায়িত্ব পালনের আবেদন।</span>
+            </div>
+          </button>
+        </div>
+      </div>`;
+    }
+
+    // Step: Citizen Registration (regStart)
+    else if (authStep === 'regStart') {
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        <h2 class="dlas-auth-heading">👤 নতুন নাগরিক নিবন্ধন</h2>
+        <p class="dlas-auth-lead">সহজেই আপনার নাগরিক অ্যাকাউন্ট তৈরি করে সরকারি খরচে আইনি সেবায় প্রবেশ করুন।</p>
+
+        <div class="dlas-input-group">
+          <label class="dlas-label" for="rg-name">আপনার পূর্ণ নাম <span style="color:#D32F2F">*</span></label>
+          <input id="rg-name" type="text" class="dlas-input" value="${esc(regName)}" placeholder="যেমন: রেহানা বেগম">
+        </div>
+
+        <div class="dlas-input-group">
+          <label class="dlas-label" for="rg-mob">মোবাইল নম্বর <span style="color:#D32F2F">*</span></label>
+          <input id="rg-mob" type="tel" class="dlas-input" value="${esc(regPhone)}" placeholder="০১৭XXXXXXXX">
+        </div>
+
+        <div class="dlas-input-group">
+          <label class="dlas-label" for="rg-pw">পাসওয়ার্ড / পিন (কমপক্ষে ৪ সংখ্যা) <span style="color:#D32F2F">*</span></label>
+          <input id="rg-pw" type="password" class="dlas-input" value="${esc(regPw || '1234')}" placeholder="••••">
+        </div>
+
+        <button type="button" class="dlas-btn-primary" id="btnSubmitCitizenReg">
+          নিবন্ধন সম্পন্ন করুন ও প্রবেশ করুন →
+        </button>
+      </div>`;
+    }
+
+    // Step: Panel Lawyer Registration (regPanel)
+    else if (authStep === 'regPanel') {
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        <h2 class="dlas-auth-heading">⚖️ প্যানেল আইনজীবী তালিকাভুক্তি আবেদন</h2>
+        <p class="dlas-auth-lead">বার কাউন্সিল সনদপ্রাপ্ত আইনজীবীদের জন্য সরকারি লিগ্যাল এইড প্যানেলে তালিকাভুক্তির ফরম:</p>
+
+        ${plrDone ? `
+          <div style="background:#E8F5EF;border:1.5px solid #0C9240;border-radius:10px;padding:20px;margin-bottom:20px">
+            <h3 style="margin:0 0 6px;color:#075C28">আবেদন সফলভাবে গৃহীত হয়েছে!</h3>
+            <p style="margin:0;font-size:0.92rem;color:var(--text)">
+              আপনার ট্র্যাকিং রেফারেন্স আইডি: <strong style="font-family:monospace;font-size:1.1rem;color:#00543E">${esc(plrDone)}</strong><br>
+              জেলা কমিটির যাচাই-বাছাই শেষে আপনার ইমেইল ও ফোনে অনুমোদন বার্তা পাঠানো হবে।
+            </p>
+          </div>
+          <button type="button" class="dlas-btn-primary" id="btnBackToLoginAfterPlr">লগইন পেজে ফিরুন</button>
+        ` : `
+          <div class="dlas-input-group">
+            <label class="dlas-label">আইনজীবীর নাম <span style="color:#D32F2F">*</span></label>
+            <input id="pl-name" class="dlas-input" value="${esc(plrName)}" placeholder="অ্যাডভোকেট…">
+          </div>
+          <div class="dlas-input-group">
+            <label class="dlas-label">বার কাউন্সিল সনদ নম্বর <span style="color:#D32F2F">*</span></label>
+            <input id="pl-bar" class="dlas-input" value="${esc(plrBar)}" placeholder="BAR-NET-XXXXX">
+          </div>
+          <div class="dlas-input-group">
+            <label class="dlas-label">এখতিয়ার / জেলা বার <span style="color:#D32F2F">*</span></label>
+            <select id="pl-jur" class="dlas-input">
+              <option value="netrokona">নেত্রকোনা জেলা আদালত</option>
+              <option value="joypurhat">জয়পুরহাট জেলা আদালত</option>
+              <option value="jhenaidah">ঝিনাইদহ জেলা আদালত</option>
+              <option value="dhaka">ঢাকা জেলা ও দায়রা জজ আদালত</option>
+              <option value="sc">বাংলাদেশ সুপ্রীম কোর্ট</option>
             </select>
           </div>
-
-          <div class="field">
-            <label>ব্যবহারকারী নাম (Username) <span class="req">*</span></label>
-            <input id="s_user" value="officer.joypurhat" placeholder="যেমন: officer.joypurhat">
+          <div class="dlas-input-group">
+            <label class="dlas-label">মোবাইল নম্বর <span style="color:#D32F2F">*</span></label>
+            <input id="pl-phone" type="tel" class="dlas-input" value="${esc(plrPhone)}" placeholder="০১৭XXXXXXXX">
           </div>
-          <div class="field" style="margin-top:1rem">
-            <label>৪-সংখ্যার পিন (PIN) <span class="req">*</span></label>
-            <input id="s_pin" type="password" value="1234" maxlength="8" placeholder="••••">
+          <div class="dlas-input-group">
+            <label class="dlas-label">অফিশিয়াল ইমেইল</label>
+            <input id="pl-email" type="email" class="dlas-input" value="${esc(plrEmail)}" placeholder="advocate@bar.org">
           </div>
-          <button class="btn btn-primary btn-block" id="btnStaffSubmit" style="margin-top:1.4rem">
-            🏛️ কর্মকর্তা পোর্টালে প্রবেশ করুন →
-          </button>
-        </div>
+          <button type="button" class="dlas-btn-primary" id="btnSubmitPlr">আবেদন দাখিল করুন →</button>
+        `}
+      </div>`;
+    }
 
-        <!-- ৩. ডোর / দ্রুত এক্সেস -->
-        <div id="loginDoorForm" class="${activeTab === 'door' ? '' : 'hidden'}">
-          <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem">
-            হেল্পলাইন ১৬৬৯৯ এজেন্ট বা ইউনিয়ন ডিজিটাল সেন্টার (UDC) অপারেটরদের জন্য দ্রুত প্রবেশ ব্যবস্থা:
+    // Step: Special Mediator Registration (regMed)
+    else if (authStep === 'regMed') {
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        <h2 class="dlas-auth-heading">🤝 বিশেষ মধ্যস্থতাকারী আবেদন</h2>
+        <p class="dlas-auth-lead">বিকল্প বিরোধ নিষ্পত্তি (ADR) প্যানেলে বিশেষ মধ্যস্থতাকারী হিসেবে তালিকাভুক্তির আবেদন:</p>
+
+        ${medDone ? `
+          <div style="background:#E8F5EF;border:1.5px solid #0C9240;border-radius:10px;padding:20px;margin-bottom:20px">
+            <h3 style="margin:0 0 6px;color:#075C28">আবেদন সফলভাবে গৃহীত হয়েছে!</h3>
+            <p style="margin:0;font-size:0.92rem;color:var(--text)">
+              আপনার ট্র্যাকিং রেফারেন্স আইডি: <strong style="font-family:monospace;font-size:1.1rem;color:#00543E">${esc(medDone)}</strong><br>
+              জাতীয় এডিআর কমিটি কর্তৃক অনুমোদন সাপেক্ষে সক্রিয় করা হবে।
+            </p>
+          </div>
+          <button type="button" class="dlas-btn-primary" id="btnBackToLoginAfterMed">লগইন পেজে ফিরুন</button>
+        ` : `
+          <div class="dlas-input-group">
+            <label class="dlas-label">মধ্যস্থতাকারীর নাম <span style="color:#D32F2F">*</span></label>
+            <input id="md-name" class="dlas-input" value="${esc(medName)}" placeholder="জনাব/বেগম…">
+          </div>
+          <div class="dlas-input-group">
+            <label class="dlas-label">এডিআর মধ্যস্থতা সনদ নম্বর <span style="color:#D32F2F">*</span></label>
+            <input id="md-cert" class="dlas-input" value="${esc(medCert)}" placeholder="SM-2026-XXXX">
+          </div>
+          <div class="dlas-input-group">
+            <label class="dlas-label">কর্মএলাকা / জেলা <span style="color:#D32F2F">*</span></label>
+            <select id="md-dist" class="dlas-input">
+              <option value="netrokona">নেত্রকোনা</option>
+              <option value="joypurhat">জয়পুরহাট</option>
+              <option value="jhenaidah">ঝিনাইদহ</option>
+              <option value="dhaka">ঢাকা</option>
+            </select>
+          </div>
+          <div class="dlas-input-group">
+            <label class="dlas-label">মোবাইল নম্বর <span style="color:#D32F2F">*</span></label>
+            <input id="md-phone" type="tel" class="dlas-input" value="${esc(medPhone)}" placeholder="০১৭XXXXXXXX">
+          </div>
+          <button type="button" class="dlas-btn-primary" id="btnSubmitMed">আবেদন দাখিল করুন →</button>
+        `}
+      </div>`;
+    }
+
+    // Step: Forgot Password
+    else if (authStep === 'fpEmail' || authStep === 'fpCode' || authStep === 'fpNew' || authStep === 'fpDone') {
+      contentHtml = `
+      <div class="dlas-auth-inner">
+        ${authStep === 'fpEmail' ? `
+          <h2 class="dlas-auth-heading">🔑 পাসওয়ার্ড পুনরুদ্ধার</h2>
+          <p class="dlas-auth-lead">আপনার প্রাতিষ্ঠানিক ইমেইল বা আইডি দিন। একটি যাচাইকরণ কোড পাঠানো হবে।</p>
+          <div class="dlas-input-group">
+            <label class="dlas-label">অফিশিয়াল ইমেইল বা আইডি</label>
+            <input id="fp-id" class="dlas-input" value="${esc(fpId || 'cjm.netrokona@judiciary.gov.bd')}">
+          </div>
+          <button type="button" class="dlas-btn-primary" id="btnFpToCode">যাচাইকরণ কোড পাঠান →</button>
+        ` : ''}
+
+        ${authStep === 'fpCode' ? `
+          <h2 class="dlas-auth-heading">📱 কোড নিশ্চিত করুন</h2>
+          <p class="dlas-auth-lead">আপনার ইমেইলে প্রেরিত ৬-সংখ্যার কোডটি দিন।</p>
+          <div class="dlas-input-group">
+            <label class="dlas-label">যাচাইকরণ কোড</label>
+            <input id="fp-code" class="dlas-input" value="123456" style="text-align:center;letter-spacing:0.4em;font-size:1.4rem">
+          </div>
+          <button type="button" class="dlas-btn-primary" id="btnFpToNew">যাচাই করুন →</button>
+        ` : ''}
+
+        ${authStep === 'fpNew' ? `
+          <h2 class="dlas-auth-heading">🔒 নতুন পাসওয়ার্ড নির্ধারণ</h2>
+          <p class="dlas-auth-lead">আপনার অ্যাকাউন্টের জন্য নতুন পাসওয়ার্ড সেট করুন।</p>
+          <div class="dlas-input-group">
+            <label class="dlas-label">নতুন পাসওয়ার্ড</label>
+            <input id="fp-pw1" type="password" class="dlas-input" placeholder="••••">
+          </div>
+          <div class="dlas-input-group">
+            <label class="dlas-label">নতুন পাসওয়ার্ড নিশ্চিত করুন</label>
+            <input id="fp-pw2" type="password" class="dlas-input" placeholder="••••">
+          </div>
+          <button type="button" class="dlas-btn-primary" id="btnFpSaveNew">পাসওয়ার্ড পরিবর্তন করুন →</button>
+        ` : ''}
+
+        ${authStep === 'fpDone' ? `
+          <div style="background:#E8F5EF;border:1.5px solid #0C9240;border-radius:10px;padding:24px;margin-bottom:20px;text-align:center">
+            <span style="font-size:2.5rem;display:block;margin-bottom:8px">✓</span>
+            <h3 style="margin:0 0 6px;color:#075C28">পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে</h3>
+            <p style="margin:0;font-size:0.94rem;color:var(--text)">এখন আপনার নতুন পাসওয়ার্ড ব্যবহার করে লগইন করুন।</p>
+          </div>
+          <button type="button" class="dlas-btn-primary" id="btnBackToLoginAfterFp">লগইন পেজে যান</button>
+        ` : ''}
+      </div>`;
+    }
+
+    // Render Full Layout (Left Form + Right Hero)
+    app.innerHTML = `
+    <div class="dlas-auth-layout">
+      <!-- বাম কলাম: ডায়নামিক ফরম -->
+      <div class="dlas-auth-col-form">
+        <button type="button" class="dlas-auth-back-btn" id="btnAuthBack">
+          ${authStep === 'role' ? '← মূল পাতায় ফিরে যান' : '← পূর্ববর্তী ধাপে ফিরুন'}
+        </button>
+
+        ${notice ? `
+          <div class="dlas-notice-box ${noticeType === 'success' ? 'dlas-notice-success' : (noticeType === 'error' ? 'dlas-notice-err' : 'dlas-notice-warn')}" style="max-width:32rem;margin-bottom:20px">
+            <span>${noticeType === 'error' ? '⚠️' : 'ℹ️'}</span>
+            <span>${esc(notice)}</span>
+          </div>
+        ` : ''}
+
+        ${contentHtml}
+      </div>
+
+      <!-- ডান কলাম: সরকারি অফিশিয়াল ব্যানার হিরো -->
+      <div class="dlas-auth-col-hero">
+        <img class="dlas-auth-hero-img" src="/img/hero_gavel.jpg" alt="আইনি সহায়তা" onerror="this.src='/img/topic_family.jpg'">
+        <div class="dlas-auth-hero-overlay"></div>
+        <div class="dlas-auth-hero-content">
+          <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:14px;background:rgba(255,255,255,0.14);padding:6px 14px;border-radius:999px;backdrop-filter:blur(4px)">
+            <svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true">
+              <circle cx="50" cy="50" r="48" fill="#D32F2F" stroke="#E5A93B" stroke-width="3"/>
+              <circle cx="50" cy="50" r="28" fill="#006A4E"/>
+            </svg>
+            <span style="font-size:0.86rem;font-weight:700;color:#fff;letter-spacing:0.02em">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</span>
+          </div>
+          <h2 class="dlas-auth-hero-title">সবার জন্য ন্যায়বিচার নিশ্চিতকরণ</h2>
+          <p class="dlas-auth-hero-desc">
+            জাতীয় আইনগত সহায়তা প্রদান সংস্থা (NLASO)-র সমন্বিত গেটওয়ে। প্রান্তিক, অসহায় ও অসচ্ছল নাগরিকদের সম্পূর্ণ সরকারি খরচে আইনজীবী নিয়োগ, সালিশ ও আইনি পরামর্শ।
           </p>
-          <div class="field">
-            <label>প্রবেশ কোড বা এজেন্ট আইডি</label>
-            <input id="d_code" value="helpline.agent1" placeholder="helpline.agent1">
+          <div class="dlas-auth-trust-list">
+            <span class="dlas-auth-trust-item">🛡️ সম্পূর্ণ সরকারি অর্থায়নে বিনামূল্যে</span>
+            <span class="dlas-auth-trust-item">🔒 ডেটা গোপনীয়তা সংরক্ষিত (PDPA)</span>
+            <span class="dlas-auth-trust-item">📞 জাতীয় হেল্পলাইন ১৬৬৯৯ (টোল-ফ্রি)</span>
           </div>
-          <button class="btn btn-primary btn-block" id="btnDoorSubmit" style="margin-top:1.4rem">
-            🚪 এক্সেস করুন →
-          </button>
-        </div>
-
-        <!-- নতুন অ্যাকাউন্ট তৈরির লিংক → সিগনআপ পেজ -->
-        <div class="auth-signup-link-row">
-          <span>নতুন ব্যবহারকারী?</span>
-          <a href="#/signup" id="loginSignupLink" class="auth-signup-link">✨ নতুন অ্যাকাউন্ট তৈরি করুন</a>
         </div>
       </div>
     </div>`;
 
-    $('#tabBtnCitizen').onclick = () => { activeTab = 'citizen'; render(); };
-    $('#tabBtnStaff').onclick = () => { activeTab = 'staff'; render(); };
-    $('#tabBtnDoor').onclick = () => { activeTab = 'door'; render(); };
-
-    const presetSel = $('#staffPresetSelect');
-    if (presetSel) {
-      presetSel.onchange = () => {
-        const [u, p] = presetSel.value.split('|');
-        $('#s_user').value = u;
-        $('#s_pin').value = p;
+    // ── Bind Events ──
+    const backBtn = $('#btnAuthBack');
+    if (backBtn) {
+      backBtn.onclick = () => {
+        notice = '';
+        if (authStep === 'role') {
+          location.hash = '#/';
+        } else if (authStep === 'createPick') {
+          authStep = 'role';
+          render();
+        } else if (authStep === 'regStart' || authStep === 'regPanel' || authStep === 'regMed') {
+          authStep = 'createPick';
+          render();
+        } else if (authStep === 'otp') {
+          authStep = 'applicant';
+          render();
+        } else {
+          authStep = 'role';
+          render();
+        }
       };
     }
 
-    const showErr = (msg) => {
-      const e = $('#loginErr');
-      e.textContent = msg;
-      e.classList.remove('hidden');
-    };
+    // Role selection buttons
+    const pStaff = $('#pickStaffBtn');
+    const pApp = $('#pickApplicantBtn');
+    if (pStaff && pApp) {
+      pStaff.onclick = () => { rolePick = 'staff'; render(); };
+      pApp.onclick = () => { rolePick = 'applicant'; render(); };
+    }
+    const contRole = $('#btnContinueRole');
+    if (contRole) {
+      contRole.onclick = () => {
+        authStep = rolePick === 'staff' ? 'staff' : 'applicant';
+        notice = '';
+        render();
+      };
+    }
+    const goCreate = $('#btnGoCreatePick');
+    if (goCreate) {
+      goCreate.onclick = () => { authStep = 'createPick'; notice = ''; render(); };
+    }
 
-    // Citizen login
-    const btnC = $('#btnCitizenSubmit');
-    if (btnC) {
-      btnC.onclick = async () => {
-        const id = $('#c_id').value.trim();
-        const pin = $('#c_pin').value.trim();
-        if (!id || !pin) return showErr('মোবাইল নম্বর ও পিন উভয়ই প্রদান করুন');
+    // Staff roster picker & search
+    const uidInp = $('#st-uid');
+    if (uidInp) {
+      uidInp.oninput = (e) => {
+        staffQuery = e.target.value;
+      };
+      $$('.dlas-roster-item-btn').forEach(btn => {
+        btn.onclick = () => {
+          staffQuery = btn.dataset.email;
+          if ($('#st-uid')) $('#st-uid').value = staffQuery;
+          if ($('#st-pw')) $('#st-pw').value = btn.dataset.pin || '1234';
+          notice = '';
+        };
+      });
+    }
 
-        const r = await apiPost('auth', { mode: 'citizen', phone: id, pin });
-        if (r.error) return showErr(r.error);
-        ME = (r.session || r.user || { name: 'নাগরিক', role: 'CITIZEN' });
-        ME.phoneDigits = id.replace(/\D/g, '');
-        renderAuthLink();
-        location.hash = '#/dashboard';
-        toast('সফলভাবে লগইন হয়েছে');
+    // Staff login submit
+    const btnStaffLogin = $('#btnStaffLoginSubmit');
+    if (btnStaffLogin) {
+      btnStaffLogin.onclick = async () => {
+        const username = ($('#st-uid') ? $('#st-uid').value : staffQuery).trim();
+        const pin = ($('#st-pw') ? $('#st-pw').value : '1234').trim();
+        if (!username || !pin) {
+          notice = 'অনুগ্রহ করে অফিশিয়াল আইডি ও পিন প্রদান করুন';
+          noticeType = 'error';
+          render();
+          return;
+        }
+
+        btnStaffLogin.disabled = true;
+        btnStaffLogin.textContent = 'যাচাই করা হচ্ছে…';
+
+        try {
+          const r = await apiPost('auth', { mode: 'staff', username, pin });
+          if (r.error) {
+            notice = r.error;
+            noticeType = 'error';
+            render();
+          } else {
+            ME = r.session || r.user || { name: username, role: 'OFFICER' };
+            renderAuthLink();
+            toast('সফলভাবে কর্মকর্তা পোর্টালে প্রবেশ সম্পন্ন');
+
+            if (ME.role === 'JUDGE' || String(ME.role).toLowerCase() === 'judge') {
+              location.hash = '#/role-judge';
+            } else if (ME.role === 'LAWYER') {
+              location.hash = '#/console?role=lawyer';
+            } else if (ME.role === 'MEDIATOR') {
+              location.hash = '#/console?role=mediator';
+            } else {
+              location.hash = '#/console';
+            }
+          }
+        } catch (err) {
+          notice = 'সার্ভার যোগাযোগে সমস্যা হয়েছে';
+          noticeType = 'error';
+          render();
+        }
       };
     }
 
-    // ── লগইন পেজের নিচে "নতুন অ্যাকাউন্ট তৈরি করুন" লিংক → সিগনআপ পেজ ──
-    const signupLink = $('#loginSignupLink');
-    if (signupLink) {
-      signupLink.onclick = () => { location.hash = '#/signup'; return false; };
+    // Applicant mode toggle (OTP vs PIN)
+    const mOtp = $('#modeOtpBtn');
+    const mPin = $('#modePinBtn');
+    if (mOtp && mPin) {
+      mOtp.onclick = () => { appMode = 'otp'; render(); };
+      mPin.onclick = () => { appMode = 'pin'; render(); };
     }
 
-    // Staff login
-    const btnS = $('#btnStaffSubmit');
-    if (btnS) {
-      btnS.onclick = async () => {
-        const username = $('#s_user').value.trim();
-        const pin = $('#s_pin').value.trim();
-        if (!username || !pin) return showErr('ইউজারনেম ও পিন দিন');
+    // Applicant login submit
+    const btnAppSubmit = $('#btnApplicantSubmit');
+    if (btnAppSubmit) {
+      btnAppSubmit.onclick = async () => {
+        appPhone = ($('#ap-mob') ? $('#ap-mob').value : '').trim();
+        if (!appPhone) {
+          notice = 'মোবাইল নম্বর প্রদান করুন';
+          noticeType = 'error';
+          render();
+          return;
+        }
 
-        const r = await apiPost('auth', { mode: 'staff', username, pin });
-        if (r.error) return showErr(r.error);
-        ME = (r.session || r.user || { name: username, role: 'OFFICER' });
-        renderAuthLink();
-        location.hash = '#/console';
-        toast('কর্মকর্তা কনসোলে প্রবেশ সম্পন্ন');
+        if (appMode === 'otp') {
+          authStep = 'otp';
+          notice = '';
+          render();
+        } else {
+          appPin = ($('#ap-pin') ? $('#ap-pin').value : '').trim();
+          if (!appPin) {
+            notice = 'পিন নম্বর প্রদান করুন';
+            noticeType = 'error';
+            render();
+            return;
+          }
+          btnAppSubmit.disabled = true;
+          try {
+            const r = await apiPost('auth', { mode: 'citizen', phone: appPhone, pin: appPin });
+            if (r.error) {
+              notice = r.error;
+              noticeType = 'error';
+              render();
+            } else {
+              ME = r.session || r.user || { name: 'নাগরিক', role: 'CITIZEN' };
+              ME.phone = appPhone;
+              renderAuthLink();
+              location.hash = '#/dashboard';
+              toast('নাগরিক অ্যাকাউন্টে প্রবেশ সফল');
+            }
+          } catch (err) {
+            notice = 'লগইন ব্যর্থ হয়েছে';
+            noticeType = 'error';
+            render();
+          }
+        }
       };
     }
 
-    // Door login
-    const btnD = $('#btnDoorSubmit');
-    if (btnD) {
-      btnD.onclick = async () => {
-        const code = $('#d_code').value.trim();
-        const r = await apiPost('auth', { mode: 'staff', username: code, pin: '1234' });
-        if (r.error) return showErr(r.error);
-        ME = (r.session || r.user || { name: code, role: 'UDC' });
-        renderAuthLink();
-        location.hash = '#/console';
-        toast('এক্সেস অনুমোদিত');
+    // Confirm OTP
+    const btnOtp = $('#btnConfirmOtp');
+    if (btnOtp) {
+      btnOtp.onclick = async () => {
+        otpCode = ($('#otp-val') ? $('#otp-val').value : '123456').trim();
+        btnOtp.disabled = true;
+        btnOtp.textContent = 'যাচাই করা হচ্ছে…';
+
+        try {
+          const r = await apiPost('auth', { mode: 'citizen_otp', phone: appPhone, otp: otpCode });
+          if (r.error) {
+            notice = r.error;
+            noticeType = 'error';
+            render();
+          } else {
+            ME = r.session || r.user || { name: 'নাগরিক', role: 'CITIZEN' };
+            ME.phone = appPhone;
+            renderAuthLink();
+            toast('মোবাইল নম্বর সফলভাবে যাচাই হয়েছে ✓');
+            location.hash = '#/dashboard';
+          }
+        } catch (err) {
+          notice = 'যাচাইকরণ ব্যর্থ হয়েছে';
+          noticeType = 'error';
+          render();
+        }
       };
+    }
+
+    const resendBtn = $('#btnResendOtp');
+    if (resendBtn) {
+      resendBtn.onclick = () => {
+        toast('আপনার মোবাইলে নতুন কোড পাঠানো হয়েছে: ১২৩৪৫৬');
+      };
+    }
+
+    // Create Pick options
+    const pCz = $('#pickRegCitizen');
+    const pPlr = $('#pickRegPanel');
+    const pMed = $('#pickRegMed');
+    if (pCz) pCz.onclick = () => { authStep = 'regStart'; render(); };
+    if (pPlr) pPlr.onclick = () => { authStep = 'regPanel'; render(); };
+    if (pMed) pMed.onclick = () => { authStep = 'regMed'; render(); };
+
+    // Register citizen
+    const btnSubCz = $('#btnSubmitCitizenReg');
+    if (btnSubCz) {
+      btnSubCz.onclick = async () => {
+        regName = ($('#rg-name') ? $('#rg-name').value : '').trim();
+        regPhone = ($('#rg-mob') ? $('#rg-mob').value : '').trim();
+        regPw = ($('#rg-pw') ? $('#rg-pw').value : '1234').trim();
+        if (!regName || !regPhone) {
+          notice = 'নাম ও মোবাইল নম্বর দিন';
+          noticeType = 'error';
+          render();
+          return;
+        }
+
+        btnSubCz.disabled = true;
+        try {
+          const r = await apiPost('auth', { mode: 'signup', name: regName, phone: regPhone, password: regPw });
+          if (r.error) {
+            notice = r.error;
+            noticeType = 'error';
+            render();
+          } else {
+            ME = r.session || r.user || { name: regName, role: 'CITIZEN' };
+            renderAuthLink();
+            toast('নাগরিক অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে ✓');
+            location.hash = '#/dashboard';
+          }
+        } catch (err) {
+          notice = 'নিবন্ধন ব্যর্থ হয়েছে';
+          noticeType = 'error';
+          render();
+        }
+      };
+    }
+
+    // Register Panel Lawyer
+    const btnPlrSub = $('#btnSubmitPlr');
+    if (btnPlrSub) {
+      btnPlrSub.onclick = async () => {
+        plrName = ($('#pl-name') ? $('#pl-name').value : '').trim();
+        plrBar = ($('#pl-bar') ? $('#pl-bar').value : '').trim();
+        plrPhone = ($('#pl-phone') ? $('#pl-phone').value : '').trim();
+        plrEmail = ($('#pl-email') ? $('#pl-email').value : '').trim();
+        plrJur = $('#pl-jur') ? $('#pl-jur').value : 'netrokona';
+
+        if (!plrName || !plrBar || !plrPhone) {
+          notice = 'নাম, বার নম্বর এবং ফোন নম্বর আবশ্যক';
+          noticeType = 'error';
+          render();
+          return;
+        }
+
+        btnPlrSub.disabled = true;
+        try {
+          const r = await apiPost('auth', {
+            mode: 'register_provider',
+            kind: 'lawyer',
+            name: plrName,
+            bar: plrBar,
+            jur: plrJur,
+            phone: plrPhone,
+            email: plrEmail
+          });
+          plrDone = r.id || 'PLR-2026-0412';
+          notice = '';
+          render();
+        } catch (err) {
+          plrDone = 'PLR-2026-0412';
+          render();
+        }
+      };
+    }
+
+    const backPlrBtn = $('#btnBackToLoginAfterPlr');
+    if (backPlrBtn) {
+      backPlrBtn.onclick = () => { authStep = 'staff'; plrDone = ''; render(); };
+    }
+
+    // Register Mediator
+    const btnMedSub = $('#btnSubmitMed');
+    if (btnMedSub) {
+      btnMedSub.onclick = async () => {
+        medName = ($('#md-name') ? $('#md-name').value : '').trim();
+        medCert = ($('#md-cert') ? $('#md-cert').value : '').trim();
+        medPhone = ($('#md-phone') ? $('#md-phone').value : '').trim();
+        medEmail = ($('#md-email') ? $('#md-email').value : '').trim();
+        medDist = $('#md-dist') ? $('#md-dist').value : 'netrokona';
+
+        if (!medName || !medCert || !medPhone) {
+          notice = 'নাম, সনদ নম্বর এবং মোবাইল নম্বর আবশ্যক';
+          noticeType = 'error';
+          render();
+          return;
+        }
+
+        btnMedSub.disabled = true;
+        try {
+          const r = await apiPost('auth', {
+            mode: 'register_provider',
+            kind: 'mediator',
+            name: medName,
+            cert: medCert,
+            district: medDist,
+            phone: medPhone,
+            email: medEmail
+          });
+          medDone = r.id || 'SMR-2026-0114';
+          notice = '';
+          render();
+        } catch (err) {
+          medDone = 'SMR-2026-0114';
+          render();
+        }
+      };
+    }
+
+    const backMedBtn = $('#btnBackToLoginAfterMed');
+    if (backMedBtn) {
+      backMedBtn.onclick = () => { authStep = 'staff'; medDone = ''; render(); };
+    }
+
+    // Forgot password flow
+    const btnFp = $('#btnForgotPw');
+    if (btnFp) {
+      btnFp.onclick = () => { authStep = 'fpEmail'; render(); };
+    }
+    const btnFpCode = $('#btnFpToCode');
+    if (btnFpCode) {
+      btnFpCode.onclick = () => {
+        fpId = ($('#fp-id') ? $('#fp-id').value : '').trim();
+        if (!fpId) { notice = 'অফিশিয়াল আইডি বা ইমেইল দিন'; noticeType = 'error'; render(); return; }
+        authStep = 'fpCode';
+        notice = '';
+        render();
+      };
+    }
+    const btnFpNew = $('#btnFpToNew');
+    if (btnFpNew) {
+      btnFpNew.onclick = () => { authStep = 'fpNew'; render(); };
+    }
+    const btnSaveNewPw = $('#btnFpSaveNew');
+    if (btnSaveNewPw) {
+      btnSaveNewPw.onclick = async () => {
+        fpPw1 = ($('#fp-pw1') ? $('#fp-pw1').value : '').trim();
+        fpPw2 = ($('#fp-pw2') ? $('#fp-pw2').value : '').trim();
+        if (!fpPw1 || fpPw1 !== fpPw2) {
+          notice = 'পাসওয়ার্ড দুটি মিলছে না বা খালি রয়েছে';
+          noticeType = 'error';
+          render();
+          return;
+        }
+        try {
+          await apiPost('auth', { mode: 'reset_password', identifier: fpId, newPassword: fpPw1 });
+        } catch (e) {}
+        authStep = 'fpDone';
+        notice = '';
+        render();
+      };
+    }
+    const btnBackFp = $('#btnBackToLoginAfterFp');
+    if (btnBackFp) {
+      btnBackFp.onclick = () => { authStep = 'staff'; render(); };
+    }
+
+    const btnGoReg = $('#btnGoRegister');
+    if (btnGoReg) {
+      btnGoReg.onclick = () => { authStep = 'regStart'; render(); };
     }
   }
 
   render();
 }
+
 
 // ---------- অন্যান্য পেজসমূহ ----------
 async function pageEligibility() {
@@ -3240,8 +4522,12 @@ function renderAuthLink() {
   const el = $('#loginLink');
   if (!el) return;
   if (ME) {
-    el.innerHTML = esc(ME.name || 'ড্যাশবোর্ড') + ' 👤';
-    el.href = ME.role && ME.role !== 'applicant' && ME.role !== 'CITIZEN' ? '#/console' : '#/dashboard';
+    const isJudge = (ME.role === 'JUDGE' || String(ME.role).toLowerCase() === 'judge');
+    const isStaff = ME.role && ME.role !== 'applicant' && ME.role !== 'CITIZEN';
+    const targetHref = isJudge ? '#/role-judge' : (isStaff ? '#/console' : '#/dashboard');
+    const icon = isJudge ? '⚖️' : (isStaff ? '🏛️' : '👤');
+    el.innerHTML = `${icon} ${esc(ME.nameBn || ME.name || 'অ্যাকাউন্ট')} <span style="font-size:12px">→</span>`;
+    el.href = targetHref;
   } else {
     el.innerHTML = 'লগইন <span style="font-size:14px">👤</span>';
     el.href = '#/login';
